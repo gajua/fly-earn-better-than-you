@@ -1,0 +1,41 @@
+{
+  "source": "HHMI Janelia MaleCNS",
+  "sourceUrl": "https://male-cns.janelia.org/download/",
+  "server": "https://neuprint.janelia.org",
+  "dataset": "male-cns:v1.0",
+  "license": "CC-BY",
+  "generatedAt": "2026-09-11T10:03:52.340928+00:00",
+  "accessMode": "anonymous-public-snapshot",
+  "neuronCount": 249,
+  "edgeCount": 7862,
+  "sourceNeuronIds": [
+    45591, 46750, 48512, 53005, 54436, 62196, 63911, 65252, 800049, 801379,
+    801957, 802125, 802282, 803140, 803882, 803886, 803903, 804104, 804120,
+    804151, 804256, 804528, 805000, 805314, 805347, 805493, 805534, 805586,
+    805587, 805594, 805623, 806067, 806078, 806261, 806385, 806527, 809986,
+    902929, 902991, 905002, 905074, 905881, 906190, 906292, 906449, 906519,
+    908138, 936625
+  ],
+  "outputNeuronIds": [
+    10001, 10010, 10091, 10117, 10124, 10131, 10141, 10177, 10192, 10197, 10228,
+    10234, 10244, 10274, 10281, 10283, 10286, 10301, 10361, 10417, 10440, 10558,
+    10577, 10584, 10856, 10923, 10957, 10968, 11006, 11065, 11078, 11088, 11159,
+    11380, 11693, 11931, 12089, 12490, 12628, 13130, 20418, 33037, 256420,
+    519410, 519771, 520300, 555457, 800099
+  ],
+  "weightMin": 1,
+  "weightMax": 487,
+  "queryDescription": "Traced vnc_sensory|sensory_ascending -> ascending_neuron -> cb_intrinsic -> descending_neuron; top weighted populations capped at 48/64/96/48; retained induced edges.",
+  "extractionParameters": {
+    "minimumPathWeight": 5,
+    "inputLimit": 48,
+    "ascendingLimit": 64,
+    "intermediateLimit": 96,
+    "outputLimit": 48
+  },
+  "componentSha256": {
+    "malecns-v1-subgraph.npz": "b8513bdfccaa28c17c71db911322f11b1e8d84797ee7f1b1dabfa4a5f8081d37",
+    "malecns-v1-neurons.parquet": "873f8f760b29234766c259af7ad65cd21612d44b3fe6f7eab6bd5156400879a4"
+  },
+  "sha256": "7a11ab6883d5913185580fc04a38b08c7eabbf4a544f26b5cd0e28d859bc7d8b"
+}

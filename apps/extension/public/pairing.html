@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pair Fly Sensor</title>
+    <link rel="stylesheet" href="pairing.css" />
+  </head>
+  <body>
+    <main>
+      <p class="eyebrow">SENSOR ONLY</p>
+      <h1>Pair local bridge</h1>
+      <p class="summary">
+        Enter the one-launch values shown by the Tauri app. Pairing is removed
+        when Chrome exits.
+      </p>
+
+      <form id="pairing-form">
+        <label for="port">Loopback port</label>
+        <input
+          id="port"
+          name="port"
+          type="number"
+          inputmode="numeric"
+          min="1024"
+          max="65535"
+          required
+        />
+
+        <label for="session-token">Random session token</label>
+        <input
+          id="session-token"
+          name="sessionToken"
+          type="password"
+          minlength="32"
+          maxlength="256"
+          pattern="[A-Za-z0-9_-]{32,256}"
+          autocomplete="off"
+          spellcheck="false"
+          required
+        />
+
+        <p class="origin">
+          Extension origin
+          <code id="extension-origin"></code>
+        </p>
+
+        <div class="actions">
+          <button type="submit">Pair for this launch</button>
+          <button id="unpair" class="secondary" type="button">Unpair</button>
+        </div>
+      </form>
+
+      <p id="status" role="status" aria-live="polite">Not paired</p>
+      <p class="safety">
+        Reads only explicit demo attributes and visible target geometry. It
+        cannot click or place orders.
+      </p>
+    </main>
+    <script type="module" src="src/pairing.js"></script>
+  </body>
+</html>

@@ -1,0 +1,250 @@
+:root {
+  font-family:
+    Inter,
+    ui-sans-serif,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+  color: #eef2ff;
+  background: transparent;
+  font-synthesis: none;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  overflow: hidden;
+  background: transparent;
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  user-select: none;
+}
+
+.fly {
+  position: absolute;
+  top: -18px;
+  left: -18px;
+  width: 38px;
+  height: 36px;
+  filter: drop-shadow(0 2px 2px rgb(0 0 0 / 55%));
+  transform-origin: center;
+  will-change: transform;
+}
+
+.body {
+  position: absolute;
+  top: 10px;
+  left: 13px;
+  width: 13px;
+  height: 22px;
+  border: 2px solid #080a0e;
+  border-radius: 48% 48% 55% 55%;
+  background: repeating-linear-gradient(180deg, #151923 0 4px, #d6aa2b 4px 7px);
+}
+
+.wing {
+  position: absolute;
+  top: 4px;
+  width: 18px;
+  height: 14px;
+  border: 1px solid rgb(190 224 255 / 80%);
+  border-radius: 70% 35% 65% 35%;
+  background: rgb(180 222 255 / 42%);
+  transform-origin: bottom center;
+  animation: wing-beat 76ms ease-in-out infinite alternate;
+}
+
+.wing-left {
+  left: 1px;
+  transform: rotate(-25deg);
+}
+
+.wing-right {
+  right: 1px;
+  transform: scaleX(-1) rotate(-25deg);
+  animation-direction: alternate-reverse;
+}
+
+.eye {
+  position: absolute;
+  top: 1px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #b9ff5e;
+  box-shadow: 0 0 5px #b9ff5e;
+}
+
+.eye-left {
+  left: 1px;
+}
+
+.eye-right {
+  right: 1px;
+}
+
+@keyframes wing-beat {
+  to {
+    transform: rotate(19deg) scaleY(0.42);
+  }
+}
+
+.panel {
+  min-height: 100%;
+  padding: 32px;
+  overflow-y: auto;
+  background:
+    radial-gradient(circle at 100% 0, rgb(91 118 255 / 18%), transparent 44%),
+    #0b0d13;
+}
+
+.panel header,
+.panel section,
+.panel form,
+.panel > .error {
+  max-width: 620px;
+  margin-right: auto;
+  margin-left: auto;
+}
+
+.eyebrow {
+  margin: 0;
+  color: #9fb0ff;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+}
+
+h1 {
+  margin: 8px 0;
+  font-size: 28px;
+}
+
+h2 {
+  margin-top: 0;
+  font-size: 17px;
+}
+
+.muted,
+.token-card p {
+  color: #9ca5b9;
+  line-height: 1.55;
+}
+
+.status-card,
+.pairing-card,
+.token-card {
+  padding: 20px;
+  margin-top: 18px;
+  border: 1px solid #282e3d;
+  border-radius: 14px;
+  background: rgb(24 28 38 / 86%);
+}
+
+.status-card {
+  display: grid;
+  gap: 12px;
+}
+
+.status-card p {
+  margin: 0;
+  color: #bcc4d5;
+  overflow-wrap: anywhere;
+}
+
+.status-dot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  margin-right: 8px;
+  border-radius: 50%;
+  background: #707888;
+}
+
+.status-dot.online {
+  background: #67e897;
+  box-shadow: 0 0 8px rgb(103 232 151 / 70%);
+}
+
+.pairing-card {
+  display: grid;
+  gap: 10px;
+}
+
+label {
+  color: #dce1ee;
+  font-size: 14px;
+  font-weight: 650;
+}
+
+input,
+button {
+  border: 1px solid #343b50;
+  border-radius: 9px;
+  font: inherit;
+}
+
+input {
+  padding: 11px 12px;
+  color: #f3f5fb;
+  outline: none;
+  background: #10131b;
+}
+
+input:focus {
+  border-color: #778cff;
+  box-shadow: 0 0 0 3px rgb(119 140 255 / 16%);
+}
+
+button {
+  width: fit-content;
+  padding: 9px 13px;
+  color: #f6f7fb;
+  cursor: pointer;
+  background: #4558bd;
+}
+
+button:hover {
+  background: #5268db;
+}
+
+code {
+  color: #c9d3ff;
+}
+
+.token {
+  display: block;
+  padding: 12px;
+  overflow-wrap: anywhere;
+  border-radius: 8px;
+  background: #080a0f;
+}
+
+.error {
+  padding: 12px;
+  color: #ffb4b4;
+  border: 1px solid #733c45;
+  border-radius: 9px;
+  background: #341c22;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wing {
+    animation-duration: 220ms;
+  }
+}

@@ -1,0 +1,627 @@
+@import url("https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700&display=swap");
+
+:root {
+  color: #f2f4f2;
+  background: #090b0e;
+  font-family: "Manrope", system-ui, sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-width: 320px;
+  background: #090b0e;
+  scroll-behavior: smooth;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  background:
+    radial-gradient(circle at 35% 15%, rgb(32 59 51 / 24%), transparent 34rem),
+    #090b0e;
+}
+
+button,
+a {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+.app-shell {
+  min-height: 100vh;
+}
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  height: 68px;
+  padding: 0 clamp(20px, 4vw, 64px);
+  border-bottom: 1px solid #252a2f;
+  background: rgb(9 11 14 / 88%);
+  backdrop-filter: blur(18px);
+}
+
+.brand {
+  display: flex;
+  gap: 11px;
+  align-items: center;
+  color: #f5f8f5;
+  font:
+    700 13px/1 "DM Mono",
+    monospace;
+  letter-spacing: 0.12em;
+  text-decoration: none;
+}
+
+.brand-mark {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border: 1px solid #66dca4;
+  border-radius: 50%;
+  color: #66dca4;
+}
+
+.topnav {
+  display: flex;
+  gap: 32px;
+  margin-left: clamp(40px, 8vw, 110px);
+}
+
+.topnav a {
+  color: #70777d;
+  font-size: 13px;
+  text-decoration: none;
+}
+
+.topnav a.active,
+.topnav a:hover {
+  color: #f4f7f4;
+}
+
+.market-status {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-left: auto;
+  color: #8f979b;
+  font:
+    11px "DM Mono",
+    monospace;
+  text-transform: uppercase;
+}
+
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #5fe0a4;
+  box-shadow: 0 0 10px #5fe0a4;
+}
+
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1.75fr) minmax(280px, 0.7fr);
+  gap: 16px;
+  width: min(1440px, calc(100% - 40px));
+  margin: 28px auto 56px;
+}
+
+.market-panel,
+.order-panel,
+.portfolio-card,
+.scenario-panel {
+  border: 1px solid #252a2f;
+  border-radius: 10px;
+  background: rgb(16 19 23 / 86%);
+  box-shadow: 0 18px 70px rgb(0 0 0 / 16%);
+}
+
+.market-panel {
+  min-width: 0;
+  padding: clamp(20px, 3vw, 34px);
+}
+
+.asset-header,
+.section-heading,
+.order-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.symbol-line {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.symbol-line h1,
+.section-heading h2,
+.scenario-panel h2,
+.order-heading h2 {
+  margin: 0;
+  font-size: 22px;
+  letter-spacing: -0.03em;
+}
+
+.symbol-line span,
+.order-heading span,
+.heuristic-badge {
+  padding: 4px 7px;
+  border: 1px solid #30363c;
+  border-radius: 4px;
+  color: #7f888d;
+  font:
+    9px "DM Mono",
+    monospace;
+  letter-spacing: 0.1em;
+}
+
+.asset-header p,
+.scenario-panel p {
+  margin: 6px 0 0;
+  color: #727a80;
+  font-size: 12px;
+}
+
+.price-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.price-block strong {
+  font:
+    500 clamp(24px, 3vw, 36px) "DM Mono",
+    monospace;
+  letter-spacing: -0.06em;
+}
+
+.price-block span {
+  margin-top: 5px;
+  font:
+    12px "DM Mono",
+    monospace;
+}
+
+.positive {
+  color: #5fe0a4 !important;
+}
+
+.negative {
+  color: #ff6875 !important;
+}
+
+.timeframes {
+  display: flex;
+  gap: 4px;
+  margin-top: 28px;
+}
+
+.timeframes button {
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 4px;
+  color: #626a70;
+  background: transparent;
+  font:
+    10px "DM Mono",
+    monospace;
+}
+
+.timeframes button.selected {
+  color: #dfe4e1;
+  background: #24292d;
+}
+
+.chart {
+  position: relative;
+  height: clamp(260px, 40vw, 390px);
+  margin-top: 14px;
+  padding: 5px 36px 24px 0;
+}
+
+.chart svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.grid-lines line {
+  stroke: #23282d;
+  stroke-width: 1;
+}
+
+.chart-line {
+  fill: none;
+  stroke-width: 2.3;
+  vector-effect: non-scaling-stroke;
+}
+
+.positive-stroke {
+  stroke: #5fe0a4;
+}
+
+.negative-stroke {
+  stroke: #ff6875;
+}
+
+.chart-y-axis {
+  position: absolute;
+  top: 6px;
+  right: 0;
+  bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  color: #515960;
+  font:
+    9px "DM Mono",
+    monospace;
+}
+
+.chart-x-axis {
+  position: absolute;
+  right: 36px;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  justify-content: space-between;
+  color: #515960;
+  font:
+    9px "DM Mono",
+    monospace;
+}
+
+.order-panel,
+.scenario-panel {
+  padding: 24px;
+}
+
+.order-heading {
+  padding-bottom: 20px;
+  border-bottom: 1px solid #272c31;
+}
+
+.order-panel label {
+  display: block;
+  margin-top: 18px;
+  color: #7c858a;
+  font-size: 11px;
+}
+
+.input-like {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  padding: 13px 14px;
+  border: 1px solid #30363c;
+  border-radius: 6px;
+  color: #e5e9e7;
+  background: #0c0f12;
+  font:
+    13px "DM Mono",
+    monospace;
+}
+
+.input-like small {
+  color: #666e74;
+}
+
+.available {
+  display: flex;
+  justify-content: space-between;
+  margin: 18px 0;
+  color: #747c81;
+  font-size: 11px;
+}
+
+.available strong {
+  color: #c6ccc8;
+  font-family: "DM Mono", monospace;
+  font-weight: 400;
+}
+
+.order-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.order-button {
+  min-height: 52px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  font:
+    700 12px "DM Mono",
+    monospace;
+  letter-spacing: 0.12em;
+  transition:
+    transform 120ms ease,
+    filter 120ms ease;
+}
+
+.order-button:hover {
+  filter: brightness(1.12);
+  transform: translateY(-1px);
+}
+
+.order-button.buy {
+  color: #07150f;
+  background: #5fe0a4;
+}
+
+.order-button.sell {
+  border-color: #64333a;
+  color: #ff7d88;
+  background: #241419;
+}
+
+.manual-clicks,
+.safety-note {
+  margin: 12px 0 0;
+  color: #515a60;
+  font:
+    9px/1.5 "DM Mono",
+    monospace;
+  text-align: center;
+}
+
+.safety-note {
+  color: #6e8e7e;
+}
+
+.portfolio-card {
+  padding: 24px 28px;
+}
+
+.section-heading {
+  align-items: flex-end;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #272c31;
+}
+
+.eyebrow {
+  display: block;
+  margin-bottom: 7px;
+  color: #687178;
+  font:
+    9px "DM Mono",
+    monospace;
+  letter-spacing: 0.12em;
+}
+
+.section-heading > strong {
+  font:
+    500 21px "DM Mono",
+    monospace;
+}
+
+.position-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 22px;
+  padding-top: 22px;
+}
+
+.position-grid div {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.position-grid span {
+  color: #687178;
+  font-size: 10px;
+}
+
+.position-grid strong {
+  font:
+    500 12px "DM Mono",
+    monospace;
+}
+
+.scenario-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.scenario-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.scenario-buttons button {
+  padding: 10px;
+  border: 1px solid #30363c;
+  border-radius: 5px;
+  color: #959da1;
+  background: #0d1013;
+  font:
+    10px "DM Mono",
+    monospace;
+}
+
+.scenario-buttons button:hover,
+.scenario-buttons button.active {
+  border-color: #5f977d;
+  color: #b5f0d1;
+  background: #15251e;
+}
+
+.signal-readout {
+  display: grid;
+  gap: 8px;
+  margin: 18px 0;
+  padding: 14px;
+  border: 1px solid #252b2f;
+  border-radius: 5px;
+  color: #687178;
+  font:
+    9px "DM Mono",
+    monospace;
+}
+
+.signal-readout span {
+  display: flex;
+  justify-content: space-between;
+}
+
+.signal-readout b {
+  color: #bdc5c1;
+  font-weight: 400;
+}
+
+.brain-mode-picker {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.brain-mode-picker button {
+  padding: 8px 5px;
+  border: 1px solid #30363c;
+  border-radius: 4px;
+  color: #737c81;
+  background: transparent;
+  font:
+    8px "DM Mono",
+    monospace;
+}
+
+.brain-mode-picker button.active {
+  border-color: #5f977d;
+  color: #b5f0d1;
+  background: #15251e;
+}
+
+.brain-diagnostics {
+  margin-bottom: 14px;
+  padding: 13px;
+  border: 1px solid #2b3435;
+  border-radius: 5px;
+  background: #0a0e10;
+}
+
+.brain-diagnostics > strong {
+  color: #d8dfdb;
+  font:
+    11px "DM Mono",
+    monospace;
+}
+
+.brain-diagnostics dl {
+  display: grid;
+  gap: 6px;
+  margin: 12px 0 0;
+}
+
+.brain-diagnostics dl div {
+  display: flex;
+  justify-content: space-between;
+  font:
+    8px "DM Mono",
+    monospace;
+}
+
+.brain-diagnostics dt {
+  color: #596267;
+}
+
+.brain-diagnostics dd {
+  margin: 0;
+  color: #aeb7b2;
+}
+
+.brain-diagnostics p {
+  overflow: hidden;
+  margin: 8px 0 0;
+  color: #7caaa0;
+  font:
+    8px/1.4 "DM Mono",
+    monospace;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.brain-diagnostics.has-error {
+  border-color: #68363c;
+}
+
+.brain-diagnostics .brain-error {
+  color: #ff7d88;
+  white-space: normal;
+}
+
+.heuristic-badge {
+  align-self: flex-start;
+  margin-top: auto;
+  border-color: #645732;
+  color: #baa568;
+}
+
+@media (max-width: 900px) {
+  .workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .order-panel {
+    grid-row: 2;
+  }
+
+  .position-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .topbar {
+    height: 58px;
+  }
+
+  .topnav {
+    display: none;
+  }
+
+  .market-status {
+    font-size: 9px;
+  }
+
+  .workspace {
+    width: min(100% - 20px, 1440px);
+    margin-top: 10px;
+  }
+
+  .asset-header {
+    gap: 20px;
+  }
+
+  .price-block strong {
+    font-size: 22px;
+  }
+
+  .chart {
+    height: 250px;
+  }
+
+  .position-grid {
+    grid-template-columns: 1fr;
+  }
+}

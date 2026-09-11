@@ -1,0 +1,71 @@
+.fly-overlay {
+  position: fixed;
+  top: -14px;
+  left: -17px;
+  z-index: 2147483646;
+  width: 34px;
+  height: 28px;
+  pointer-events: none;
+  contain: layout style paint;
+  will-change: transform;
+  transition: opacity 180ms ease;
+  filter: drop-shadow(0 2px 2px rgb(0 0 0 / 45%));
+}
+
+.fly-sprite {
+  display: block;
+  width: 34px;
+  height: 28px;
+  overflow: visible;
+}
+
+.fly-body {
+  fill: #16171a;
+  stroke: #050505;
+  stroke-width: 1;
+}
+
+.fly-head {
+  fill: #25272c;
+}
+
+.fly-eye {
+  fill: #d74835;
+}
+
+.fly-wing {
+  fill: rgb(205 224 226 / 68%);
+  stroke: rgb(110 136 143 / 75%);
+  stroke-width: 0.8;
+  transform-box: fill-box;
+  transform-origin: bottom center;
+  animation: fly-wing-beat 54ms ease-in-out infinite alternate;
+}
+
+.fly-wing-right {
+  animation-direction: alternate-reverse;
+}
+
+.fly-overlay[data-fly-state="panic"] .fly-wing {
+  animation-duration: 30ms;
+}
+
+.fly-overlay[data-fly-state="observe_chart"] .fly-wing,
+.fly-overlay[data-fly-state="inspect_portfolio"] .fly-wing {
+  animation-duration: 72ms;
+}
+
+@keyframes fly-wing-beat {
+  from {
+    transform: rotate(-17deg) scaleY(0.5);
+  }
+  to {
+    transform: rotate(18deg) scaleY(1.08);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fly-wing {
+    animation-duration: 150ms;
+  }
+}

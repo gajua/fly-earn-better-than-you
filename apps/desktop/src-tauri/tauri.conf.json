@@ -1,0 +1,65 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Fly",
+  "version": "0.1.0",
+  "identifier": "com.flybetter.desktop",
+  "build": {
+    "beforeDevCommand": "pnpm vite",
+    "devUrl": "http://127.0.0.1:1420",
+    "beforeBuildCommand": "pnpm vite build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "macOSPrivateApi": true,
+    "windows": [
+      {
+        "label": "main",
+        "title": "Fly",
+        "url": "/",
+        "width": 1440,
+        "height": 900,
+        "x": 0,
+        "y": 0,
+        "resizable": false,
+        "fullscreen": false,
+        "focus": false,
+        "focusable": false,
+        "transparent": true,
+        "decorations": false,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "shadow": false,
+        "visible": true
+      },
+      {
+        "label": "developer",
+        "title": "Fly Developer Panel",
+        "url": "/",
+        "width": 720,
+        "height": 720,
+        "minWidth": 520,
+        "minHeight": 540,
+        "center": true,
+        "resizable": true,
+        "transparent": false,
+        "decorations": true,
+        "alwaysOnTop": false,
+        "skipTaskbar": false,
+        "shadow": true,
+        "visible": false
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; img-src 'self' asset:; style-src 'self' 'unsafe-inline'; connect-src 'self' ipc: http://ipc.localhost http://127.0.0.1:8000",
+      "capabilities": ["default"]
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["app", "dmg"],
+    "icon": ["icons/icon.png"],
+    "macOS": {
+      "minimumSystemVersion": "12.0"
+    }
+  }
+}

@@ -1,0 +1,10 @@
+fastapi
+uvicorn[standard]
+numpy
+scipy
+pandas
+pyarrow
+neuprint-python
+pytest
+httpx
+ruff
