@@ -1,7 +1,4 @@
-export type DesktopMode =
-  | "IDLE_DESKTOP"
-  | "MARKET_OBSERVING"
-  | "LEAVE_MARKET";
+export type DesktopMode = "IDLE_DESKTOP" | "MARKET_OBSERVING" | "LEAVE_MARKET";
 
 /** Physical desktop coordinates reported by the native monitor API. */
 export interface ScreenRect {
@@ -93,4 +90,3 @@ export interface BridgeStatus {
 export interface PairingDetails extends BridgeStatus {
   readonly token: string;
 }
-

@@ -283,13 +283,7 @@ export function FlyOverlay({
       window.clearInterval(evaluationTimer);
       cancelAnimationFrame(frameId);
     };
-  }, [
-    adapter,
-    brain,
-    evaluationIntervalMs,
-    onBrainError,
-    onBrainOutput,
-  ]);
+  }, [adapter, brain, evaluationIntervalMs, onBrainError, onBrainOutput]);
 
   return (
     <div

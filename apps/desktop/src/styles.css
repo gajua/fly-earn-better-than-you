@@ -1,6 +1,10 @@
 :root {
   font-family:
-    Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Inter,
+    ui-sans-serif,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
     sans-serif;
   color: #eef2ff;
   background: transparent;
@@ -50,12 +54,7 @@ body {
   height: 22px;
   border: 2px solid #080a0e;
   border-radius: 48% 48% 55% 55%;
-  background:
-    repeating-linear-gradient(
-      180deg,
-      #151923 0 4px,
-      #d6aa2b 4px 7px
-    );
+  background: repeating-linear-gradient(180deg, #151923 0 4px, #d6aa2b 4px 7px);
 }
 
 .wing {

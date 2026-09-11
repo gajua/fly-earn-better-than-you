@@ -15,4 +15,5 @@ __pycache__/
 .venv/
 *.pyc
 target/
+apps/desktop/src-tauri/gen/
 services/brain/data/cache/

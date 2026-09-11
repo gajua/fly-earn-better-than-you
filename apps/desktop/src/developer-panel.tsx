@@ -92,9 +92,7 @@ export function DeveloperPanel() {
             ? `${brain.dataset ?? "MaleCNS v1.0"}`
             : "MaleCNS unavailable"}
         </div>
-        <p>
-          Connectome: {brain?.connectomeLoaded ? "loaded" : "not loaded"}
-        </p>
+        <p>Connectome: {brain?.connectomeLoaded ? "loaded" : "not loaded"}</p>
         <p>
           Neurons: {brain?.neuronCount?.toLocaleString() ?? "—"} · Edges:{" "}
           {brain?.edgeCount?.toLocaleString() ?? "—"}
@@ -116,7 +114,10 @@ export function DeveloperPanel() {
         {brain?.error && <p className="error">{brain.error}</p>}
       </section>
 
-      <form className="pairing-card" onSubmit={(event) => void pairExtension(event)}>
+      <form
+        className="pairing-card"
+        onSubmit={(event) => void pairExtension(event)}
+      >
         <label htmlFor="extension-id">Chrome extension ID</label>
         <input
           id="extension-id"

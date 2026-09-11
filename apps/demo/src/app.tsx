@@ -1,11 +1,7 @@
 import { useCallback, useMemo, useState } from "react";
 import { createMaleCNSBrain, createMockFlyBrain } from "@fly/brain-client";
 import { createDemoBrokerAdapter } from "@fly/broker-adapters";
-import type {
-  BrainOutput,
-  FlyBrain,
-  InspectableFlyBrain,
-} from "@fly/core";
+import type { BrainOutput, FlyBrain, InspectableFlyBrain } from "@fly/core";
 import { FlyOverlay } from "@fly/fly-ui";
 
 type ScenarioName =
@@ -89,9 +85,8 @@ const readConfiguredBrainMode = (): BrainChoice => {
 
 const configuredBrainMode = readConfiguredBrainMode();
 
-const isInspectableBrain = (
-  brain: FlyBrain,
-): brain is InspectableFlyBrain => "getDiagnostics" in brain;
+const isInspectableBrain = (brain: FlyBrain): brain is InspectableFlyBrain =>
+  "getDiagnostics" in brain;
 
 const formatMoney = (value: number) =>
   new Intl.NumberFormat("en-US", {
@@ -104,7 +99,9 @@ export function App() {
   const [scenarioName, setScenarioName] = useState<ScenarioName>("Calm");
   const [manualClicks, setManualClicks] = useState({ buy: 0, sell: 0 });
   const [brainMode, setBrainMode] = useState<BrainChoice>(configuredBrainMode);
-  const [lastBrainOutput, setLastBrainOutput] = useState<BrainOutput | null>(null);
+  const [lastBrainOutput, setLastBrainOutput] = useState<BrainOutput | null>(
+    null,
+  );
   const [brainError, setBrainError] = useState<string | null>(null);
   const brain = useMemo<FlyBrain>(
     () =>

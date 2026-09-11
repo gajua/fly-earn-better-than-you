@@ -186,7 +186,9 @@ export const createMaleCNSBrain = ({
         return payload.brainOutput;
       } catch (error) {
         const message =
-          error instanceof Error ? error.message : "Unknown MaleCNS client error";
+          error instanceof Error
+            ? error.message
+            : "Unknown MaleCNS client error";
         updateDiagnostics({
           ...diagnostics,
           isConnectomeLoaded: false,

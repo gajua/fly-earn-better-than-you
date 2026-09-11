@@ -101,7 +101,8 @@ export function FlyOverlay() {
       const dy = target.y - position.y;
       const distance = Math.max(1, Math.hypot(dx, dy));
       const speed =
-        SPEED[mode] * (brainOutput?.danger && brainOutput.danger > 0.7 ? 1.8 : 1);
+        SPEED[mode] *
+        (brainOutput?.danger && brainOutput.danger > 0.7 ? 1.8 : 1);
       const curve = Math.sin(now * 0.006) * 0.28;
       const desiredX = (dx / distance - (dy / distance) * curve) * speed;
       const desiredY = (dy / distance + (dx / distance) * curve) * speed;
@@ -128,7 +129,10 @@ export function FlyOverlay() {
     };
 
     const publishDiagnostics = (diagnostics: BrainDiagnostics) => {
-      localStorage.setItem("fly-brain-diagnostics", JSON.stringify(diagnostics));
+      localStorage.setItem(
+        "fly-brain-diagnostics",
+        JSON.stringify(diagnostics),
+      );
     };
 
     const evaluate = async (nextObservation: MarketObservation) => {
@@ -142,7 +146,8 @@ export function FlyOverlay() {
             mode: "real-connectome",
           }),
         });
-        if (!response.ok) throw new Error(`Brain service HTTP ${response.status}`);
+        if (!response.ok)
+          throw new Error(`Brain service HTTP ${response.status}`);
         const payload = (await response.json()) as {
           brainOutput: BrainOutput;
           connectome: Omit<
@@ -201,11 +206,7 @@ export function FlyOverlay() {
 
   return (
     <main className="overlay" aria-hidden="true">
-      <div
-        ref={flyRef}
-        className="fly"
-        data-desktop-mode="IDLE_DESKTOP"
-      >
+      <div ref={flyRef} className="fly" data-desktop-mode="IDLE_DESKTOP">
         <span className="wing wing-left" />
         <span className="wing wing-right" />
         <span className="body">

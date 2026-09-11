@@ -28,8 +28,11 @@ Status reflects executable evidence, not intent.
 
 - Tauri 2 desktop app: macOS primary-monitor transparent, always-on-top,
   click-through overlay, tray, desktop idle/market modes, Developer Panel, and
-  authenticated loopback bridge are implemented in source. Final runtime and
-  bundle evidence is recorded after the current build gate.
+  authenticated loopback bridge are implemented, compiled, launched, and
+  bundled. Native setters are fatal on startup failure, so the running process
+  proves window sizing, always-on-top, and cursor-ignore calls returned
+  successfully. Independent OS accessibility click injection was unavailable,
+  so pass-through remains PARTIAL rather than overclaimed.
 - Multi-monitor: coordinate types and primary-monitor sizing permit extension,
   but only primary-monitor behavior is targeted and tested in this iteration.
 - Browser-to-desktop targeting: extension rectangles remain viewport
@@ -61,4 +64,14 @@ Status reflects executable evidence, not intent.
   real/control distinction, missing-artifact hard failure, and API contracts.
 - TypeScript tests exercise Mock behavior, MaleCNS validation/no-fallback,
   movement bounds, extension payload validation, and state transitions.
-- Final command outcomes and macOS bundle path are added only after they run.
+- Final command outcomes below come from executed checks, not planned commands.
+- Verification gates re-run on 2026-09-11: Python pytest 8 passed + ruff clean;
+  Rust `cargo test` 5 passed; TypeScript lint/typecheck/test (16) / build
+  passed; Playwright e2e 2 passed. `cargo fmt` was unavailable on this
+  toolchain (`rustfmt` component download failed), so Rust format-check remains
+  unverified.
+- macOS unsigned bundle rebuilt successfully:
+  `Fly_0.1.0_aarch64.dmg` (≈3.0MB) under Cargo's release `bundle/dmg`
+  directory via `CI=true … tauri build --bundles dmg --no-sign`.
+- The release desktop process remained running and bound its bridge only to
+  `127.0.0.1:50463` in the recorded smoke test; the port is random per launch.

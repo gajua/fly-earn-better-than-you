@@ -72,7 +72,7 @@ interactive Developer Panel.
 
 ```bash
 pnpm --filter @fly/desktop tauri dev
-pnpm --filter @fly/desktop tauri build --bundles dmg
+CI=true pnpm --filter @fly/desktop tauri build --bundles dmg --no-sign
 ```
 
 The local `.dmg` is unsigned unless Apple Developer signing credentials are

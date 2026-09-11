@@ -14,10 +14,7 @@ export interface MovementBounds {
 export const FLY_RADIUS = 22;
 export const OBSERVATION_STALE_MS = 12_000;
 
-export const clampPoint = (
-  point: Point,
-  bounds: MovementBounds,
-): Point => ({
+export const clampPoint = (point: Point, bounds: MovementBounds): Point => ({
   x: Math.min(bounds.width - bounds.inset, Math.max(bounds.inset, point.x)),
   y: Math.min(bounds.height - bounds.inset, Math.max(bounds.inset, point.y)),
 });
@@ -39,13 +36,22 @@ export const targetForBrainOutput = (
   bounds: MovementBounds,
 ): Point | null => {
   if (output.state === "approach_buy") {
-    return clampPoint({ x: bounds.width * 0.75, y: bounds.height * 0.62 }, bounds);
+    return clampPoint(
+      { x: bounds.width * 0.75, y: bounds.height * 0.62 },
+      bounds,
+    );
   }
   if (output.state === "approach_sell") {
-    return clampPoint({ x: bounds.width * 0.25, y: bounds.height * 0.62 }, bounds);
+    return clampPoint(
+      { x: bounds.width * 0.25, y: bounds.height * 0.62 },
+      bounds,
+    );
   }
   if (output.state === "observe_chart" || output.state === "interested") {
-    return clampPoint({ x: bounds.width * 0.5, y: bounds.height * 0.42 }, bounds);
+    return clampPoint(
+      { x: bounds.width * 0.5, y: bounds.height * 0.42 },
+      bounds,
+    );
   }
   return null;
 };
