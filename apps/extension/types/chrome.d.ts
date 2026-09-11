@@ -32,6 +32,7 @@ declare namespace chrome {
       remove(keys: string | string[]): Promise<void>;
     }
 
+    const local: StorageArea;
     const session: StorageArea & {
       setAccessLevel(options: {
         accessLevel: "TRUSTED_CONTEXTS" | "TRUSTED_AND_UNTRUSTED_CONTEXTS";
@@ -46,5 +47,33 @@ declare namespace chrome {
         ) => void,
       ): void;
     };
+  }
+
+  namespace tabs {
+    interface Tab {
+      id?: number;
+      url?: string;
+    }
+
+    function query(queryInfo: Record<string, unknown>): Promise<Tab[]>;
+
+    const onUpdated: {
+      addListener(callback: () => void): void;
+    };
+    const onRemoved: {
+      addListener(callback: () => void): void;
+    };
+  }
+
+  namespace action {
+    function setBadgeText(details: { text: string }): Promise<void>;
+    function setBadgeBackgroundColor(details: { color: string }): Promise<void>;
+  }
+
+  namespace permissions {
+    function request(permissions: {
+      origins?: string[];
+      permissions?: string[];
+    }): Promise<boolean>;
   }
 }

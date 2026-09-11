@@ -63,11 +63,13 @@ FlyState = Literal[
     "explore",
     "observe_chart",
     "inspect_portfolio",
+    "scan_assets",
     "interested",
     "approach_buy",
     "approach_sell",
     "panic",
     "leave",
+    "login_hint",
 ]
 
 

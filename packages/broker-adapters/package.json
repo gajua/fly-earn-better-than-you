@@ -7,12 +7,16 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
     "@fly/core": "workspace:*"
   },
   "devDependencies": {
-    "typescript": "^5.9.2"
+    "@types/jsdom": "^21.1.7",
+    "jsdom": "^26.1.0",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
   }
 }

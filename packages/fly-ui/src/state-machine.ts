@@ -6,7 +6,7 @@ const driveForState = (state: FlyState, output: BrainOutput): number => {
   if (state === "approach_buy") return output.buyDrive;
   if (state === "approach_sell") return output.sellDrive;
   if (state === "panic") return output.danger;
-  if (state === "observe_chart") return output.curiosity;
+  if (state === "observe_chart" || state === "scan_assets") return output.curiosity;
   return output.activity;
 };
 
@@ -21,7 +21,7 @@ export const canTransition = (
 ): boolean => {
   if (current === proposed) return false;
   if (proposed === "panic" && output.danger >= 0.78) return true;
-  if (["sleep", "enter", "leave"].includes(current)) return false;
+  if (["sleep", "enter", "leave", "login_hint"].includes(current)) return false;
   if (elapsedMs < MINIMUM_STATE_DURATION_MS) return false;
 
   const currentDrive = driveForState(current, output);

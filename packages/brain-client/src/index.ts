@@ -84,11 +84,13 @@ const flyStateSchema = z.enum([
   "explore",
   "observe_chart",
   "inspect_portfolio",
+  "scan_assets",
   "interested",
   "approach_buy",
   "approach_sell",
   "panic",
   "leave",
+  "login_hint",
 ]);
 const driveSchema = z.number().min(0).max(1);
 const brainOutputSchema = z.object({

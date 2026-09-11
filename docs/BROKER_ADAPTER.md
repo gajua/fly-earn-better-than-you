@@ -6,13 +6,26 @@
 interface BrokerAdapter {
   id: string;
   detect(): boolean;
-  readEnvironment(): MarketEnvironment | null;
+  detectLoginState(): LoginState;
+  readCurrentAsset(): AssetSnapshot | null;
+  readPortfolio(): PortfolioSnapshot | null;
+  readWatchlist(): AssetCandidate[];
+  readMarketEnvironment(): MarketEnvironment | null;
+  getTargets(): BrokerTargets;
+  getAvailableTimeframes(): Timeframe[];
+  isMarketOpen(): boolean;
 }
 ```
 
-Adapters return snapshots, not live DOM objects. Rectangles are copied into the
-serializable `DOMRectLike` type. Missing UI areas are valid and movement must
-fall back safely.
+Broker definitions live in `BrokerRegistry` with `domains`,
+`optionalHostPermissions`, and `AdapterStatus`.
+
+## Current adapters
+
+| id | status | notes |
+| --- | --- | --- |
+| `demo` | SUPPORTED | Local Fly demo `data-*` fixture; first vertical slice |
+| production brokers | NOT IMPLEMENTED | Shape only |
 
 ## Security contract
 
@@ -21,7 +34,5 @@ geometry. It must never read passwords, OTP values, session tokens, cookies,
 account passwords, or hidden authentication state. It must never invoke
 `click()`, dispatch an order event, submit a form, or call an order API.
 
-`DemoBrokerAdapter` reads only explicit `data-*` values and four
-`data-fly-target` rectangles. Future Binance, Toss, Korea Investment, Kiwoom,
-and Generic adapters must remain separate modules and satisfy the same
-read-only contract.
+Unknown selectors must yield `null` / empty / `BROKEN` — never invent trading
+behavior from guesses.

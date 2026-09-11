@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Fly</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <main class="popup">
+      <header>
+        <div class="emoji" id="fly-emoji">🪰</div>
+        <h1 id="status-title">Fly</h1>
+      </header>
+      <p id="status-message">상태 확인 중…</p>
+      <section class="card">
+        <h2>Mode</h2>
+        <label>
+          Trading
+          <select id="trading-mode">
+            <option value="paper">Paper (default)</option>
+            <option value="live-assist">Live-assist (confirm only)</option>
+          </select>
+        </label>
+        <label>
+          Brain
+          <select id="brain-mode">
+            <option value="mock">Mock</option>
+            <option value="real-connectome">MaleCNS real-connectome</option>
+            <option value="shuffled-control">Shuffled control</option>
+          </select>
+        </label>
+        <label>
+          Max trading capital (KRW)
+          <input id="max-capital" type="number" min="1000" step="1000" />
+        </label>
+        <button id="save-prefs" type="button">Save settings</button>
+      </section>
+      <section class="card">
+        <h2>Paper performance</h2>
+        <pre id="performance">—</pre>
+      </section>
+      <section class="card">
+        <h2>Privacy</h2>
+        <p>비밀번호·OTP·쿠키·세션 토큰은 읽거나 저장하지 않습니다.</p>
+        <button id="clear-history" type="button">Delete local Fly history</button>
+      </section>
+      <p class="fineprint">
+        BUY 근처 이동 ≠ 수익 예측. Experimental MaleCNS-constrained neural
+        response only.
+      </p>
+    </main>
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>
