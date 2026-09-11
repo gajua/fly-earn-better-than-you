@@ -5,3 +5,6 @@ scipy
 pandas
 pyarrow
 neuprint-python
+pytest
+httpx
+ruff

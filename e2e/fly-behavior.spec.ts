@@ -44,3 +44,43 @@ test("fly reacts without triggering order actions", async ({ page }) => {
   );
   expect(consoleErrors).toEqual([]);
 });
+
+test("developer panel exposes explicit MaleCNS diagnostics", async ({
+  page,
+}) => {
+  await page.route("http://127.0.0.1:8000/evaluate", async (route) => {
+    await route.fulfill({
+      json: {
+        brainOutput: {
+          state: "observe_chart",
+          buyDrive: 0.36,
+          sellDrive: 0.28,
+          curiosity: 0.72,
+          danger: 0.14,
+          activity: 0.53,
+        },
+        connectome: {
+          dataset: "male-cns:v1.0",
+          mode: "real-connectome",
+          neuronCount: 256,
+          edgeCount: 1024,
+          activeInputNeurons: [{ bodyId: 194965, activity: 0.81 }],
+          topOutputNeurons: [{ bodyId: 198706, activity: 0.67 }],
+          simulationMs: 4.2,
+        },
+      },
+    });
+  });
+
+  await page.goto("/");
+  await page.getByRole("button", { name: "MaleCNS", exact: true }).click();
+
+  const diagnostics = page.getByTestId("brain-diagnostics");
+  await expect(diagnostics).toContainText("MaleCNS v1.0");
+  await expect(diagnostics).toContainText("loaded");
+  await expect(diagnostics).toContainText("194965");
+  await expect(diagnostics).toContainText("198706");
+  await expect(page.getByTestId("order-click-count")).toContainText(
+    "BUY 0 / SELL 0",
+  );
+});

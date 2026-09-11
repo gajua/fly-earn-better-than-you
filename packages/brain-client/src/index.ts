@@ -1,10 +1,13 @@
 import {
   clamp01,
+  type BrainDiagnostics,
   type BrainOutput,
   type FlyBrain,
   type FlyState,
+  type InspectableFlyBrain,
   type MarketEnvironment,
 } from "@fly/core";
+import { z } from "zod";
 
 export interface MockFlyBrainOptions {
   readonly random?: () => number;
@@ -64,6 +67,135 @@ export const createMockFlyBrain = ({
       });
 
       return { state, buyDrive, sellDrive, curiosity, danger, activity };
+    },
+  };
+};
+
+export interface MaleCNSBrainOptions {
+  readonly baseUrl?: string;
+  readonly mode?: "malecns" | "shuffled-control";
+  readonly timeoutMs?: number;
+  readonly fetchImpl?: typeof fetch;
+}
+
+const flyStateSchema = z.enum([
+  "sleep",
+  "enter",
+  "explore",
+  "observe_chart",
+  "inspect_portfolio",
+  "interested",
+  "approach_buy",
+  "approach_sell",
+  "panic",
+  "leave",
+]);
+const driveSchema = z.number().min(0).max(1);
+const brainOutputSchema = z.object({
+  state: flyStateSchema,
+  buyDrive: driveSchema,
+  sellDrive: driveSchema,
+  curiosity: driveSchema,
+  danger: driveSchema,
+  activity: driveSchema,
+});
+const neuronActivitySchema = z.object({
+  bodyId: z.number().int().positive(),
+  activity: z.number().nonnegative(),
+});
+const evaluateResponseSchema = z.object({
+  brainOutput: brainOutputSchema,
+  connectome: z.object({
+    dataset: z.literal("male-cns:v1.0"),
+    mode: z.enum(["real-connectome", "shuffled-control"]),
+    neuronCount: z.number().int().positive(),
+    edgeCount: z.number().int().positive(),
+    activeInputNeurons: z.array(neuronActivitySchema),
+    topOutputNeurons: z.array(neuronActivitySchema),
+    simulationMs: z.number().nonnegative(),
+  }),
+});
+
+/**
+ * HTTP client for the local connectome service.
+ *
+ * It never falls back to MockFlyBrain. A missing service, invalid artifact, or
+ * malformed response is surfaced to the caller and diagnostics subscribers.
+ */
+export const createMaleCNSBrain = ({
+  baseUrl = "http://127.0.0.1:8000",
+  mode = "malecns",
+  timeoutMs = 8_000,
+  fetchImpl = fetch,
+}: MaleCNSBrainOptions = {}): InspectableFlyBrain => {
+  const canonicalMode =
+    mode === "malecns" ? "real-connectome" : "shuffled-control";
+  const listeners = new Set<() => void>();
+  let diagnostics: BrainDiagnostics = {
+    mode: canonicalMode,
+    isConnectomeLoaded: false,
+    activeInputNeurons: [],
+    topOutputNeurons: [],
+  };
+
+  const updateDiagnostics = (next: BrainDiagnostics) => {
+    diagnostics = next;
+    listeners.forEach((listener) => listener());
+  };
+
+  return {
+    mode: canonicalMode,
+    getDiagnostics: () => diagnostics,
+    subscribe: (listener) => {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+    async evaluate(environment): Promise<BrainOutput> {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+      try {
+        const response = await fetchImpl(`${baseUrl}/evaluate`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ environment, mode: canonicalMode }),
+          signal: controller.signal,
+        });
+        if (!response.ok) {
+          throw new Error(`MaleCNS service returned HTTP ${response.status}`);
+        }
+
+        const payload = evaluateResponseSchema.parse(await response.json());
+        if (payload.connectome.mode !== canonicalMode) {
+          throw new Error(
+            `Brain mode mismatch: expected ${canonicalMode}, received ${payload.connectome.mode}`,
+          );
+        }
+
+        updateDiagnostics({
+          mode: canonicalMode,
+          dataset: payload.connectome.dataset,
+          isConnectomeLoaded: true,
+          neuronCount: payload.connectome.neuronCount,
+          edgeCount: payload.connectome.edgeCount,
+          activeInputNeurons: payload.connectome.activeInputNeurons,
+          topOutputNeurons: payload.connectome.topOutputNeurons,
+          simulationMs: payload.connectome.simulationMs,
+          lastOutput: payload.brainOutput,
+        });
+        return payload.brainOutput;
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "Unknown MaleCNS client error";
+        updateDiagnostics({
+          ...diagnostics,
+          isConnectomeLoaded: false,
+          error: message,
+        });
+        throw error;
+      } finally {
+        clearTimeout(timeout);
+      }
     },
   };
 };

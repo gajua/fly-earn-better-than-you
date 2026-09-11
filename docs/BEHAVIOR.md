@@ -1,6 +1,21 @@
 # Fly Behavior
 
-The current behavior is heuristic, not biological.
+Fly behavior has explicit model boundaries:
+
+- `mock` uses product heuristics and no connectome.
+- `real-connectome` propagates modeled stimulation through a verified subgraph
+  of real MaleCNS v1.0 wiring.
+- `shuffled-control` uses a labeled topology control and is never described as
+  MaleCNS.
+
+**Market behavior semantics are an experimental mapping.** MaleCNS neurons do
+not biologically encode stock purchases or sales. `SensoryEncoder` maps market
+features to external current on selected real input neurons, sparse modeled
+neural dynamics propagate activity, and `BehaviorDecoder` maps output
+population activity to intermediate approach, avoidance, exploration, and
+arousal drives before selecting a `FlyState`.
+
+No market condition directly returns BUY or SELL from the encoder.
 
 | State               | Motion                                         |
 | ------------------- | ---------------------------------------------- |
@@ -23,3 +38,13 @@ The brain is evaluated every two seconds. Transitions use a 1.6-second minimum
 duration, score hysteresis, and a longer fallback timeout. Urgent danger may
 enter panic immediately. A sustained calm period triggers leave, sleep, and
 re-entry without changing the brain evaluation cadence.
+
+## Real versus modeled
+
+Real dataset facts are body IDs, directed source-target topology, and raw
+synapse-count weights. Membrane decay, thresholds, timestep, external current,
+predicted-neurotransmitter sign interpretation, population assignment, and
+behavior decoding are modeled by this project.
+
+The accurate description is: **Neural simulation constrained by the real
+MaleCNS connectome. Real fruit-fly wiring, experimental neural dynamics.**

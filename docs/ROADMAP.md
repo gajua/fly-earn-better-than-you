@@ -16,4 +16,10 @@
 - **M13 — Backtesting / observation study:** offline behavior evaluation.
 - **M14 — Desktop overlay:** opt-in observer outside browser surfaces.
 
-M0–M3 are the current scope. Automatic order execution is intentionally absent.
+M0–M5 and the first macOS/Desktop scientific vertical slice for M7–M10/M14 are
+implemented or in active verification. M6 remains a local-demo adapter rather
+than a real broker integration. See
+[`IMPLEMENTATION_STATUS.md`](IMPLEMENTATION_STATUS.md) for evidence and exact
+partial boundaries.
+
+Automatic order execution is intentionally absent from every milestone.

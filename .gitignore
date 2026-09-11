@@ -11,5 +11,8 @@ coverage/
 *.tsbuildinfo
 __pycache__/
 .pytest_cache/
+.ruff_cache/
 .venv/
 *.pyc
+target/
+services/brain/data/cache/

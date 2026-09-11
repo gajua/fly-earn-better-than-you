@@ -1,6 +1,11 @@
-import { useState } from "react";
-import { createMockFlyBrain } from "@fly/brain-client";
+import { useCallback, useMemo, useState } from "react";
+import { createMaleCNSBrain, createMockFlyBrain } from "@fly/brain-client";
 import { createDemoBrokerAdapter } from "@fly/broker-adapters";
+import type {
+  BrainOutput,
+  FlyBrain,
+  InspectableFlyBrain,
+} from "@fly/core";
 import { FlyOverlay } from "@fly/fly-ui";
 
 type ScenarioName =
@@ -71,9 +76,22 @@ const scenarios: Record<ScenarioName, MarketScenario> = {
 };
 
 const adapter = createDemoBrokerAdapter();
-const brain = createMockFlyBrain();
 const quantity = 12;
 const averagePrice = 210.04;
+
+type BrainChoice = "mock" | "malecns" | "shuffled-control";
+
+const readConfiguredBrainMode = (): BrainChoice => {
+  const mode = import.meta.env.VITE_FLY_BRAIN_MODE;
+  if (mode === "malecns" || mode === "shuffled-control") return mode;
+  return "mock";
+};
+
+const configuredBrainMode = readConfiguredBrainMode();
+
+const isInspectableBrain = (
+  brain: FlyBrain,
+): brain is InspectableFlyBrain => "getDiagnostics" in brain;
 
 const formatMoney = (value: number) =>
   new Intl.NumberFormat("en-US", {
@@ -85,6 +103,35 @@ const formatMoney = (value: number) =>
 export function App() {
   const [scenarioName, setScenarioName] = useState<ScenarioName>("Calm");
   const [manualClicks, setManualClicks] = useState({ buy: 0, sell: 0 });
+  const [brainMode, setBrainMode] = useState<BrainChoice>(configuredBrainMode);
+  const [lastBrainOutput, setLastBrainOutput] = useState<BrainOutput | null>(null);
+  const [brainError, setBrainError] = useState<string | null>(null);
+  const brain = useMemo<FlyBrain>(
+    () =>
+      brainMode === "mock"
+        ? createMockFlyBrain()
+        : createMaleCNSBrain({
+            mode: brainMode,
+            baseUrl:
+              import.meta.env.VITE_FLY_BRAIN_URL ?? "http://127.0.0.1:8000",
+          }),
+    [brainMode],
+  );
+  const diagnostics = isInspectableBrain(brain)
+    ? brain.getDiagnostics()
+    : undefined;
+  const handleBrainOutput = useCallback((output: BrainOutput) => {
+    setLastBrainOutput(output);
+    setBrainError(null);
+  }, []);
+  const handleBrainError = useCallback((error: Error) => {
+    setBrainError(error.message);
+  }, []);
+  const selectBrainMode = (mode: BrainChoice) => {
+    setBrainMode(mode);
+    setLastBrainOutput(null);
+    setBrainError(null);
+  };
   const scenario = scenarios[scenarioName];
   const price = averagePrice * (1 + scenario.pnlPercent / 100);
   const marketValue = quantity * price;
@@ -317,11 +364,96 @@ export function App() {
               Volume <b>{scenario.volumeStrength.toFixed(2)}</b>
             </span>
           </div>
-          <span className="heuristic-badge">MOCK HEURISTIC BRAIN</span>
+          <div className="brain-mode-picker" aria-label="Brain mode">
+            {(
+              [
+                ["mock", "Mock"],
+                ["malecns", "MaleCNS"],
+                ["shuffled-control", "Shuffled control"],
+              ] as const
+            ).map(([mode, label]) => (
+              <button
+                key={mode}
+                className={mode === brainMode ? "active" : ""}
+                onClick={() => selectBrainMode(mode)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <div
+            className={`brain-diagnostics ${brainError ? "has-error" : ""}`}
+            data-testid="brain-diagnostics"
+          >
+            <span className="eyebrow">BRAIN</span>
+            <strong>
+              {brainMode === "mock"
+                ? "Mock heuristic"
+                : brainMode === "malecns"
+                  ? "MaleCNS v1.0"
+                  : "Shuffled control"}
+            </strong>
+            <dl>
+              <div>
+                <dt>Connectome</dt>
+                <dd>
+                  {brainMode === "mock"
+                    ? "not used"
+                    : diagnostics?.isConnectomeLoaded
+                      ? "loaded"
+                      : "waiting"}
+                </dd>
+              </div>
+              <div>
+                <dt>Neurons / edges</dt>
+                <dd>
+                  {diagnostics?.neuronCount?.toLocaleString() ?? "—"} /{" "}
+                  {diagnostics?.edgeCount?.toLocaleString() ?? "—"}
+                </dd>
+              </div>
+              <div>
+                <dt>Simulation</dt>
+                <dd>
+                  {diagnostics?.simulationMs
+                    ? `${diagnostics.simulationMs.toFixed(2)} ms`
+                    : "—"}
+                </dd>
+              </div>
+              <div>
+                <dt>Fly state</dt>
+                <dd>{lastBrainOutput?.state ?? "—"}</dd>
+              </div>
+            </dl>
+            {diagnostics?.activeInputNeurons[0] && (
+              <p>
+                Input bodyId {diagnostics.activeInputNeurons[0].bodyId} ·{" "}
+                {diagnostics.activeInputNeurons[0].activity.toFixed(3)}
+              </p>
+            )}
+            {diagnostics?.topOutputNeurons[0] && (
+              <p>
+                Output bodyId {diagnostics.topOutputNeurons[0].bodyId} ·{" "}
+                {diagnostics.topOutputNeurons[0].activity.toFixed(3)}
+              </p>
+            )}
+            {brainError && <p className="brain-error">{brainError}</p>}
+          </div>
+          <span className="heuristic-badge">
+            {brainMode === "mock"
+              ? "MOCK · NOT BIOLOGICAL"
+              : brainMode === "malecns"
+                ? "REAL WIRING · MODELED DYNAMICS"
+                : "CONTROL · NOT MALECNS"}
+          </span>
         </aside>
       </div>
 
-      <FlyOverlay adapter={adapter} brain={brain} />
+      <FlyOverlay
+        adapter={adapter}
+        brain={brain}
+        onBrainOutput={handleBrainOutput}
+        onBrainError={handleBrainError}
+      />
     </main>
   );
 }

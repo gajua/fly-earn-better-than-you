@@ -14,6 +14,8 @@ interface FlyOverlayProps {
   readonly adapter: BrokerAdapter;
   readonly brain: FlyBrain;
   readonly evaluationIntervalMs?: number;
+  readonly onBrainOutput?: (output: BrainOutput) => void;
+  readonly onBrainError?: (error: Error) => void;
 }
 
 interface Point {
@@ -92,6 +94,8 @@ export function FlyOverlay({
   adapter,
   brain,
   evaluationIntervalMs = 2_000,
+  onBrainOutput,
+  onBrainError,
 }: FlyOverlayProps) {
   const flyRef = useRef<HTMLDivElement>(null);
   const [visibleState, setVisibleState] = useState<FlyState>("enter");
@@ -103,6 +107,7 @@ export function FlyOverlay({
     let frameId = 0;
     let evaluationTimer = 0;
     let isDisposed = false;
+    let isEvaluating = false;
     let state: FlyState = "enter";
     let stateStartedAt = performance.now();
     let calmStartedAt = performance.now();
@@ -135,13 +140,15 @@ export function FlyOverlay({
     };
 
     const evaluate = async () => {
-      if (isDisposed || !adapter.detect()) return;
+      if (isDisposed || isEvaluating || !adapter.detect()) return;
       const nextEnvironment = adapter.readEnvironment();
       if (!nextEnvironment) return;
       environment = nextEnvironment;
+      isEvaluating = true;
 
       try {
         latestOutput = await brain.evaluate(nextEnvironment);
+        onBrainOutput?.(latestOutput);
         if (isDisposed || ["sleep", "enter", "leave"].includes(state)) return;
 
         const now = performance.now();
@@ -168,7 +175,12 @@ export function FlyOverlay({
           setRuntimeState(latestOutput.state, now);
         }
       } catch (error) {
+        const normalizedError =
+          error instanceof Error ? error : new Error("Unknown brain error");
+        onBrainError?.(normalizedError);
         console.error("[FlyOverlay] Brain evaluation failed", error);
+      } finally {
+        isEvaluating = false;
       }
     };
 
@@ -271,7 +283,13 @@ export function FlyOverlay({
       window.clearInterval(evaluationTimer);
       cancelAnimationFrame(frameId);
     };
-  }, [adapter, brain, evaluationIntervalMs]);
+  }, [
+    adapter,
+    brain,
+    evaluationIntervalMs,
+    onBrainError,
+    onBrainOutput,
+  ]);
 
   return (
     <div

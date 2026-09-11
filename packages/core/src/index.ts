@@ -1,4 +1,4 @@
-export interface DOMRectLike {
+export interface ViewportRect {
   readonly x: number;
   readonly y: number;
   readonly width: number;
@@ -7,6 +7,17 @@ export interface DOMRectLike {
   readonly right: number;
   readonly bottom: number;
   readonly left: number;
+}
+
+/** @deprecated Prefer ViewportRect when the coordinate system matters. */
+export type DOMRectLike = ViewportRect;
+
+export interface ScreenRect {
+  readonly x: number;
+  readonly y: number;
+  readonly width: number;
+  readonly height: number;
+  readonly scaleFactor: number;
 }
 
 export interface MarketEnvironment {
@@ -58,6 +69,40 @@ export interface BrainOutput {
 
 export interface FlyBrain {
   evaluate(environment: MarketEnvironment): Promise<BrainOutput>;
+}
+
+export type BrainMode = "mock" | "real-connectome" | "shuffled-control";
+
+export interface SensoryStimulus {
+  readonly visualPositive: number;
+  readonly visualNegative: number;
+  readonly motionIntensity: number;
+  readonly volatilityStimulus: number;
+  readonly rewardLikeStimulus: number;
+}
+
+export interface ActiveNeuron {
+  readonly bodyId: number;
+  readonly activity: number;
+}
+
+export interface BrainDiagnostics {
+  readonly mode: BrainMode;
+  readonly dataset?: string;
+  readonly isConnectomeLoaded: boolean;
+  readonly neuronCount?: number;
+  readonly edgeCount?: number;
+  readonly activeInputNeurons: readonly ActiveNeuron[];
+  readonly topOutputNeurons: readonly ActiveNeuron[];
+  readonly simulationMs?: number;
+  readonly lastOutput?: BrainOutput;
+  readonly error?: string;
+}
+
+export interface InspectableFlyBrain extends FlyBrain {
+  readonly mode: BrainMode;
+  getDiagnostics(): BrainDiagnostics;
+  subscribe(listener: () => void): () => void;
 }
 
 export const clamp01 = (value: number): number =>

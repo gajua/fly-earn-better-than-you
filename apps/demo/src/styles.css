@@ -488,6 +488,88 @@ button {
   font-weight: 400;
 }
 
+.brain-mode-picker {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.brain-mode-picker button {
+  padding: 8px 5px;
+  border: 1px solid #30363c;
+  border-radius: 4px;
+  color: #737c81;
+  background: transparent;
+  font:
+    8px "DM Mono",
+    monospace;
+}
+
+.brain-mode-picker button.active {
+  border-color: #5f977d;
+  color: #b5f0d1;
+  background: #15251e;
+}
+
+.brain-diagnostics {
+  margin-bottom: 14px;
+  padding: 13px;
+  border: 1px solid #2b3435;
+  border-radius: 5px;
+  background: #0a0e10;
+}
+
+.brain-diagnostics > strong {
+  color: #d8dfdb;
+  font:
+    11px "DM Mono",
+    monospace;
+}
+
+.brain-diagnostics dl {
+  display: grid;
+  gap: 6px;
+  margin: 12px 0 0;
+}
+
+.brain-diagnostics dl div {
+  display: flex;
+  justify-content: space-between;
+  font:
+    8px "DM Mono",
+    monospace;
+}
+
+.brain-diagnostics dt {
+  color: #596267;
+}
+
+.brain-diagnostics dd {
+  margin: 0;
+  color: #aeb7b2;
+}
+
+.brain-diagnostics p {
+  overflow: hidden;
+  margin: 8px 0 0;
+  color: #7caaa0;
+  font:
+    8px/1.4 "DM Mono",
+    monospace;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.brain-diagnostics.has-error {
+  border-color: #68363c;
+}
+
+.brain-diagnostics .brain-error {
+  color: #ff7d88;
+  white-space: normal;
+}
+
 .heuristic-badge {
   align-self: flex-start;
   margin-top: auto;

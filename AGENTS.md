@@ -18,3 +18,13 @@ These rules apply to every human or AI change in this repository.
    biological simulation. Do not blur the distinction.
 9. Keep `MarketEnvironment` serializable and broker-neutral.
 10. Validate lint, typecheck, tests, and build before considering work complete.
+11. `real-connectome` mode must load verified official MaleCNS-derived body IDs,
+    topology, and raw weights. Missing or corrupt data is a hard error; never
+    substitute a synthetic graph or silently fall back to MockFlyBrain.
+12. Keep REAL facts (IDs, topology, raw synapse counts) separate from MODELED
+    choices (encoding, dynamics, transmitter signs, decoding).
+13. Browser viewport and desktop screen coordinates are distinct types. Do not
+    claim exact native-button placement without a verified conversion.
+14. Desktop overlays must use native cursor-event ignoring in addition to CSS
+    `pointer-events: none`.
+15. Shuffled controls must be labeled `shuffled-control`, never MaleCNS.

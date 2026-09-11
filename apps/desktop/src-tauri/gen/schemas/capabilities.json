@@ -1,0 +1,1 @@
+{"default":{"identifier":"default","description":"Local Fly windows using application-owned commands only","local":true,"windows":["main","developer"],"permissions":["core:default"]}}

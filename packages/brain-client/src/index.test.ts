@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { MarketEnvironment } from "@fly/core";
-import { createMockFlyBrain } from "./index";
+import { createMaleCNSBrain, createMockFlyBrain } from "./index";
 
 const environment = (
   overrides: Partial<MarketEnvironment["market"]>,
@@ -69,5 +69,84 @@ describe("MockFlyBrain", () => {
       expect(value).toBeGreaterThanOrEqual(0);
       expect(value).toBeLessThanOrEqual(1);
     }
+  });
+});
+
+describe("MaleCNSBrain client", () => {
+  it("returns a validated real-connectome response and diagnostics", async () => {
+    const fetchImpl = vi.fn(async () =>
+      Response.json({
+        brainOutput: {
+          state: "observe_chart",
+          buyDrive: 0.42,
+          sellDrive: 0.31,
+          curiosity: 0.77,
+          danger: 0.12,
+          activity: 0.58,
+        },
+        connectome: {
+          dataset: "male-cns:v1.0",
+          mode: "real-connectome",
+          neuronCount: 128,
+          edgeCount: 712,
+          activeInputNeurons: [{ bodyId: 194965, activity: 0.8 }],
+          topOutputNeurons: [{ bodyId: 123456, activity: 0.61 }],
+          simulationMs: 3.2,
+        },
+      }),
+    );
+    const maleCNSBrain = createMaleCNSBrain({ fetchImpl });
+
+    const output = await maleCNSBrain.evaluate(environment({ momentum: 0.8 }));
+
+    expect(output.state).toBe("observe_chart");
+    expect(maleCNSBrain.getDiagnostics()).toMatchObject({
+      dataset: "male-cns:v1.0",
+      isConnectomeLoaded: true,
+      neuronCount: 128,
+    });
+  });
+
+  it("fails explicitly without calling a mock fallback", async () => {
+    const fetchImpl = vi.fn(async () => new Response(null, { status: 503 }));
+    const maleCNSBrain = createMaleCNSBrain({ fetchImpl });
+
+    await expect(
+      maleCNSBrain.evaluate(environment({ momentum: 0.95 })),
+    ).rejects.toThrow("HTTP 503");
+    expect(fetchImpl).toHaveBeenCalledOnce();
+    expect(maleCNSBrain.getDiagnostics()).toMatchObject({
+      mode: "real-connectome",
+      isConnectomeLoaded: false,
+    });
+  });
+
+  it("rejects a shuffled response masquerading as MaleCNS", async () => {
+    const fetchImpl = vi.fn(async () =>
+      Response.json({
+        brainOutput: {
+          state: "explore",
+          buyDrive: 0.2,
+          sellDrive: 0.2,
+          curiosity: 0.8,
+          danger: 0.1,
+          activity: 0.4,
+        },
+        connectome: {
+          dataset: "male-cns:v1.0",
+          mode: "shuffled-control",
+          neuronCount: 2,
+          edgeCount: 1,
+          activeInputNeurons: [],
+          topOutputNeurons: [],
+          simulationMs: 1,
+        },
+      }),
+    );
+    const maleCNSBrain = createMaleCNSBrain({ fetchImpl });
+
+    await expect(
+      maleCNSBrain.evaluate(environment({ momentum: 0 })),
+    ).rejects.toThrow("Brain mode mismatch");
   });
 });

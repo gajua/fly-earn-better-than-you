@@ -6,11 +6,13 @@
   "packageManager": "pnpm@10.15.1",
   "scripts": {
     "dev": "pnpm --filter @fly/demo dev",
-    "build": "pnpm --filter @fly/demo build",
+    "build": "pnpm --filter @fly/demo build && pnpm --filter @fly/extension build && pnpm --filter @fly/desktop exec vite build",
     "lint": "eslint . --max-warnings 0",
     "typecheck": "pnpm -r typecheck",
-    "test": "vitest run packages",
+    "test": "vitest run packages apps/desktop/src apps/extension/src",
     "test:e2e": "playwright test",
+    "test:python": "services/brain/.venv/bin/python -m pytest -q services/brain/tests",
+    "test:rust": "cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },
