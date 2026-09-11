@@ -1,0 +1,15 @@
+node_modules/
+.pnpm-store/
+dist/
+.DS_Store
+.env
+.env.*
+!.env.example
+playwright-report/
+test-results/
+coverage/
+*.tsbuildinfo
+__pycache__/
+.pytest_cache/
+.venv/
+*.pyc
