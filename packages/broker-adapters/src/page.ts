@@ -6,6 +6,13 @@ import type {
   TimeframeObservation,
 } from "@fly/core";
 import { detectModal } from "./modal";
+import { extractMarketFeatures } from "./market-data/features";
+import type {
+  BrokerMarketDataProvider,
+  CandleBar,
+} from "./market-data/types";
+
+export type { BrokerMarketDataProvider, CandleBar };
 
 export const classifyDemoPage = (
   documentRef: Document,
@@ -60,81 +67,21 @@ export const classifyDemoPage = (
   };
 };
 
-export interface CandleBar {
-  readonly open: number;
-  readonly high: number;
-  readonly low: number;
-  readonly close: number;
-  readonly volume: number;
-  readonly timestamp: string;
-}
-
-export interface BrokerMarketDataProvider {
-  readonly id: string;
-  getCandles(
-    instrumentId: string,
-    timeframe: Timeframe,
-  ): Promise<CandleBar[] | null>;
-}
-
 export const observationFromCandles = (input: {
   symbol: string;
   instrumentId: string;
   timeframe: Timeframe;
   candles: CandleBar[];
   source: TimeframeObservation["source"];
+  dataProvider?: TimeframeObservation["dataProvider"];
   now?: number;
-}): TimeframeObservation => {
-  const candles = input.candles;
-  const latest = candles.at(-1);
-  const first = candles[0];
-  const available = Boolean(latest && first && candles.length > 0);
-  const closes = candles.map((candle) => candle.close);
-  const returns = closes.slice(1).map((close, index) => {
-    const previous = closes[index]!;
-    return previous === 0 ? 0 : (close - previous) / previous;
-  });
-  const momentum =
-    returns.length === 0
-      ? 0
-      : returns.slice(-5).reduce((sum, value) => sum + value, 0) /
-        Math.min(5, returns.length);
-  const mean =
-    returns.reduce((sum, value) => sum + value, 0) / Math.max(1, returns.length);
-  const variance =
-    returns.reduce((sum, value) => sum + (value - mean) ** 2, 0) /
-    Math.max(1, returns.length);
-  const volumeStrength =
-    candles.length === 0
-      ? 0.5
-      : Math.min(
-          1,
-          candles.slice(-5).reduce((sum, candle) => sum + candle.volume, 0) /
-            Math.max(
-              1,
-              candles.reduce((sum, candle) => sum + candle.volume, 0) /
-                candles.length,
-            ) /
-            5,
-        );
-
-  const observedAt = latest?.timestamp ?? new Date(input.now ?? Date.now()).toISOString();
-  return {
+}): TimeframeObservation =>
+  extractMarketFeatures({
     symbol: input.symbol,
     instrumentId: input.instrumentId,
     timeframe: input.timeframe,
-    price: latest?.close ?? 0,
-    returnPercent:
-      first && latest && first.close !== 0
-        ? ((latest.close - first.close) / first.close) * 100
-        : 0,
-    momentum,
-    volatility: Math.sqrt(Math.max(0, variance)),
-    volumeStrength,
-    timestamp: observedAt,
-    observedAt,
+    candles: input.candles,
     source: input.source,
-    candleCount: candles.length,
-    available,
-  };
-};
+    dataProvider: input.dataProvider,
+    now: input.now,
+  });

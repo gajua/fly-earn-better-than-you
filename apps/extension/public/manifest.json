@@ -1,17 +1,32 @@
 {
   "manifest_version": 3,
   "name": "Fly Earn Better Than You",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "minimum_chrome_version": "116",
   "description": "Extension-first Fly observer for supported broker tabs. Observation and paper trading only; never auto-submits live orders.",
   "permissions": ["storage", "tabs"],
   "optional_host_permissions": [
     "http://127.0.0.1:5173/*",
-    "http://127.0.0.1:5174/*"
+    "http://127.0.0.1:5174/*",
+    "https://www.binance.com/*",
+    "https://binance.com/*",
+    "https://api.binance.com/*",
+    "https://www.upbit.com/*",
+    "https://upbit.com/*",
+    "https://api.upbit.com/*",
+    "https://api.bybit.com/*",
+    "https://api.exchange.coinbase.com/*",
+    "https://api.kraken.com/*"
   ],
   "host_permissions": [
     "http://127.0.0.1:5173/*",
-    "http://127.0.0.1:5174/*"
+    "http://127.0.0.1:5174/*",
+    "https://www.binance.com/*",
+    "https://binance.com/*",
+    "https://api.binance.com/*",
+    "https://www.upbit.com/*",
+    "https://upbit.com/*",
+    "https://api.upbit.com/*"
   ],
   "background": {
     "service_worker": "background.js",
@@ -24,7 +39,14 @@
   "options_page": "options.html",
   "content_scripts": [
     {
-      "matches": ["http://127.0.0.1:5173/*", "http://127.0.0.1:5174/*"],
+      "matches": [
+        "http://127.0.0.1:5173/*",
+        "http://127.0.0.1:5174/*",
+        "https://www.binance.com/*",
+        "https://binance.com/*",
+        "https://www.upbit.com/*",
+        "https://upbit.com/*"
+      ],
       "js": ["content.js"],
       "run_at": "document_idle"
     }

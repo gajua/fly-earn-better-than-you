@@ -1,9 +1,13 @@
 import type { BrokerDefinition } from "./types";
 import { createDemoBrokerAdapter } from "./demo";
+import { BINANCE_MANIFEST } from "./brokers/binance/manifest";
+import { createBinanceBrokerAdapter } from "./brokers/binance/ui-adapter";
+import { UPBIT_MANIFEST } from "./brokers/upbit/manifest";
+import { createUpbitBrokerAdapter } from "./brokers/upbit/ui-adapter";
 
 /**
- * Registry of supported brokers. Start small; grant optional_host_permissions
- * per broker when the user enables that site.
+ * Registry of brokers.
+ * Market-data-ready ≠ Full broker supported.
  */
 export const BROKER_REGISTRY: readonly BrokerDefinition[] = [
   {
@@ -11,9 +15,30 @@ export const BROKER_REGISTRY: readonly BrokerDefinition[] = [
     label: "Local Fly Demo",
     domains: ["127.0.0.1"],
     status: "SUPPORTED",
-    optionalHostPermissions: ["http://127.0.0.1:5173/*", "http://127.0.0.1:5174/*"],
+    optionalHostPermissions: [
+      "http://127.0.0.1:5173/*",
+      "http://127.0.0.1:5174/*",
+    ],
     createAdapter: (documentRef) =>
       createDemoBrokerAdapter("[data-demo-broker]", documentRef ?? document),
+  },
+  {
+    id: BINANCE_MANIFEST.id,
+    label: BINANCE_MANIFEST.label,
+    domains: [...BINANCE_MANIFEST.domains],
+    status: BINANCE_MANIFEST.status,
+    optionalHostPermissions: [...BINANCE_MANIFEST.optionalHostPermissions],
+    createAdapter: (documentRef) =>
+      createBinanceBrokerAdapter(documentRef ?? document),
+  },
+  {
+    id: UPBIT_MANIFEST.id,
+    label: UPBIT_MANIFEST.label,
+    domains: [...UPBIT_MANIFEST.domains],
+    status: UPBIT_MANIFEST.status,
+    optionalHostPermissions: [...UPBIT_MANIFEST.optionalHostPermissions],
+    createAdapter: (documentRef) =>
+      createUpbitBrokerAdapter(documentRef ?? document),
   },
 ];
 
@@ -34,4 +59,6 @@ export const findBrokerByUrl = (
 };
 
 export const listSupportedBrokers = (): readonly BrokerDefinition[] =>
-  BROKER_REGISTRY.filter((broker) => broker.status === "SUPPORTED");
+  BROKER_REGISTRY.filter(
+    (broker) => broker.status === "SUPPORTED" || broker.status === "PARTIAL",
+  );

@@ -1,11 +1,10 @@
-import {
-  demoInstrumentId,
-  type AssetCandidate,
-  type AssetSnapshot,
-  type LoginState,
-  type MarketEnvironment,
-  type PortfolioSnapshot,
-  type Timeframe,
+import type {
+  AssetCandidate,
+  AssetSnapshot,
+  LoginState,
+  MarketEnvironment,
+  PortfolioSnapshot,
+  Timeframe,
 } from "@fly/core";
 import { resolveLocator, revalidateTarget } from "./locator";
 import {
@@ -20,6 +19,7 @@ import {
   type ResolvedBrokerTargets,
   targetsToUiRects,
 } from "./types";
+import { demoInstrumentId } from "@fly/core";
 
 const readNumber = (value: string | undefined, fallback = 0): number => {
   const parsed = Number(value);

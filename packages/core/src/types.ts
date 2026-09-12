@@ -156,9 +156,21 @@ export type ModalKind =
   | "other";
 
 export type ObservationSource =
+  | "tradecanvas"
+  | "official-public"
   | "broker-public-api"
   | "broker-dom"
-  | "demo";
+  | "demo"
+  | "unavailable";
+
+export type DataProviderHealth = "HEALTHY" | "DEGRADED" | "BROKEN" | "UNKNOWN";
+
+export interface DataProviderProvenance {
+  readonly source: ObservationSource;
+  readonly upstream?: string;
+  readonly provider?: string;
+  readonly endpointFamily?: string;
+}
 
 export type LiveFillConfidence =
   | "VERIFIED"
@@ -214,6 +226,8 @@ export interface TimeframeObservation {
   readonly source: ObservationSource;
   readonly candleCount: number;
   readonly available: boolean;
+  /** Optional market-data provenance for Developer Panel. */
+  readonly dataProvider?: DataProviderProvenance;
 }
 
 export interface CandidateEvaluation {

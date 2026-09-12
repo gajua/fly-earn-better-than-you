@@ -24,7 +24,7 @@ export const DEFAULT_PREFERENCES: ExtensionPreferences = {
     maxPositionValue: 500_000,
     maxDailyNewExposure: 400_000,
   },
-  enabledBrokerIds: ["demo"],
+  enabledBrokerIds: ["demo", "binance", "upbit"],
   maxHistoryDays: 90,
 };
 

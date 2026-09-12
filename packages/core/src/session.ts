@@ -13,10 +13,14 @@ export const deriveSessionState = (input: {
   readonly awaitingConfirm?: boolean;
   readonly brainUnavailable?: boolean;
   readonly pageKindUnknown?: boolean;
+  /** Public trade pages may observe/paper without broker login. */
+  readonly guestMarketOk?: boolean;
 }): SessionLifecycleState => {
   if (!input.hasBrokerTab) return "NO_BROKER";
   if (!input.marketOpen) return "MARKET_CLOSED";
-  if (input.loginState !== "LOGGED_IN") return "BROKER_LOGGED_OUT";
+  if (input.loginState === "LOGGED_OUT" && !input.guestMarketOk) {
+    return "BROKER_LOGGED_OUT";
+  }
   if (input.brainUnavailable) return "BRAIN_UNAVAILABLE";
   if (input.pageKindUnknown) return "BROKER_READY";
   if (input.awaitingConfirm) return "USER_CONFIRM_REQUIRED";

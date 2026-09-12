@@ -6,6 +6,14 @@ import {
   type TimeframeObservation,
 } from "./types";
 
+const REAL_SOURCES = new Set([
+  "tradecanvas",
+  "official-public",
+  "broker-public-api",
+  "broker-dom",
+  "demo",
+]);
+
 /**
  * Aggregates multi-timeframe observations into a broker-neutral MarketEnvironment.
  * Never maps a single timeframe directly to BUY/SELL.
@@ -17,9 +25,7 @@ export const filterUsableTimeframeObservations = (
 ): TimeframeObservation[] =>
   observations.filter((observation) => {
     if (!observation.available) return false;
-    if (observation.source !== "broker-public-api" && observation.source !== "broker-dom" && observation.source !== "demo") {
-      return false;
-    }
+    if (!REAL_SOURCES.has(observation.source)) return false;
     const minCandles = MIN_CANDLES_BY_TIMEFRAME[observation.timeframe];
     if (observation.candleCount < minCandles) return false;
     const observedAt = Date.parse(observation.observedAt);

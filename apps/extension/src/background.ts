@@ -207,6 +207,48 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return;
     }
 
+    if (kind === "proxy-fetch") {
+      const url = (message as { url?: string }).url;
+      if (!url || typeof url !== "string") {
+        sendResponse({ ok: false, status: 0, body: "", reason: "missing-url" });
+        return;
+      }
+      let parsed: URL;
+      try {
+        parsed = new URL(url);
+      } catch {
+        sendResponse({ ok: false, status: 0, body: "", reason: "bad-url" });
+        return;
+      }
+      const allowedHosts = new Set([
+        "api.binance.com",
+        "api.bybit.com",
+        "api.exchange.coinbase.com",
+        "api.kraken.com",
+        "api.upbit.com",
+      ]);
+      if (!allowedHosts.has(parsed.hostname)) {
+        sendResponse({ ok: false, status: 0, body: "", reason: "host-denied" });
+        return;
+      }
+      try {
+        const response = await fetch(url, {
+          method: "GET",
+          credentials: "omit",
+          cache: "no-store",
+          referrerPolicy: "no-referrer",
+        });
+        sendResponse({
+          ok: response.ok,
+          status: response.status,
+          body: await response.text(),
+        });
+      } catch {
+        sendResponse({ ok: false, status: 0, body: "", reason: "network" });
+      }
+      return;
+    }
+
     if (kind === "clear-history") {
       await clearTrades();
       await chrome.storage.local.remove(["fly-paper-positions", "fly-daily-exposure"]);

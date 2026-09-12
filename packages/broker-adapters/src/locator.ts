@@ -44,9 +44,34 @@ export const resolveLocator = (
       element = root.querySelector<HTMLElement>(
         `[data-testid="${candidate.testId}"], [data-fly-target="${candidate.testId}"]`,
       );
+    } else if (candidate.visibleText) {
+      const matches = Array.from(
+        root.querySelectorAll<HTMLElement>(
+          "button, a, [role='button'], [role='tab']",
+        ),
+      );
+      const narrowed = candidate.selector
+        ? matches.filter((node) => {
+            try {
+              return node.matches(candidate.selector!);
+            } catch {
+              return false;
+            }
+          })
+        : matches;
+      element =
+        narrowed.find(
+          (node) =>
+            (node.textContent ?? "").trim().toLowerCase() ===
+            candidate.visibleText!.toLowerCase(),
+        ) ?? null;
     } else if (candidate.selector) {
       // Reject hashed/generated class-only selectors as primary strategy.
-      if (/^\.[a-z0-9_-]{8,}$/i.test(candidate.selector.trim())) continue;
+      // Keep semantic hyphenated classes like `.chart-widget-shell`.
+      const selector = candidate.selector.trim();
+      if (/^\.[a-z0-9]{8,}$/i.test(selector) || /^\.css-[a-z0-9]+$/i.test(selector)) {
+        continue;
+      }
       element = root.querySelector<HTMLElement>(candidate.selector);
     } else if (candidate.ariaLabel) {
       element = root.querySelector<HTMLElement>(
@@ -62,14 +87,6 @@ export const resolveLocator = (
             (node.getAttribute("aria-label") ?? node.textContent ?? "")
               .trim()
               .toLowerCase() === candidate.accessibleName!.toLowerCase(),
-        ) ?? null;
-    } else if (candidate.visibleText) {
-      const matches = Array.from(root.querySelectorAll<HTMLElement>("button, a, [role='button']"));
-      element =
-        matches.find(
-          (node) =>
-            (node.textContent ?? "").trim().toLowerCase() ===
-            candidate.visibleText!.toLowerCase(),
         ) ?? null;
     }
     if (!element || !isUsableElement(element)) continue;

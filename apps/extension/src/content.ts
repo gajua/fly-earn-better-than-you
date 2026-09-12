@@ -1,5 +1,9 @@
-import { createDemoBrokerAdapter } from "@fly/broker-adapters";
-import { observationFromCandles } from "@fly/broker-adapters";
+import {
+  createDemoBrokerAdapter,
+  findBrokerByUrl,
+  observationFromCandles,
+  type BrokerAdapter,
+} from "@fly/broker-adapters";
 import {
   createMaleCNSBrain,
   createMockFlyBrain,
@@ -19,7 +23,14 @@ import { createOrderProposal } from "./orders";
 const SAMPLE_INTERVAL_MS = 2_000;
 const MUTATION_DEBOUNCE_MS = 350;
 
-const adapter = createDemoBrokerAdapter();
+const resolveAdapter = (): BrokerAdapter | null => {
+  const matched = findBrokerByUrl(window.location.href);
+  if (!matched) return null;
+  const adapter = matched.createAdapter(document);
+  return adapter.detect() ? adapter : null;
+};
+
+const adapter = resolveAdapter() ?? createDemoBrokerAdapter();
 
 const buildTimeframeObservations = async (): Promise<TimeframeObservation[]> => {
   const environment = adapter.readMarketEnvironment();
@@ -29,6 +40,12 @@ const buildTimeframeObservations = async (): Promise<TimeframeObservation[]> => 
     environment.asset.instrumentId ?? demoInstrumentId(environment.asset.symbol);
   const timeframes = adapter.getAvailableTimeframes();
   const observations: TimeframeObservation[] = [];
+  const source =
+    adapter.id === "demo"
+      ? ("demo" as const)
+      : adapter.id === "upbit"
+        ? ("official-public" as const)
+        : ("tradecanvas" as const);
 
   for (const timeframe of timeframes) {
     const candles = provider
@@ -46,9 +63,13 @@ const buildTimeframeObservations = async (): Promise<TimeframeObservation[]> => 
         volumeStrength: 0,
         timestamp: new Date().toISOString(),
         observedAt: new Date().toISOString(),
-        source: "demo",
+        source: "unavailable",
         candleCount: 0,
         available: false,
+        dataProvider: {
+          source: "unavailable",
+          provider: adapter.id,
+        },
       });
       continue;
     }
@@ -58,7 +79,17 @@ const buildTimeframeObservations = async (): Promise<TimeframeObservation[]> => 
         instrumentId,
         timeframe,
         candles,
-        source: "demo",
+        source,
+        dataProvider: {
+          source,
+          upstream:
+            source === "tradecanvas"
+              ? "bonguynvan/tradecanvas"
+              : source === "official-public"
+                ? "upbit-api"
+                : undefined,
+          provider: adapter.id,
+        },
       }),
     );
   }
@@ -122,7 +153,18 @@ const start = async () => {
   let latestOutput: BrainOutput | null = null;
   let sessionMessage = "";
   let brainUnavailable = false;
+  let dataProviderError = false;
   let latestObservations: TimeframeObservation[] = [];
+
+  const guestMarketOk = (): boolean => {
+    const page = adapter.detectPageContext();
+    const asset = adapter.readCurrentAsset();
+    return (
+      (page.pageKind === "trade" || page.pageKind === "asset-detail") &&
+      Boolean(asset?.symbol) &&
+      page.confidence >= 0.8
+    );
+  };
 
   const publish = async () => {
     const loginState = adapter.detectLoginState();
@@ -132,14 +174,17 @@ const start = async () => {
       loginState,
       marketOpen: adapter.isMarketOpen(),
       brainOutput: latestOutput,
-      brainUnavailable,
+      brainUnavailable: brainUnavailable || dataProviderError,
       pageKindUnknown: page.pageKind === "unknown" || page.confidence < 0.8,
+      guestMarketOk: guestMarketOk(),
     });
     sessionMessage =
       session === "BROKER_LOGGED_OUT"
         ? "로그인하면 포트폴리오도 볼 수 있어."
         : session === "BRAIN_UNAVAILABLE"
-          ? "MaleCNS unavailable — proposals paused."
+          ? dataProviderError
+            ? "Market data unavailable — proposals paused."
+            : "MaleCNS unavailable — proposals paused."
           : session === "BUY_INTEREST"
             ? "이 종목에 강하게 반응 중"
             : session === "SELL_INTEREST"
@@ -186,6 +231,7 @@ const start = async () => {
           available: observation.available,
           source: observation.source,
           candleCount: observation.candleCount,
+          dataProvider: observation.dataProvider ?? null,
         })),
       },
     });
@@ -198,8 +244,11 @@ const start = async () => {
       async evaluate(environment) {
         const loginState = adapter.detectLoginState();
         const page = adapter.detectPageContext();
-        if (loginState !== "LOGGED_IN") {
+        const guestOk = guestMarketOk();
+
+        if (loginState === "LOGGED_OUT" && !guestOk) {
           brainUnavailable = false;
+          dataProviderError = false;
           latestOutput = {
             state: "login_hint",
             buyDrive: 0,
@@ -227,6 +276,20 @@ const start = async () => {
 
         latestObservations = await buildTimeframeObservations();
         const usable = filterUsableTimeframeObservations(latestObservations);
+        dataProviderError = usable.length === 0;
+        if (dataProviderError) {
+          latestOutput = {
+            state: "sleep",
+            buyDrive: 0,
+            sellDrive: 0,
+            curiosity: 0,
+            danger: 0,
+            activity: 0,
+          };
+          await publish();
+          return latestOutput;
+        }
+
         const aggregated = aggregateTimeframeObservations(usable, environment);
 
         try {
@@ -241,6 +304,7 @@ const start = async () => {
             tradingMode === "paper" &&
             canTradePage &&
             !brainUnavailable &&
+            !dataProviderError &&
             environment.asset &&
             (output.state === "approach_buy" ||
               output.state === "approach_sell") &&
@@ -297,9 +361,9 @@ const start = async () => {
     bubbleText: () => sessionMessage || null,
     forceState: () => {
       const loginState = adapter.detectLoginState();
-      if (loginState !== "LOGGED_IN") return "login_hint";
+      if (loginState === "LOGGED_OUT" && !guestMarketOk()) return "login_hint";
       if (!adapter.isMarketOpen()) return "sleep";
-      if (brainUnavailable) return "sleep";
+      if (brainUnavailable || dataProviderError) return "sleep";
       if (!latestOutput) return null;
       return sessionToFlyState(
         deriveSessionState({
@@ -308,6 +372,7 @@ const start = async () => {
           marketOpen: true,
           brainOutput: latestOutput,
           brainUnavailable,
+          guestMarketOk: guestMarketOk(),
         }),
       );
     },
@@ -319,7 +384,7 @@ const start = async () => {
     void chrome.runtime
       .sendMessage({
         kind: "market-environment",
-        source: "demo",
+        source: adapter.id,
         capturedAt: new Date().toISOString(),
         environment,
       })

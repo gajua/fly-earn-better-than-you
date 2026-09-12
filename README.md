@@ -62,11 +62,24 @@ pnpm build
 pnpm test:python
 ```
 
+## Supported brokers
+
+| Broker | UI | Real Market Data | Paper | Live Assist |
+| --- | --- | --- | --- | --- |
+| Local demo (`127.0.0.1`) | ✅ | ✅ (explicit `data-tf-*` only) | ✅ | PARTIAL |
+| Binance Spot | PARTIAL | ✅ (TradeCanvas-adapted public REST, no API key) | ✅ | PARTIAL |
+| Upbit | PARTIAL | ✅ (official public REST, no API key) | PARTIAL | PARTIAL |
+| Bybit / Kraken / Coinbase | NOT IMPLEMENTED | Market Data Ready (wrappers only) | — | — |
+
+Market Data Ready ≠ Full Broker Supported. See
+[`docs/IMPLEMENTATION_STATUS.md`](docs/IMPLEMENTATION_STATUS.md) and
+[`docs/THIRD_PARTY_ADAPTERS.md`](docs/THIRD_PARTY_ADAPTERS.md).
+
 ## First supported broker
 
-This iteration’s vertical slice broker is the **local demo**
-(`127.0.0.1:5173/5174`) with explicit `data-*` attributes. Production brokers
-are registry-ready but not implemented.
+Vertical slice priority is **Binance Spot** (detect → symbol → real multi-TF →
+MaleCNS/Mock → Fly → Paper → History) plus the local demo. Production portfolio
+/ logged-in reconciliation remains PARTIAL.
 
 ## Desktop companion
 

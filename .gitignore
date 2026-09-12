@@ -17,3 +17,6 @@ __pycache__/
 target/
 apps/desktop/src-tauri/gen/
 services/brain/data/cache/
+
+.tmp-tradecanvas-audit/
+.tmp-*/
