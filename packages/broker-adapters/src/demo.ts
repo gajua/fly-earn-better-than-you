@@ -1,4 +1,5 @@
 import {
+  demoInstrumentId,
   type AssetCandidate,
   type AssetSnapshot,
   type LoginState,
@@ -6,9 +7,17 @@ import {
   type PortfolioSnapshot,
   type Timeframe,
 } from "@fly/core";
+import { resolveLocator, revalidateTarget } from "./locator";
+import {
+  classifyDemoPage,
+  observationFromCandles,
+  type BrokerMarketDataProvider,
+  type CandleBar,
+} from "./page";
 import {
   type BrokerAdapter,
   type BrokerTargets,
+  type ResolvedBrokerTargets,
   targetsToUiRects,
 } from "./types";
 
@@ -17,38 +26,102 @@ const readNumber = (value: string | undefined, fallback = 0): number => {
   return Number.isFinite(parsed) ? parsed : fallback;
 };
 
-const queryHtml = (
-  documentRef: Document,
-  root: ParentNode,
-  selector: string,
-): HTMLElement | undefined =>
-  root.querySelector<HTMLElement>(selector) ??
-  documentRef.querySelector<HTMLElement>(selector) ??
-  undefined;
+const parseCandleJson = (raw: string | undefined): CandleBar[] | null => {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as CandleBar[];
+    if (!Array.isArray(parsed) || parsed.length === 0) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+};
 
 /**
  * Local demo trading screen adapter.
- * First vertical-slice broker: explicit data-* attributes only.
+ * Uses explicit data-* landmarks + locator strategies.
  * Never clicks, never reads credentials/cookies/OTP.
+ * Multi-timeframe candles come only from explicit demo JSON attributes —
+ * never from synthetic scaling of a single snapshot.
  */
 export const createDemoBrokerAdapter = (
   rootSelector = "[data-demo-broker]",
   documentRef: Document = document,
 ): BrokerAdapter => {
-  const root = () =>
-    documentRef.querySelector<HTMLElement>(rootSelector);
+  const root = () => documentRef.querySelector<HTMLElement>(rootSelector);
+
+  const resolveTargets = (): ResolvedBrokerTargets => {
+    const node = root();
+    const scope: ParentNode = node ?? documentRef;
+    const modal = documentRef.querySelector<HTMLElement>(
+      `[role="dialog"][data-fly-modal], [aria-modal="true"]`,
+    );
+    const view = documentRef.defaultView;
+    const modalVisible =
+      modal &&
+      view &&
+      view.getComputedStyle(modal).display !== "none" &&
+      modal.getBoundingClientRect().width > 0;
+    const searchRoot: ParentNode = modalVisible ? modal! : scope;
+
+    return {
+      buy: resolveLocator(documentRef, [
+        { testId: "buy", confidence: 0.98, strategy: "data-fly-target" },
+        {
+          ariaLabel: "Buy",
+          confidence: 0.9,
+          strategy: "aria-label",
+        },
+        {
+          visibleText: "BUY",
+          confidence: 0.85,
+          strategy: "visible-text",
+        },
+      ], searchRoot),
+      sell: resolveLocator(documentRef, [
+        { testId: "sell", confidence: 0.98, strategy: "data-fly-target" },
+        { ariaLabel: "Sell", confidence: 0.9, strategy: "aria-label" },
+        { visibleText: "SELL", confidence: 0.85, strategy: "visible-text" },
+      ], searchRoot),
+      chart: resolveLocator(documentRef, [
+        { testId: "chart", confidence: 0.98, strategy: "data-fly-target" },
+      ], scope),
+      portfolio: resolveLocator(documentRef, [
+        { testId: "portfolio", confidence: 0.98, strategy: "data-fly-target" },
+      ], scope),
+      search: resolveLocator(documentRef, [
+        { testId: "search", confidence: 0.98, strategy: "data-fly-target" },
+      ], scope),
+      login: resolveLocator(documentRef, [
+        { testId: "login", confidence: 0.98, strategy: "data-fly-target" },
+      ], scope),
+    };
+  };
+
+  const getTargets = (): BrokerTargets => {
+    const resolved = resolveTargets();
+    return {
+      buy: revalidateTarget(resolved.buy)?.element,
+      sell: revalidateTarget(resolved.sell)?.element,
+      chart: revalidateTarget(resolved.chart)?.element,
+      portfolio: revalidateTarget(resolved.portfolio)?.element,
+      search: revalidateTarget(resolved.search)?.element,
+      login: revalidateTarget(resolved.login)?.element,
+    };
+  };
 
   const readEnvironment = (): MarketEnvironment | null => {
     const node = root();
     if (!node) return null;
     const { dataset } = node;
-    const targets = getTargets();
+    const symbol = dataset.symbol ?? "UNKNOWN";
     return {
       asset: {
-        symbol: dataset.symbol ?? "UNKNOWN",
+        symbol,
         name: dataset.assetName,
         price: readNumber(dataset.price),
         changePercent: readNumber(dataset.changePercent),
+        instrumentId: demoInstrumentId(symbol),
       },
       position: {
         quantity: readNumber(dataset.quantity),
@@ -61,21 +134,19 @@ export const createDemoBrokerAdapter = (
         volatility: readNumber(dataset.volatility),
         volumeStrength: readNumber(dataset.volumeStrength, 0.5),
       },
-      ui: targetsToUiRects(targets),
+      ui: targetsToUiRects(getTargets()),
     };
   };
 
-  const getTargets = (): BrokerTargets => {
-    const node = root();
-    const scope: ParentNode = node ?? documentRef;
-    return {
-      chart: queryHtml(documentRef, scope, "[data-fly-target='chart']"),
-      buy: queryHtml(documentRef, scope, "[data-fly-target='buy']"),
-      sell: queryHtml(documentRef, scope, "[data-fly-target='sell']"),
-      portfolio: queryHtml(documentRef, scope, "[data-fly-target='portfolio']"),
-      search: queryHtml(documentRef, scope, "[data-fly-target='search']"),
-      login: queryHtml(documentRef, scope, "[data-fly-target='login']"),
-    };
+  const marketDataProvider: BrokerMarketDataProvider = {
+    id: "demo-market-data",
+    async getCandles(instrumentId, timeframe) {
+      void instrumentId;
+      const node = root();
+      if (!node) return null;
+      const raw = node.getAttribute(`data-tf-${timeframe}`) ?? undefined;
+      return parseCandleJson(raw);
+    },
   };
 
   return {
@@ -87,8 +158,23 @@ export const createDemoBrokerAdapter = (
       const state = node.dataset.loginState?.toUpperCase();
       if (state === "LOGGED_IN") return "LOGGED_IN";
       if (state === "LOGGED_OUT") return "LOGGED_OUT";
-      // Demo defaults to logged-in when attribute omitted (backward compatible).
       return node.dataset.loginState === undefined ? "LOGGED_IN" : "UNKNOWN";
+    },
+    detectPageContext: () => {
+      const node = root();
+      const symbol = node?.dataset.symbol;
+      return classifyDemoPage(
+        documentRef,
+        "demo",
+        documentRef.defaultView?.location.href ?? "http://127.0.0.1/",
+        (() => {
+          const state = node?.dataset.loginState?.toUpperCase();
+          if (state === "LOGGED_IN") return "LOGGED_IN";
+          if (state === "LOGGED_OUT") return "LOGGED_OUT";
+          return node?.dataset.loginState === undefined ? "LOGGED_IN" : "UNKNOWN";
+        })(),
+        symbol ? demoInstrumentId(symbol) : undefined,
+      );
     },
     readCurrentAsset: (): AssetSnapshot | null => {
       const environment = readEnvironment();
@@ -101,6 +187,7 @@ export const createDemoBrokerAdapter = (
         positions: [
           {
             symbol: environment.asset.symbol,
+            instrumentId: environment.asset.instrumentId,
             quantity: environment.position.quantity,
             averagePrice: environment.position.averagePrice,
             marketPrice: environment.asset.price,
@@ -121,16 +208,25 @@ export const createDemoBrokerAdapter = (
       const current = node.dataset.symbol;
       const candidates: AssetCandidate[] = symbols.map((symbol) => ({
         symbol,
+        instrumentId: demoInstrumentId(symbol),
         source: "watchlist",
       }));
-      if (current && !candidates.some((candidate) => candidate.symbol === current)) {
-        candidates.unshift({ symbol: current, source: "current" });
+      if (
+        current &&
+        !candidates.some((candidate) => candidate.symbol === current)
+      ) {
+        candidates.unshift({
+          symbol: current,
+          instrumentId: demoInstrumentId(current),
+          source: "current",
+        });
       }
       return candidates;
     },
     readMarketEnvironment: readEnvironment,
     readEnvironment,
     getTargets,
+    resolveTargets,
     getAvailableTimeframes: (): Timeframe[] => {
       const node = root();
       const raw = node?.dataset.timeframes ?? "1m,5m,15m,1h,1d";
@@ -146,5 +242,8 @@ export const createDemoBrokerAdapter = (
       if (!node) return false;
       return (node.dataset.marketOpen ?? "true") !== "false";
     },
+    getMarketDataProvider: () => marketDataProvider,
   };
 };
+
+export { observationFromCandles };

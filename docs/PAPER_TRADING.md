@@ -2,17 +2,21 @@
 
 Default trading mode is **paper**.
 
-Pipeline:
-
 ```text
-candidate observation -> MaleCNS/Mock evaluate -> OrderProposal
-  -> RiskEngine -> virtual fill -> PaperPosition + TradeRecord
+OrderProposal
+  -> ProposalGuard (cooldown / dedupe)
+  -> RiskEngine
+  -> verified PaperFill
+  -> PositionCycle update
+  -> TradeRecord (IndexedDB)
 ```
 
-Paper mode may auto-fill after a strong approach/avoidance response.
+Proposals are not trades. Only verified fills mutate ledger/cycles.
 
-LIVE-ASSIST mode creates proposals for user review only and never auto-submits
-real broker orders.
+Invalid sells (no position / oversell) reject without ledger mutation.
 
-Candidate ranking / paper fills are an **experimental product layer**, not a
-claim that MaleCNS predicts profitable trades.
+BUY→SELL round-trips are tracked as `PositionCycle` with weighted averages and
+realized return %. Re-entry after close creates a new cycle.
+
+Multi-timeframe inputs must be real candle-backed observations (or explicitly
+`available: false`). Synthetic scaling is prohibited.

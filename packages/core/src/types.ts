@@ -26,6 +26,7 @@ export interface MarketEnvironment {
     readonly name?: string;
     readonly price: number;
     readonly changePercent: number;
+    readonly instrumentId?: string;
   };
   readonly position?: {
     readonly quantity: number;
@@ -120,7 +121,8 @@ export type SessionLifecycleState =
   | "ORDER_PROPOSED"
   | "USER_CONFIRM_REQUIRED"
   | "POSITION_MONITORING"
-  | "MARKET_CLOSED";
+  | "MARKET_CLOSED"
+  | "BRAIN_UNAVAILABLE";
 
 export type LoginState = "LOGGED_IN" | "LOGGED_OUT" | "UNKNOWN";
 
@@ -134,17 +136,55 @@ export type AdapterStatus =
 
 export type TradingMode = "paper" | "live-assist";
 
+export type MarketType = "spot" | "perpetual" | "equity" | "demo";
+
+export type BrokerPageKind =
+  | "home"
+  | "markets"
+  | "asset-detail"
+  | "trade"
+  | "portfolio"
+  | "orders"
+  | "login"
+  | "unknown";
+
+export type ModalKind =
+  | "order"
+  | "order-confirmation"
+  | "login"
+  | "warning"
+  | "other";
+
+export type ObservationSource =
+  | "broker-public-api"
+  | "broker-dom"
+  | "demo";
+
+export type LiveFillConfidence =
+  | "VERIFIED"
+  | "USER_CONFIRMED"
+  | "UNVERIFIED";
+
+export interface InstrumentRef {
+  readonly broker: string;
+  readonly marketType: MarketType;
+  readonly symbol: string;
+  readonly quoteCurrency: string;
+}
+
 export interface AssetSnapshot {
   readonly symbol: string;
   readonly name?: string;
   readonly price: number;
   readonly changePercent: number;
+  readonly instrumentId?: string;
 }
 
 export interface PortfolioSnapshot {
   readonly cash?: number;
   readonly positions: readonly {
     readonly symbol: string;
+    readonly instrumentId?: string;
     readonly quantity: number;
     readonly averagePrice: number;
     readonly marketPrice: number;
@@ -155,12 +195,14 @@ export interface PortfolioSnapshot {
 
 export interface AssetCandidate {
   readonly symbol: string;
+  readonly instrumentId?: string;
   readonly name?: string;
   readonly source: "watchlist" | "portfolio" | "search" | "current";
 }
 
 export interface TimeframeObservation {
   readonly symbol: string;
+  readonly instrumentId?: string;
   readonly timeframe: Timeframe;
   readonly price: number;
   readonly returnPercent: number;
@@ -168,10 +210,15 @@ export interface TimeframeObservation {
   readonly volatility: number;
   readonly volumeStrength: number;
   readonly timestamp: string;
+  readonly observedAt: string;
+  readonly source: ObservationSource;
+  readonly candleCount: number;
+  readonly available: boolean;
 }
 
 export interface CandidateEvaluation {
   readonly symbol: string;
+  readonly instrumentId?: string;
   readonly evaluatedAt: string;
   readonly brainMode: BrainMode;
   readonly timeframes: readonly TimeframeObservation[];
@@ -187,12 +234,39 @@ export interface RiskPolicy {
   readonly maxSingleOrderValue: number;
   readonly maxPositionValue: number;
   readonly maxDailyNewExposure: number;
+  readonly feeRate?: number;
+  readonly slippageBps?: number;
+  readonly proposalCooldownMs?: number;
+}
+
+export interface ModalContext {
+  readonly kind: ModalKind;
+  readonly visible: boolean;
+  readonly confidence: number;
+}
+
+export interface BrokerPageContext {
+  readonly brokerId: string;
+  readonly url: string;
+  readonly pageKind: BrokerPageKind;
+  readonly symbol?: string;
+  readonly instrumentId?: string;
+  readonly loginState: LoginState;
+  readonly modal: ModalContext | null;
+  readonly confidence: number;
+  readonly detectedAt: string;
+  readonly frame?: {
+    readonly frameId: number;
+    readonly origin: string;
+    readonly unavailableReason?: "UNAVAILABLE_CROSS_ORIGIN_FRAME";
+  };
 }
 
 export interface OrderProposal {
   readonly id: string;
   readonly broker: string;
   readonly symbol: string;
+  readonly instrumentId: string;
   readonly side: "buy" | "sell";
   readonly quantity?: number;
   readonly estimatedPrice: number;
@@ -200,6 +274,7 @@ export interface OrderProposal {
   readonly createdAt: string;
   readonly brainSnapshot: BrainOutput;
   readonly brainMode: BrainMode;
+  readonly status?: "pending" | "accepted" | "rejected" | "invalidated";
 }
 
 export interface TradeRecord {
@@ -207,23 +282,47 @@ export interface TradeRecord {
   readonly mode: "paper" | "live-confirmed";
   readonly broker: string;
   readonly symbol: string;
+  readonly instrumentId: string;
   readonly side: "buy" | "sell";
   readonly quantity: number;
   readonly price: number;
   readonly value: number;
+  readonly fee?: number;
   readonly timestamp: string;
   readonly sourceProposalId?: string;
   readonly brainMode: BrainMode;
   readonly brainOutput: BrainOutput;
   readonly topOutputNeurons?: readonly ActiveNeuron[];
   readonly timeframes?: readonly TimeframeObservation[];
+  readonly liveConfidence?: LiveFillConfidence;
+  readonly cycleId?: string;
 }
 
 export interface PaperPosition {
   readonly symbol: string;
+  readonly instrumentId: string;
   readonly quantity: number;
   readonly averagePrice: number;
   readonly marketPrice: number;
+  readonly priceUpdatedAt: string;
+  readonly priceStale?: boolean;
+}
+
+export interface PositionCycle {
+  readonly id: string;
+  readonly instrumentId: string;
+  readonly broker: string;
+  readonly symbol: string;
+  readonly status: "open" | "closed";
+  readonly buyAveragePrice: number;
+  readonly sellAveragePrice?: number;
+  readonly quantityOpened: number;
+  readonly quantityClosed: number;
+  readonly openedAt: string;
+  readonly closedAt?: string;
+  readonly realizedPnl?: number;
+  readonly realizedReturnPercent?: number;
+  readonly fees?: number;
 }
 
 export interface PerformanceSnapshot {
@@ -231,12 +330,18 @@ export interface PerformanceSnapshot {
   readonly openPositions: number;
   readonly realizedPnl: number;
   readonly unrealizedPnl: number;
+  readonly grossRealizedPnl: number;
+  readonly netRealizedPnl: number;
   readonly totalReturnPercent: number;
   readonly winRate: number;
   readonly averageGain: number;
   readonly averageLoss: number;
+  /** Realized-only drawdown unless equityHistory provided. */
   readonly maximumDrawdown: number;
-  readonly benchmarkReturn: number;
+  readonly maximumDrawdownBasis: "realized-only" | "mark-to-market";
+  /** Null when no real benchmark series is available. */
+  readonly benchmarkReturn: number | null;
+  readonly unrealizedPnlStale: boolean;
 }
 
 export const DEFAULT_RISK_POLICY: RiskPolicy = {
@@ -244,4 +349,25 @@ export const DEFAULT_RISK_POLICY: RiskPolicy = {
   maxSingleOrderValue: 300_000,
   maxPositionValue: 500_000,
   maxDailyNewExposure: 400_000,
+  feeRate: 0,
+  slippageBps: 0,
+  proposalCooldownMs: 30_000,
+};
+
+export const MIN_CANDLES_BY_TIMEFRAME: Record<Timeframe, number> = {
+  "1m": 20,
+  "5m": 20,
+  "15m": 20,
+  "1h": 20,
+  "4h": 15,
+  "1d": 10,
+};
+
+export const STALE_MS_BY_TIMEFRAME: Record<Timeframe, number> = {
+  "1m": 3 * 60_000,
+  "5m": 12 * 60_000,
+  "15m": 30 * 60_000,
+  "1h": 2 * 60 * 60_000,
+  "4h": 8 * 60 * 60_000,
+  "1d": 36 * 60 * 60_000,
 };

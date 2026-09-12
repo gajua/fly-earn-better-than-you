@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { createOrderProposal } from "./orders";
-import { deriveSessionState, evaluateOrderRisk, DEFAULT_RISK_POLICY } from "@fly/core";
+import {
+  DEFAULT_RISK_POLICY,
+  deriveSessionState,
+  evaluateOrderRisk,
+} from "@fly/core";
 
 describe("extension order safety", () => {
   it("never marks live-assist paper execution as automatic confirm bypass", () => {
@@ -20,10 +24,12 @@ describe("extension order safety", () => {
         activity: 0.8,
       },
     });
+    expect(proposal.instrumentId).toContain("AAPL");
     expect(proposal.estimatedValue).toBe(1_000);
     const decision = evaluateOrderRisk(proposal, DEFAULT_RISK_POLICY, {
       currentExposure: 999_500,
       dailyNewExposure: 0,
+      positions: [],
     });
     expect(decision.ok).toBe(false);
   });

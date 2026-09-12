@@ -158,6 +158,17 @@ export function App() {
       data-watchlist="AAPL,NVDA,MSFT"
       data-timeframes="1m,5m,15m,1h,1d"
       data-market-open="true"
+      data-page-kind="trade"
+      data-tf-1m={JSON.stringify(
+        Array.from({ length: 30 }, (_, index) => ({
+          open: price * (1 - 0.01 + index * 0.0005),
+          high: price * (1 - 0.005 + index * 0.0005),
+          low: price * (1 - 0.015 + index * 0.0005),
+          close: price * (1 - 0.008 + index * 0.0005),
+          volume: 1_000 + index * 10,
+          timestamp: new Date(Date.now() - (29 - index) * 60_000).toISOString(),
+        })),
+      )}
     >
       <header className="topbar">
         <a className="brand" href="/" aria-label="Fly Trade home">

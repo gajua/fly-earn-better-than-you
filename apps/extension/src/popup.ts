@@ -43,27 +43,50 @@ const load = async () => {
       openPositions: number;
       realizedPnl: number;
       unrealizedPnl: number;
+      unrealizedPnlStale?: boolean;
       totalReturnPercent: number;
       winRate: number;
       maximumDrawdown: number;
+      maximumDrawdownBasis?: string;
+      benchmarkReturn?: number | null;
     };
     exposure?: { currentExposure: number };
   };
   if (perfResponse.ok && perfResponse.paper && perfResponse.exposure) {
     const paper = perfResponse.paper;
+    const closed = (
+      perfResponse as {
+        closedCycles?: {
+          symbol: string;
+          buyAveragePrice: number;
+          sellAveragePrice: number;
+          realizedReturnPercent: number;
+        }[];
+      }
+    ).closedCycles;
     performance.textContent = [
       `Trades: ${paper.totalTrades}`,
       `Open: ${paper.openPositions}`,
       `Realized: ${paper.realizedPnl.toFixed(2)}`,
-      `Unrealized: ${paper.unrealizedPnl.toFixed(2)}`,
+      `Unrealized: ${paper.unrealizedPnl.toFixed(2)}${paper.unrealizedPnlStale ? " (STALE)" : ""}`,
       `Return: ${paper.totalReturnPercent.toFixed(2)}%`,
       `Win rate: ${(paper.winRate * 100).toFixed(1)}%`,
-      `Max DD: ${paper.maximumDrawdown.toFixed(2)}`,
+      `Max DD (${paper.maximumDrawdownBasis}): ${paper.maximumDrawdown.toFixed(2)}`,
+      `Benchmark: ${paper.benchmarkReturn == null ? "unavailable" : paper.benchmarkReturn}`,
       `Exposure: ${perfResponse.exposure.currentExposure.toFixed(0)} / ${preferences.riskPolicy.maxTradingCapital}`,
+      ...(closed ?? []).map(
+        (cycle) =>
+          `${cycle.symbol}  Buy ${cycle.buyAveragePrice.toFixed(2)}  Sell ${cycle.sellAveragePrice.toFixed(2)}  ${cycle.realizedReturnPercent.toFixed(2)}%`,
+      ),
     ].join("\n");
   }
-};
 
+  const diagnostics = statusResponse.status?.diagnostics;
+  const diagnosticsEl = document.getElementById("diagnostics");
+  if (diagnosticsEl && diagnostics) {
+    diagnosticsEl.textContent = JSON.stringify(diagnostics, null, 2);
+  }
+};
 document.getElementById("save-prefs")!.addEventListener("click", () => {
   void (async () => {
     const prefsResponse = (await chrome.runtime.sendMessage({

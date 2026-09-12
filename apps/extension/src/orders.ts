@@ -1,8 +1,10 @@
 import type { BrainMode, BrainOutput, OrderProposal } from "@fly/core";
+import { demoInstrumentId } from "@fly/core";
 
 export const createOrderProposal = (input: {
   broker: string;
   symbol: string;
+  instrumentId?: string;
   side: "buy" | "sell";
   price: number;
   quantity: number;
@@ -12,6 +14,7 @@ export const createOrderProposal = (input: {
   id: crypto.randomUUID(),
   broker: input.broker,
   symbol: input.symbol,
+  instrumentId: input.instrumentId ?? demoInstrumentId(input.symbol),
   side: input.side,
   quantity: input.quantity,
   estimatedPrice: input.price,
@@ -19,4 +22,5 @@ export const createOrderProposal = (input: {
   createdAt: new Date().toISOString(),
   brainSnapshot: input.brainOutput,
   brainMode: input.brainMode,
+  status: "pending",
 });

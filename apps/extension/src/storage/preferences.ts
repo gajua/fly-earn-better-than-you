@@ -36,6 +36,19 @@ export interface RuntimeStatus {
   readonly badge: "sleeping" | "ready" | "watching" | "interest" | "confirm";
   readonly message: string;
   readonly updatedAt: string;
+  readonly diagnostics?: {
+    readonly pageKind?: string;
+    readonly pageConfidence?: number;
+    readonly modal?: unknown;
+    readonly symbol?: string | null;
+    readonly targets?: Record<string, unknown>;
+    readonly timeframes?: readonly {
+      readonly timeframe: string;
+      readonly available: boolean;
+      readonly source: string;
+      readonly candleCount: number;
+    }[];
+  };
 }
 
 export const STATUS_KEY = "fly-runtime-status";

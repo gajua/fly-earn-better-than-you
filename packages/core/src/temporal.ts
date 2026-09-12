@@ -1,15 +1,39 @@
 import { clamp01 } from "./math";
-import type { MarketEnvironment, TimeframeObservation } from "./types";
+import {
+  MIN_CANDLES_BY_TIMEFRAME,
+  STALE_MS_BY_TIMEFRAME,
+  type MarketEnvironment,
+  type TimeframeObservation,
+} from "./types";
 
 /**
  * Aggregates multi-timeframe observations into a broker-neutral MarketEnvironment.
  * Never maps a single timeframe directly to BUY/SELL.
+ * Synthetic/unavailable observations are excluded.
  */
+export const filterUsableTimeframeObservations = (
+  observations: readonly TimeframeObservation[],
+  nowMs = Date.now(),
+): TimeframeObservation[] =>
+  observations.filter((observation) => {
+    if (!observation.available) return false;
+    if (observation.source !== "broker-public-api" && observation.source !== "broker-dom" && observation.source !== "demo") {
+      return false;
+    }
+    const minCandles = MIN_CANDLES_BY_TIMEFRAME[observation.timeframe];
+    if (observation.candleCount < minCandles) return false;
+    const observedAt = Date.parse(observation.observedAt);
+    if (!Number.isFinite(observedAt)) return false;
+    return nowMs - observedAt <= STALE_MS_BY_TIMEFRAME[observation.timeframe];
+  });
+
 export const aggregateTimeframeObservations = (
   observations: readonly TimeframeObservation[],
   base?: Partial<MarketEnvironment>,
+  nowMs = Date.now(),
 ): MarketEnvironment => {
-  if (observations.length === 0) {
+  const usable = filterUsableTimeframeObservations(observations, nowMs);
+  if (usable.length === 0) {
     return {
       market: {
         momentum: 0,
@@ -36,7 +60,7 @@ export const aggregateTimeframeObservations = (
   let volatility = 0;
   let volumeStrength = 0;
 
-  for (const observation of observations) {
+  for (const observation of usable) {
     const weight = weights[observation.timeframe] ?? 0.1;
     weightSum += weight;
     momentum += observation.momentum * weight;
@@ -44,7 +68,7 @@ export const aggregateTimeframeObservations = (
     volumeStrength += observation.volumeStrength * weight;
   }
 
-  const latest = observations.at(-1);
+  const latest = usable.at(-1);
   if (!latest) {
     return {
       market: { momentum: 0, volatility: 0, volumeStrength: 0.5 },
@@ -58,6 +82,7 @@ export const aggregateTimeframeObservations = (
   return {
     asset: base?.asset ?? {
       symbol: latest.symbol,
+      instrumentId: latest.instrumentId,
       price: latest.price,
       changePercent: latest.returnPercent,
     },

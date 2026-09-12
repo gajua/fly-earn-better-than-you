@@ -9,10 +9,10 @@ import {
   scanBrokerTabs,
   writePreferences,
 } from "./background/broker-tabs";
-import { getExposureSummary, maybeExecutePaperTrade } from "./background/paper-engine";
+import { getExposureSummary, markToMarketPositions, maybeExecutePaperTrade } from "./background/paper-engine";
 import { clearTrades, listTrades } from "./storage/trade-ledger";
 import { STATUS_KEY, type ExtensionPreferences } from "./storage/preferences";
-import { computePerformance } from "@fly/core";
+import { computePerformance, summarizeClosedCycles } from "@fly/core";
 import { BROKER_REGISTRY } from "@fly/broker-adapters";
 
 const CONFIG_KEY = "pairing";
@@ -168,6 +168,20 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return;
     }
 
+    if (kind === "mark-to-market") {
+      const quotes = (message as {
+        quotes: { instrumentId: string; price: number; observedAt: string }[];
+      }).quotes;
+      const map = new Map(
+        quotes.map((quote) => [
+          quote.instrumentId,
+          { price: quote.price, observedAt: quote.observedAt },
+        ]),
+      );
+      sendResponse({ ok: true, positions: await markToMarketPositions(map) });
+      return;
+    }
+
     if (kind === "get-performance") {
       const preferences = await readPreferences();
       const paperTrades = await listTrades("paper");
@@ -179,8 +193,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           paperTrades,
           exposure.positions,
           preferences.riskPolicy.maxTradingCapital,
+          exposure.cycles,
         ),
-        live: computePerformance(liveTrades, [], preferences.riskPolicy.maxTradingCapital),
+        live: computePerformance(
+          liveTrades,
+          [],
+          preferences.riskPolicy.maxTradingCapital,
+          [],
+        ),
+        closedCycles: summarizeClosedCycles(exposure.cycles),
         exposure,
       });
       return;

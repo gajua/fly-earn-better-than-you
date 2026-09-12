@@ -5,12 +5,13 @@
 ## Definitions
 
 - `maxTradingCapital`: maximum **Fly-controlled open long exposure**
-  (mark-to-market of current paper/live-confirmed long positions). It is **not**
-  cumulative historical BUY notional.
+  (mark-to-market) **plus** proposed buy. Not cumulative historical BUY notional.
 - `maxSingleOrderValue`: cap on one proposal's estimated value.
-- `maxPositionValue`: cap on a single-symbol add.
+- `maxPositionValue`: **existing instrument exposure + proposed buy**.
 - `maxDailyNewExposure`: cap on newly opened long exposure for the UTC day.
-- SELL orders do not increase exposure.
+- SELL never increases exposure, but must pass owned-quantity checks
+  (`sell-without-position`, `sell-exceeds-position`). Shorting is not supported.
+- Optional `feeRate`, `slippageBps`, `proposalCooldownMs`.
 
 ## Live-assist
 

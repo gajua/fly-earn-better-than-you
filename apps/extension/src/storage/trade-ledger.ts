@@ -1,16 +1,21 @@
-import type { PaperPosition, TradeRecord } from "@fly/core";
+import type { PaperPosition, PositionCycle, TradeRecord } from "@fly/core";
+import type { TradeRepository } from "./repository";
 
 const DB_NAME = "fly-earn-better-than-you";
-const DB_VERSION = 1;
-const STORE = "trades";
+const DB_VERSION = 2;
+const TRADE_STORE = "trades";
+const CYCLE_STORE = "cycles";
 
 const openDb = (): Promise<IDBDatabase> =>
   new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
     request.onupgradeneeded = () => {
       const db = request.result;
-      if (!db.objectStoreNames.contains(STORE)) {
-        db.createObjectStore(STORE, { keyPath: "id" });
+      if (!db.objectStoreNames.contains(TRADE_STORE)) {
+        db.createObjectStore(TRADE_STORE, { keyPath: "id" });
+      }
+      if (!db.objectStoreNames.contains(CYCLE_STORE)) {
+        db.createObjectStore(CYCLE_STORE, { keyPath: "id" });
       }
     };
     request.onsuccess = () => resolve(request.result);
@@ -20,8 +25,8 @@ const openDb = (): Promise<IDBDatabase> =>
 export const appendTrade = async (trade: TradeRecord): Promise<void> => {
   const db = await openDb();
   await new Promise<void>((resolve, reject) => {
-    const tx = db.transaction(STORE, "readwrite");
-    tx.objectStore(STORE).put(trade);
+    const tx = db.transaction(TRADE_STORE, "readwrite");
+    tx.objectStore(TRADE_STORE).put(trade);
     tx.oncomplete = () => resolve();
     tx.onerror = () => reject(tx.error ?? new Error("idb-write-failed"));
   });
@@ -33,11 +38,18 @@ export const listTrades = async (
 ): Promise<TradeRecord[]> => {
   const db = await openDb();
   const trades = await new Promise<TradeRecord[]>((resolve, reject) => {
-    const tx = db.transaction(STORE, "readonly");
-    const request = tx.objectStore(STORE).getAll();
+    const tx = db.transaction(TRADE_STORE, "readonly");
+    const request = tx.objectStore(TRADE_STORE).getAll();
     request.onsuccess = () => {
       const rows = (request.result as TradeRecord[]) ?? [];
-      resolve(mode ? rows.filter((row) => row.mode === mode) : rows);
+      resolve(
+        mode
+          ? rows.filter(
+              (row) =>
+                row.mode === mode && row.liveConfidence !== "UNVERIFIED",
+            )
+          : rows.filter((row) => row.liveConfidence !== "UNVERIFIED"),
+      );
     };
     request.onerror = () => reject(request.error ?? new Error("idb-read-failed"));
   });
@@ -45,11 +57,39 @@ export const listTrades = async (
   return trades.sort((a, b) => a.timestamp.localeCompare(b.timestamp));
 };
 
+export const readPaperCycles = async (): Promise<PositionCycle[]> => {
+  const db = await openDb();
+  const cycles = await new Promise<PositionCycle[]>((resolve, reject) => {
+    const tx = db.transaction(CYCLE_STORE, "readonly");
+    const request = tx.objectStore(CYCLE_STORE).getAll();
+    request.onsuccess = () => resolve((request.result as PositionCycle[]) ?? []);
+    request.onerror = () => reject(request.error ?? new Error("idb-cycle-read"));
+  });
+  db.close();
+  return cycles;
+};
+
+export const writePaperCycles = async (
+  cycles: readonly PositionCycle[],
+): Promise<void> => {
+  const db = await openDb();
+  await new Promise<void>((resolve, reject) => {
+    const tx = db.transaction(CYCLE_STORE, "readwrite");
+    const store = tx.objectStore(CYCLE_STORE);
+    store.clear();
+    for (const cycle of cycles) store.put(cycle);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error ?? new Error("idb-cycle-write"));
+  });
+  db.close();
+};
+
 export const clearTrades = async (): Promise<void> => {
   const db = await openDb();
   await new Promise<void>((resolve, reject) => {
-    const tx = db.transaction(STORE, "readwrite");
-    tx.objectStore(STORE).clear();
+    const tx = db.transaction([TRADE_STORE, CYCLE_STORE], "readwrite");
+    tx.objectStore(TRADE_STORE).clear();
+    tx.objectStore(CYCLE_STORE).clear();
     tx.oncomplete = () => resolve();
     tx.onerror = () => reject(tx.error ?? new Error("idb-clear-failed"));
   });
@@ -67,3 +107,12 @@ export const writePaperPositions = async (
 ): Promise<void> => {
   await chrome.storage.local.set({ "fly-paper-positions": positions });
 };
+
+/** Local-first repository. Cloud/Supabase is optional and not wired by default. */
+export const createLocalIndexedDbTradeRepository = (): TradeRepository => ({
+  appendTrade,
+  listTrades,
+  clearTrades,
+  readCycles: readPaperCycles,
+  writeCycles: writePaperCycles,
+});

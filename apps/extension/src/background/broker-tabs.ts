@@ -7,8 +7,9 @@ const badgeFor = (
   session: RuntimeStatus["session"],
 ): RuntimeStatus["badge"] => {
   if (session === "NO_BROKER" || session === "MARKET_CLOSED") return "sleeping";
-  if (session === "BROKER_LOGGED_OUT") return "sleeping";
-  if (session === "USER_CONFIRM_REQUIRED" || session === "ORDER_PROPOSED") {
+  if (session === "BROKER_LOGGED_OUT" || session === "BRAIN_UNAVAILABLE") {
+    return "sleeping";
+  }  if (session === "USER_CONFIRM_REQUIRED" || session === "ORDER_PROPOSED") {
     return "confirm";
   }
   if (session === "BUY_INTEREST" || session === "SELL_INTEREST") return "interest";
@@ -22,6 +23,8 @@ const messageFor = (session: RuntimeStatus["session"]): string => {
       return "거래소 화면을 띄우면 깨워줘.";
     case "BROKER_LOGGED_OUT":
       return "로그인하면 시작할게.";
+    case "BRAIN_UNAVAILABLE":
+      return "MaleCNS unavailable — proposals paused.";
     case "MARKET_CLOSED":
       return "시장이 닫혀 있어서 쉬는 중.";
     case "BUY_INTEREST":
@@ -53,7 +56,7 @@ export const writePreferences = async (
 
 export const publishStatus = async (
   partial: Omit<RuntimeStatus, "badge" | "message" | "updatedAt"> &
-    Partial<Pick<RuntimeStatus, "message">>,
+    Partial<Pick<RuntimeStatus, "message" | "diagnostics">>,
 ): Promise<RuntimeStatus> => {
   const status: RuntimeStatus = {
     ...partial,

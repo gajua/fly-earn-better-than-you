@@ -1,11 +1,19 @@
 # Trade Ledger
 
-Trades are stored in extension IndexedDB (`fly-earn-better-than-you` /
-`trades`).
+Local source of truth:
 
-Each `TradeRecord` stores mode (`paper` | `live-confirmed`), broker, symbol,
-side, quantity, price, value, timestamps, optional proposal id, brain mode,
-brain output snapshot, and optional neuron/timeframe diagnostics.
+- IndexedDB `trades` + `cycles`
+- `chrome.storage.local` for preferences and lightweight open positions cache
 
-Paper and live-confirmed series are kept separate for performance dashboards.
-Users can delete local Fly history from the popup Privacy section.
+`TradeRepository` abstracts storage. Default: `LocalIndexedDbTradeRepository`.
+Supabase is **not** a hard dependency; cloud sync would require explicit user
+opt-in + Auth/RLS and must never receive broker credentials.
+
+User-facing closed history emphasizes:
+
+- symbol
+- buy average
+- sell average
+- realized return %
+
+UNVERIFIED live fills are excluded from performance.
