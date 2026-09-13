@@ -1,0 +1,25 @@
+---
+description: MaleCNS REAL vs MODELED and hard-fail rules
+globs: services/brain/**,packages/brain-client/**
+alwaysApply: false
+---
+
+# MaleCNS
+
+Phrase: “Neural simulation constrained by real MaleCNS connectivity.”
+Do not claim market prediction.
+
+REAL (must stay factual):
+
+- MaleCNS body IDs
+- topology
+- raw synapse-count weights
+
+MODELED (must be labeled modeled):
+
+- LIF / membrane dynamics
+- market sensory mapping
+- behavior decoding
+
+`real-connectome` missing/corrupt artifact → hard fail. Never silent Mock fallback.
+`shuffled-control` is not MaleCNS.

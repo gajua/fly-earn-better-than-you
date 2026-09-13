@@ -1,5 +1,6 @@
 # 🪰 Fly Earn Better Than You
 
+<<<<<<< Updated upstream
 > Let a fruit fly's real connectome watch the market.
 
 Fly Earn Better Than You is an open-source Chrome experiment that watches supported trading pages, turns real market observations into neural input, runs an experimental simulation constrained by the real **MaleCNS v1.0** fruit-fly connectome, and renders a fly that reacts to the result.
@@ -230,6 +231,45 @@ Requirements:
 - Node.js 22+
 - pnpm 10+
 - Chrome / Chromium 116+
+=======
+A tiny observation agent that watches supported trading screens from a Chrome
+extension first. Optional Tauri desktop companion. It never auto-submits live
+broker orders.
+
+## How it works
+
+Broker page observation → validated candles → market features → Mock or
+MaleCNS-constrained neural simulation → Fly overlay → ProposalGuard / RiskEngine
+→ Paper ledger (default) or Live Assist prompts.
+
+Stronger approach-like output is **not** a market prediction. Prefer:
+“Neural simulation constrained by real MaleCNS connectivity.”
+
+## No API keys / No runtime LLM cost
+
+- No broker API keys, secrets, or OAuth trading tokens by default.
+- Market data uses public no-auth endpoints (or DOM) — never synthetic candles.
+- Extension runtime does **not** call OpenAI / Anthropic / Gemini.
+
+## Supported brokers
+
+| Broker                    | UI                         | Real Market Data        | Paper   | Live Assist |
+| ------------------------- | -------------------------- | ----------------------- | ------- | ----------- |
+| Local demo (`127.0.0.1`)  | ✅                         | ✅ (`data-tf-*` only)   | ✅      | PARTIAL     |
+| Binance Spot              | PARTIAL → **Usable Beta*** | ✅ public REST          | PARTIAL | PARTIAL     |
+| Upbit                     | PARTIAL                    | ✅ official public REST | PARTIAL | PARTIAL     |
+| Bybit / Kraken / Coinbase | NOT IMPLEMENTED            | Market Data Only        | —       | —           |
+| Stock brokers             | Planned                    | —                       | —       | —           |
+
+\*Usable Beta requires real-browser QA of detect → symbol → candles → Fly → Paper.
+Login/portfolio remain NOT VERIFIED without an account. See
+[`docs/REAL_BROWSER_QA.md`](docs/REAL_BROWSER_QA.md) and
+[`docs/IMPLEMENTATION_STATUS.md`](docs/IMPLEMENTATION_STATUS.md).
+
+**Market Data Ready ≠ Full Broker Support.**
+
+## Install / Quick start
+>>>>>>> Stashed changes
 
 ```bash
 git clone https://github.com/gajua/fly-earn-better-than-you.git
@@ -238,9 +278,27 @@ git checkout feat/reuse-open-source-broker-adapters
 
 pnpm install
 pnpm --filter @fly/extension build
+pnpm --filter @fly/demo dev
 ```
 
+<<<<<<< Updated upstream
 Then in Chrome:
+=======
+Load `apps/extension/dist` as an unpacked Chrome extension. Open the local demo
+or a supported public trade page. Default: Mock brain + Paper trading.
+
+## Binance
+
+1. Build and load the extension.
+2. Open `https://www.binance.com/en/trade/BTC_USDT?type=spot` (logged out OK).
+3. Fly should detect symbol, chart, Buy/Sell landmarks, and fetch public candles.
+4. Paper fills stay in IndexedDB history (no live submit).
+
+## Upbit
+
+Open `https://www.upbit.com/exchange?code=CRIX.UPBIT.KRW-BTC`. UI + public
+candles are PARTIAL; verify against `docs/REAL_BROWSER_QA.md`.
+>>>>>>> Stashed changes
 
 1. Open `chrome://extensions`.
 2. Enable **Developer mode**.
@@ -299,6 +357,7 @@ pip install -r requirements.txt
 uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
+<<<<<<< Updated upstream
 Then open the extension popup and choose:
 
 ```text
@@ -323,6 +382,36 @@ pnpm dev
 ```
 
 Open `http://127.0.0.1:5173`, then load the unpacked extension. The local demo is useful for repeatable UI and Paper Trading tests.
+=======
+Set popup Brain to `real-connectome`. Missing service/artifacts → hard fail
+(never silent Mock fallback).
+
+## Paper / Live Assist / Risk / History
+
+- Paper: virtual fills, PositionCycle, performance (local IndexedDB).
+- Live Assist: approach + proposal only; user confirms in broker UI.
+- Risk: ProposalGuard + RiskEngine (see `docs/RISK_POLICY.md`).
+- History: trades + cycles; Supabase is future optional sync only.
+
+## Add a broker
+
+See [`docs/ADDING_BROKER.md`](docs/ADDING_BROKER.md) and
+`packages/broker-adapters/template/`.
+
+## Limitations
+
+- No automatic live order automation.
+- No cookie/password/OTP capture.
+- No synthetic multi-timeframe invention.
+- Production portfolio / logged-in reconciliation often PARTIAL.
+- Stock brokers not in v1.
+
+## License / attribution
+
+MIT project code — see `LICENSE`. Third-party notices:
+[`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md),
+[`docs/THIRD_PARTY_ADAPTERS.md`](docs/THIRD_PARTY_ADAPTERS.md).
+>>>>>>> Stashed changes
 
 ## Commands
 
@@ -334,6 +423,7 @@ pnpm test:e2e
 pnpm build
 pnpm test:python
 pnpm test:rust
+<<<<<<< Updated upstream
 ```
 
 `pnpm test:python` expects the Python virtual environment under `services/brain/.venv`.
@@ -346,6 +436,8 @@ Broker support is deliberately split into two independent pieces:
 BrokerUIAdapter
 +
 MarketDataProvider
+=======
+>>>>>>> Stashed changes
 ```
 
 A community adapter should ideally include:
@@ -405,13 +497,15 @@ MaleCNS attribution and provenance are documented in:
 
 ## Architecture docs
 
-- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
+- [`AGENTS.md`](AGENTS.md) — development policy
 - [`docs/EXTENSION_ARCHITECTURE.md`](docs/EXTENSION_ARCHITECTURE.md)
-- [`docs/RISK_POLICY.md`](docs/RISK_POLICY.md)
-- [`docs/PAPER_TRADING.md`](docs/PAPER_TRADING.md)
-- [`docs/TRADE_LEDGER.md`](docs/TRADE_LEDGER.md)
+- [`docs/ADDING_BROKER.md`](docs/ADDING_BROKER.md)
+- [`docs/REAL_BROWSER_QA.md`](docs/REAL_BROWSER_QA.md)
 - [`docs/IMPLEMENTATION_STATUS.md`](docs/IMPLEMENTATION_STATUS.md)
+<<<<<<< Updated upstream
 
 ## License
 
 The project's original source code is licensed under the **MIT License**. Third-party code and datasets remain under their respective licenses.
+=======
+>>>>>>> Stashed changes

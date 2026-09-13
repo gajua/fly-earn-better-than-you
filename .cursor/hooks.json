@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "hooks": {
+    "afterFileEdit": [
+      {
+        "command": ".cursor/hooks/after-file-edit.mjs"
+      }
+    ],
+    "beforeShellExecution": [
+      {
+        "command": ".cursor/hooks/before-shell.mjs",
+        "failClosed": false,
+        "timeout": 5
+      }
+    ],
+    "beforeMCPExecution": [
+      {
+        "command": ".cursor/hooks/before-mcp.mjs",
+        "timeout": 5
+      }
+    ],
+    "stop": [
+      {
+        "command": ".cursor/hooks/stop-gates.mjs",
+        "loop_limit": 1,
+        "timeout": 600
+      }
+    ]
+  }
+}

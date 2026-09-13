@@ -1,0 +1,27 @@
+---
+description: Core Fly pipeline layer boundaries
+alwaysApply: true
+---
+
+# Architecture
+
+Pipeline (do not skip or merge layers):
+
+Broker observation
+→ validated observations
+→ MarketEnvironment
+→ SensoryEncoder
+→ MaleCNS / Mock / shuffled-control
+→ BehaviorDecoder
+→ Fly overlay
+→ ProposalGuard
+→ RiskEngine
+→ Paper / Live Assist
+
+Rules:
+
+- Extension-first; Tauri is companion only.
+- Broker parsing stays out of brain logic.
+- MarketEnvironment stays broker-neutral and serializable.
+- Do not invent large new architecture in wrap-up iterations.
+- Prefer fixing real bugs over “prettier” redesigns.

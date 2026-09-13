@@ -1,0 +1,17 @@
+---
+description: Chrome extension MV3 safety and overlay rules
+globs: apps/extension/**
+alwaysApply: false
+---
+
+# Extension
+
+- Shadow DOM Fly; host page remains usable.
+- Overlay: `pointer-events: none` (non-interactive).
+- Optional per-broker host permissions; never `<all_urls>`.
+- No credential / cookie / Authorization access.
+- No live click / form submit / trading shortcut automation.
+- Revalidate stale DOM targets before using them.
+- Handle SPA history navigation.
+- Production broker failures fail closed (no mock market data).
+- Paper is default; Live Assist never auto-submits.

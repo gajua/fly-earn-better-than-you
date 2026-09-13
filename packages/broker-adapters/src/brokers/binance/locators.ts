@@ -1,12 +1,19 @@
 import type { LocatorCandidate } from "../../locator";
 
-/** Verified on www.binance.com/en/trade/BTC_USDT?type=spot (2026-09). */
+/** Verified on www.binance.com/en/trade/BTC_USDT?type=spot (2026-09-13).
+ * Spot order form is a dual Max Buy / Max Sell panel (tabs may be absent).
+ */
 export const BINANCE_BUY_LOCATORS: readonly LocatorCandidate[] = [
+  {
+    strategy: "visible-text",
+    visibleText: "Max Buy",
+    confidence: 0.9,
+  },
   {
     strategy: "role-text",
     selector: '[role="tab"].bn-tab__buySell',
     visibleText: "Buy",
-    confidence: 0.9,
+    confidence: 0.88,
   },
   {
     strategy: "visible-text",
@@ -17,10 +24,15 @@ export const BINANCE_BUY_LOCATORS: readonly LocatorCandidate[] = [
 
 export const BINANCE_SELL_LOCATORS: readonly LocatorCandidate[] = [
   {
+    strategy: "visible-text",
+    visibleText: "Max Sell",
+    confidence: 0.9,
+  },
+  {
     strategy: "role-text",
     selector: '[role="tab"].bn-tab__buySell',
     visibleText: "Sell",
-    confidence: 0.9,
+    confidence: 0.88,
   },
   {
     strategy: "visible-text",

@@ -10,6 +10,9 @@ export default tseslint.config(
       "**/node_modules/**",
       "playwright-report/**",
       "test-results/**",
+      "**/.venv/**",
+      ".cursor/hooks/**",
+      "packages/broker-adapters/template/**",
     ],
   },
   eslint.configs.recommended,
@@ -24,6 +27,14 @@ export default tseslint.config(
     rules: {
       ...reactHooks.configs.recommended.rules,
       "@typescript-eslint/consistent-type-imports": "error",
+    },
+  },
+  {
+    files: ["**/*.{js,mjs,cjs}"],
+    languageOptions: {
+      ecmaVersion: 2022,
+      globals: { ...globals.node },
+      sourceType: "module",
     },
   },
 );

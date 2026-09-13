@@ -45,31 +45,50 @@ export const resolveLocator = (
         `[data-testid="${candidate.testId}"], [data-fly-target="${candidate.testId}"]`,
       );
     } else if (candidate.visibleText) {
-      const matches = Array.from(
-        root.querySelectorAll<HTMLElement>(
-          "button, a, [role='button'], [role='tab']",
-        ),
-      );
-      const narrowed = candidate.selector
-        ? matches.filter((node) => {
-            try {
-              return node.matches(candidate.selector!);
-            } catch {
-              return false;
-            }
-          })
-        : matches;
-      element =
-        narrowed.find(
-          (node) =>
-            (node.textContent ?? "").trim().toLowerCase() ===
-            candidate.visibleText!.toLowerCase(),
-        ) ?? null;
+      const want = candidate.visibleText.trim().toLowerCase();
+      if (candidate.selector) {
+        const matches = Array.from(
+          root.querySelectorAll<HTMLElement>(
+            "button, a, [role='button'], [role='tab']",
+          ),
+        ).filter((node) => {
+          try {
+            return node.matches(candidate.selector!);
+          } catch {
+            return false;
+          }
+        });
+        element =
+          matches.find(
+            (node) => (node.textContent ?? "").trim().toLowerCase() === want,
+          ) ?? null;
+      } else {
+        // Prefer interactive controls, then leaf nodes (Binance dual-panel
+        // "Max Buy" / "Max Sell" labels are non-interactive generics).
+        const interactive = Array.from(
+          root.querySelectorAll<HTMLElement>(
+            "button, a, [role='button'], [role='tab']",
+          ),
+        );
+        element =
+          interactive.find(
+            (node) => (node.textContent ?? "").trim().toLowerCase() === want,
+          ) ??
+          Array.from(root.querySelectorAll<HTMLElement>("*")).find(
+            (node) =>
+              node.children.length === 0 &&
+              (node.textContent ?? "").trim().toLowerCase() === want,
+          ) ??
+          null;
+      }
     } else if (candidate.selector) {
       // Reject hashed/generated class-only selectors as primary strategy.
       // Keep semantic hyphenated classes like `.chart-widget-shell`.
       const selector = candidate.selector.trim();
-      if (/^\.[a-z0-9]{8,}$/i.test(selector) || /^\.css-[a-z0-9]+$/i.test(selector)) {
+      if (
+        /^\.[a-z0-9]{8,}$/i.test(selector) ||
+        /^\.css-[a-z0-9]+$/i.test(selector)
+      ) {
         continue;
       }
       element = root.querySelector<HTMLElement>(candidate.selector);

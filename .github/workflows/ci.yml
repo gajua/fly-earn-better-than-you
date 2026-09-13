@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master, "feat/**"]
+  pull_request:
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm --filter @fly/extension build
+      - run: pnpm build
+
+  python-brain:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install brain deps
+        working-directory: services/brain
+        run: |
+          python -m venv .venv
+          .venv/bin/pip install -r requirements.txt pytest
+      - name: Python tests
+        run: services/brain/.venv/bin/python -m pytest -q services/brain/tests

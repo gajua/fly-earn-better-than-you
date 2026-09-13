@@ -4,10 +4,7 @@ import {
   observationFromCandles,
   type BrokerAdapter,
 } from "@fly/broker-adapters";
-import {
-  createMaleCNSBrain,
-  createMockFlyBrain,
-} from "@fly/brain-client";
+import { createMaleCNSBrain, createMockFlyBrain } from "@fly/brain-client";
 import {
   aggregateTimeframeObservations,
   demoInstrumentId,
@@ -20,8 +17,17 @@ import {
 import { mountShadowFly } from "@fly/fly-ui/shadow-fly";
 import { createOrderProposal } from "./orders";
 
+declare const __FLY_E2E__: boolean;
+
 const SAMPLE_INTERVAL_MS = 2_000;
 const MUTATION_DEBOUNCE_MS = 350;
+
+type E2EHost = Window & {
+  __flyE2EForce?: (output: BrainOutput) => void;
+  __flyE2EGetDiagnostics?: () => unknown;
+};
+
+let e2eForcedOutput: BrainOutput | null = null;
 
 const resolveAdapter = (): BrokerAdapter | null => {
   const matched = findBrokerByUrl(window.location.href);
@@ -32,12 +38,15 @@ const resolveAdapter = (): BrokerAdapter | null => {
 
 const adapter = resolveAdapter() ?? createDemoBrokerAdapter();
 
-const buildTimeframeObservations = async (): Promise<TimeframeObservation[]> => {
+const buildTimeframeObservations = async (): Promise<
+  TimeframeObservation[]
+> => {
   const environment = adapter.readMarketEnvironment();
   if (!environment?.asset) return [];
   const provider = adapter.getMarketDataProvider();
   const instrumentId =
-    environment.asset.instrumentId ?? demoInstrumentId(environment.asset.symbol);
+    environment.asset.instrumentId ??
+    demoInstrumentId(environment.asset.symbol);
   const timeframes = adapter.getAvailableTimeframes();
   const observations: TimeframeObservation[] = [];
   const source =
@@ -277,7 +286,7 @@ const start = async () => {
         latestObservations = await buildTimeframeObservations();
         const usable = filterUsableTimeframeObservations(latestObservations);
         dataProviderError = usable.length === 0;
-        if (dataProviderError) {
+        if (dataProviderError && !(__FLY_E2E__ && e2eForcedOutput)) {
           latestOutput = {
             state: "sleep",
             buyDrive: 0,
@@ -293,7 +302,10 @@ const start = async () => {
         const aggregated = aggregateTimeframeObservations(usable, environment);
 
         try {
-          const output = await brain.evaluate(aggregated);
+          const output =
+            __FLY_E2E__ && e2eForcedOutput
+              ? e2eForcedOutput
+              : await brain.evaluate(aggregated);
           brainUnavailable = false;
           latestOutput = output;
           await publish();
@@ -304,7 +316,7 @@ const start = async () => {
             tradingMode === "paper" &&
             canTradePage &&
             !brainUnavailable &&
-            !dataProviderError &&
+            (!dataProviderError || (__FLY_E2E__ && e2eForcedOutput)) &&
             environment.asset &&
             (output.state === "approach_buy" ||
               output.state === "approach_sell") &&
@@ -363,7 +375,8 @@ const start = async () => {
       const loginState = adapter.detectLoginState();
       if (loginState === "LOGGED_OUT" && !guestMarketOk()) return "login_hint";
       if (!adapter.isMarketOpen()) return "sleep";
-      if (brainUnavailable || dataProviderError) return "sleep";
+      if (brainUnavailable || (dataProviderError && !e2eForcedOutput))
+        return "sleep";
       if (!latestOutput) return null;
       return sessionToFlyState(
         deriveSessionState({
@@ -421,6 +434,20 @@ const start = async () => {
   );
 
   await publish();
+
+  if (__FLY_E2E__) {
+    const host = window as E2EHost;
+    host.__flyE2EForce = (output) => {
+      e2eForcedOutput = output;
+    };
+    host.__flyE2EGetDiagnostics = () => ({
+      brokerId: adapter.id,
+      page: adapter.detectPageContext(),
+      targets: adapter.resolveTargets(),
+      observations: latestObservations,
+      output: latestOutput,
+    });
+  }
 };
 
 void start();

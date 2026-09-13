@@ -4,85 +4,50 @@ Status reflects executable evidence, not intent.
 
 ## DONE
 
-- Extension-first Shadow DOM Fly on local demo broker.
-- BrokerRegistry + expanded BrokerAdapter (page context, locator resolve,
-  modal detect, market-data provider hook).
-- TradeCanvas-adapted **MarketDataProvider** wrappers (CODE_REUSE, MIT) for
-  Binance / Bybit / Coinbase / Kraken public REST klines — no npm chart bundle.
-- CandleValidator + broker-neutral MarketFeatureExtractor.
-- Provider chain that skips duplicate `endpointFamily` after
-  `DATA_PROVIDER_ERROR` (no mock candle fallback).
-- Binance Spot UI adapter (public page detect, URL symbol, Buy/Sell tabs,
-  chart shell) verified in browser QA 2026-09.
-- Upbit UI adapter (exchange URL `code=`, 매수/매도 tabs, Highcharts container)
-  + official public candle API provider.
-- Extension content multi-broker resolve; background `proxy-fetch` allowlist for
-  public market APIs; guest trade observation without login for paper.
-- TimeframeObservation `dataProvider` provenance (`tradecanvas` /
-  `official-public` / …).
-- Removal of synthetic multi-timeframe scaling from content evaluation.
-- ProposalGuard, RiskEngine, PositionCycle, Paper fills, IndexedDB ledger
-  (reused; not rewritten for this iteration).
-- MaleCNS pipeline preserved; real-connectome still no Mock fallback.
-
-## Browser QA (2026-09-12)
-
-### Binance Spot (`https://www.binance.com/en/trade/BTC_USDT?type=spot`)
-
-| Check | Result |
-| --- | --- |
-| Page detect /trade + symbol | PASS (`BTC_USDT` → `BTCUSDT`) |
-| Chart landmark `.chart-widget-shell` | PASS |
-| Buy/Sell `[role=tab].bn-tab__buySell` | PASS |
-| Public market REST (`api.binance.com` klines) | PASS (network probe) |
-| Login state | PARTIAL (`#toLoginPage` ⇒ LOGGED_OUT; guest paper allowed) |
-| Portfolio / live history | NOT VERIFIED (no account) |
-| Extension Fly overlay on live page | NOT run in packed Chrome this session (DOM+API verified; load unpacked for full E2E) |
-
-### Upbit (`https://www.upbit.com/exchange?code=CRIX.UPBIT.KRW-BTC`)
-
-| Check | Result |
-| --- | --- |
-| Page detect + `CRIX.UPBIT.KRW-BTC` | PASS |
-| 매수/매도 `a.tabB__button` | PASS |
-| Chart `.highcharts-container` | PASS |
-| Official public candles | PASS (network probe) |
-| Portfolio / logged-in | NOT VERIFIED |
+- Extension-first Shadow DOM Fly (local demo Playwright PASS).
+- BrokerRegistry + UI/MarketData split; TradeCanvas-adapted public REST wrappers.
+- CandleValidator, MarketFeatureExtractor, TemporalAggregator (no synthetic TF).
+- ProposalGuard, RiskEngine, PositionCycle, Paper fills, IndexedDB.
+- MaleCNS v1.0 pipeline; real-connectome hard-fail (no Mock fallback).
+- Forbidden live-action static guard test.
+- Broker adapter template + `docs/ADDING_BROKER.md`.
+- Cursor rules (`.cursor/rules/*.mdc`) + hooks (`.cursor/hooks.json`).
+- GitHub CI workflow (`.github/workflows/ci.yml`).
+- Controlled paper PnL unit test (10@100 → 10@110).
+- Sanitized Binance/Upbit DOM fixtures + unit adapter tests.
+- Public Binance/Upbit landmark verification (browser QA + Playwright where green).
+- Binance Spot order-form locators updated for dual-panel `Max Buy` / `Max Sell` (2026-09-13).
 
 ## PARTIAL
 
-- Binance/Upbit full support (portfolio, live reconciliation, logged-in).
-- Bybit/Kraken/Coinbase: **Market Data READY**, UI **NOT IMPLEMENTED**.
-- TradingView shared reader: detect helpers only; never invents OHLCV.
-- Candidate scan queue exists with concurrency cap; not fully productized in UI.
-- iframe / webNavigation / closed-shadow: unchanged from prior hardening notes.
-- Extension live overlay QA on production hosts: DOM verified; full packed-extension
-  session on Binance still recommended before claiming Full Support.
+- Binance Spot: public page detect/symbol/chart/BUY/SELL/market data verified;
+  packed-extension Fly + Paper + History on live Binance **NOT VERIFIED**.
+- Upbit: public landmarks + official candles verified; Fly/Paper on live page
+  **NOT VERIFIED**.
+- Live Assist: approach/proposal only; no live fill reconciliation UI.
+- Extension persistent-context harness: code present; agent env run incomplete.
+- Candidate scan queue: implemented with limits; not productized in popup UI.
 
 ## NOT IMPLEMENTED
 
 - Automatic live order submit / click / form submit.
-- Supabase / cloud sync (optional).
-- Canvas/WebGL candle OCR / synthetic candles.
-- Short selling.
-- Benchmark return series.
-- npm dependency on `@tradecanvas/*` (intentionally avoided; see
-  `docs/THIRD_PARTY_ADAPTERS.md`).
+- Supabase product dependency (future optional sync only).
+- Bybit/Kraken/Coinbase UI adapters (Market Data Only).
+- Stock broker adapters (Planned).
+- Canvas candle OCR / synthetic candles.
 
-## Broker matrix (honest)
+## Broker matrix
 
-| Broker | UI | Real Market Data | Paper | Live Assist | Full Support |
-| --- | --- | --- | --- | --- | --- |
-| Demo | ✅ | ✅ (explicit demo JSON only) | ✅ | PARTIAL | YES (local) |
-| Binance Spot | PARTIAL | ✅ TradeCanvas-adapted public REST | ✅ (guest) | PARTIAL | NO |
-| Upbit | PARTIAL | ✅ official-public REST | PARTIAL | PARTIAL | NO |
-| Bybit | NOT IMPLEMENTED | ✅ Market Data Ready | — | — | NO |
-| Kraken | NOT IMPLEMENTED | ✅ Market Data Ready | — | — | NO |
-| Coinbase | NOT IMPLEMENTED | ✅ (no 4h) | — | — | NO |
+| Broker       | UI              | Market Data      | Paper           | Live Assist     | Full Support |
+| ------------ | --------------- | ---------------- | --------------- | --------------- | ------------ |
+| Demo         | DONE            | DONE             | DONE            | PARTIAL         | YES (local)  |
+| Binance Spot | PARTIAL         | DONE             | PARTIAL         | PARTIAL         | NO           |
+| Upbit        | PARTIAL         | DONE             | PARTIAL         | PARTIAL         | NO           |
+| Bybit        | NOT IMPLEMENTED | MARKET DATA ONLY | NOT IMPLEMENTED | NOT IMPLEMENTED | NO           |
+| Kraken       | NOT IMPLEMENTED | MARKET DATA ONLY | NOT IMPLEMENTED | NOT IMPLEMENTED | NO           |
+| Coinbase     | NOT IMPLEMENTED | MARKET DATA ONLY | NOT IMPLEMENTED | NOT IMPLEMENTED | NO           |
 
-## Capability notes
+## Tracking
 
-- Coinbase `4h` → UNAVAILABLE (Exchange granularity set has no 4h; no silent 1h).
-- Upstream TradeCanvas silent TF defaults are blocked in wrappers.
-- API keys / secrets / OAuth trading tokens: never requested.
-- Runtime LLM / remote OCR: none.
+- GitHub: this file + `docs/REAL_BROWSER_QA.md` are source of truth.
+- Notion: private “Fly Broker Support” DB mirrors the matrix for tracking only.

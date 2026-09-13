@@ -12,6 +12,8 @@ const outputDirectory = path.join(packageDirectory, "dist");
 await rm(outputDirectory, { recursive: true, force: true });
 await mkdir(outputDirectory, { recursive: true });
 
+const isE2E = process.env.E2E_TEST_MODE === "1";
+
 await esbuild.build({
   entryPoints: {
     background: path.join(packageDirectory, "src/background.ts"),
@@ -25,6 +27,12 @@ await esbuild.build({
   outdir: outputDirectory,
   sourcemap: true,
   logLevel: "info",
+  // Drop if(false) E2E host hooks from production bundles.
+  minifySyntax: true,
+  // Production builds keep this false so controlled-brain paths are inactive.
+  define: {
+    __FLY_E2E__: JSON.stringify(isE2E),
+  },
 });
 
 await cp(path.join(packageDirectory, "public"), outputDirectory, {

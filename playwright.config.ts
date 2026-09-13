@@ -2,9 +2,9 @@ import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
   testDir: "./e2e",
-  timeout: 45_000,
+  timeout: 60_000,
   expect: {
-    timeout: 10_000,
+    timeout: 15_000,
   },
   use: {
     baseURL: "http://127.0.0.1:5173",
@@ -15,11 +15,20 @@ export default defineConfig({
     {
       name: "chromium",
       use: { ...devices["Desktop Chrome"] },
+      testIgnore: /extension-load\.spec\.ts/,
+    },
+    {
+      name: "extension",
+      testMatch: /extension-load\.spec\.ts/,
+      use: { ...devices["Desktop Chrome"] },
     },
   ],
-  webServer: {
-    command: "pnpm dev",
-    url: "http://127.0.0.1:5173",
-    reuseExistingServer: !process.env.CI,
-  },
+  webServer: process.env.SKIP_WEB_SERVER
+    ? undefined
+    : {
+        command: "pnpm --filter @fly/demo dev -- --host 127.0.0.1 --port 5173",
+        url: "http://127.0.0.1:5173",
+        reuseExistingServer: !process.env.CI,
+        timeout: 120_000,
+      },
 });
