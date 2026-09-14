@@ -11,6 +11,38 @@ export const paperQuantityForPrice = (
   return targetNotional / price;
 };
 
+export const marketFeaturesFromEnvironment = (environment: {
+  readonly market: {
+    readonly momentum: number;
+    readonly volatility: number;
+    readonly volumeStrength: number;
+  };
+  readonly asset?: { readonly changePercent?: number };
+}): OrderProposal["marketFeatures"] | undefined => {
+  const momentum = environment.market.momentum;
+  const volatility = environment.market.volatility;
+  const volumeStrength = environment.market.volumeStrength;
+  const changePercent = environment.asset?.changePercent;
+  const marketReturn =
+    typeof changePercent === "number" && Number.isFinite(changePercent)
+      ? changePercent / 100
+      : undefined;
+  if (
+    !Number.isFinite(momentum) ||
+    !Number.isFinite(volatility) ||
+    !Number.isFinite(volumeStrength) ||
+    marketReturn === undefined
+  ) {
+    return undefined;
+  }
+  return {
+    momentum,
+    volatility,
+    volumeStrength,
+    return: marketReturn,
+  };
+};
+
 export const createOrderProposal = (input: {
   broker: string;
   symbol: string;
@@ -20,6 +52,7 @@ export const createOrderProposal = (input: {
   quantity: number;
   brainOutput: BrainOutput;
   brainMode: BrainMode;
+  marketFeatures?: OrderProposal["marketFeatures"];
 }): OrderProposal => ({
   id: crypto.randomUUID(),
   broker: input.broker,
@@ -33,4 +66,5 @@ export const createOrderProposal = (input: {
   brainSnapshot: input.brainOutput,
   brainMode: input.brainMode,
   status: "pending",
+  marketFeatures: input.marketFeatures,
 });

@@ -198,6 +198,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       if (preferences.contributeAnonymousLearning) {
         void flushContributionQueue({
           enabled: GLOBAL_LEARNING_ENABLED,
+          contributeOptIn: true,
           supabaseUrl: SUPABASE_URL,
           publishableKey: SUPABASE_PUBLISHABLE_KEY,
         });
@@ -240,6 +241,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       const upload = preferences.contributeAnonymousLearning
         ? await flushContributionQueue({
             enabled: GLOBAL_LEARNING_ENABLED,
+            contributeOptIn: true,
             supabaseUrl: SUPABASE_URL,
             publishableKey: SUPABASE_PUBLISHABLE_KEY,
           })

@@ -16,7 +16,11 @@ import {
 import { mountShadowFly } from "@fly/fly-ui/shadow-fly";
 import { loadActiveGlobalPreset } from "./global-preset-runtime";
 import { bubbleMessageKey, resolveLocale, t } from "./i18n";
-import { createOrderProposal, paperQuantityForPrice } from "./orders";
+import {
+  createOrderProposal,
+  marketFeaturesFromEnvironment,
+  paperQuantityForPrice,
+} from "./orders";
 import type { ExtensionPreferences } from "./storage/preferences";
 
 declare const __FLY_E2E__: boolean;
@@ -326,6 +330,7 @@ const start = async () => {
               quantity,
               brainOutput: output,
               brainMode: mode,
+              marketFeatures: marketFeaturesFromEnvironment(environment),
             });
             await chrome.runtime.sendMessage({
               kind: "paper-trade",
@@ -435,6 +440,7 @@ const start = async () => {
               quantity,
               brainOutput: output,
               brainMode: mode,
+              marketFeatures: marketFeaturesFromEnvironment(environment),
             });
             const paperResult = chrome.runtime.sendMessage({
               kind: "paper-trade",

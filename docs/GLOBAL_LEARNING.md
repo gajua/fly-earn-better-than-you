@@ -58,12 +58,30 @@ Live Assist / real-money trades are **never** included.
 
 ## Supabase (optional)
 
+Project: [`sfimnzdjndmipmtlnniq`](https://supabase.com/dashboard/project/sfimnzdjndmipmtlnniq)
+(`https://sfimnzdjndmipmtlnniq.supabase.co`)
+
 Used only for:
 
-1. anonymous learning observation ingestion
-2. published global preset metadata
+1. anonymous learning observation ingestion via Edge Function
+   `ingest-learning-observation`
+2. published global preset metadata (`global_calibration_presets`)
 
 Trade History source of truth remains **IndexedDB**.
+
+Ingestion path:
+
+```text
+Extension (opt-in)
+  → IndexedDB queue
+  → POST /functions/v1/ingest-learning-observation
+  → validate (schema / enums / ranges / forbidden keys)
+  → learning_observations (service role insert)
+```
+
+Direct Data API INSERT into `learning_observations` is not granted to anon.
+Published presets are SELECT-only for clients. Preset INSERT/UPDATE requires
+service role / trusted CI — never auto-deploy from raw observations.
 
 Extension may embed publishable/anon keys only. **Never**
 `SUPABASE_SERVICE_ROLE_KEY` in the client bundle.
@@ -71,10 +89,10 @@ Extension may embed publishable/anon keys only. **Never**
 Forks without Supabase env keep full Fly + Paper + history on the bundled
 preset.
 
-Env (build-time, extension):
+Env (build-time, extension) — see `apps/extension/.env.example`:
 
 - `FLY_GLOBAL_LEARNING_ENABLED=1`
-- `FLY_SUPABASE_URL`
+- `FLY_SUPABASE_URL=https://sfimnzdjndmipmtlnniq.supabase.co`
 - `FLY_SUPABASE_PUBLISHABLE_KEY`
 
 ## Retention

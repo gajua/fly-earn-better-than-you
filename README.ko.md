@@ -35,12 +35,17 @@ Bybit / Kraken / Coinbase — public candle provider only.
 calibration 품질로 시작합니다. MaleCNS connectome 자체는 재학습하지 않습니다.
 
 - 번들 verified preset으로 오프라인에서도 동작
-- 원격 published preset은 optional (스키마 + SHA-256 검증)
-- 익명 Paper 학습 기여는 **opt-in** (기본 OFF)
+- 원격 published preset은 optional
+  ([`sfimnzdjndmipmtlnniq`](https://supabase.com/dashboard/project/sfimnzdjndmipmtlnniq),
+  스키마 + SHA-256 검증)
+- 익명 Paper 학습 기여는 **opt-in** (기본 OFF), Edge Function
+  `ingest-learning-observation` 경유
 - 계좌 인증정보 / 심볼 / 실거래 데이터 업로드 없음
 - Supabase 없는 fork도 기본 기능 정상
+- Paper/history 원본은 IndexedDB
 
-자세한 내용: [`docs/GLOBAL_LEARNING.md`](docs/GLOBAL_LEARNING.md)
+자세한 내용: [`docs/GLOBAL_LEARNING.md`](docs/GLOBAL_LEARNING.md),
+`apps/extension/.env.example`
 
 ## 언어
 

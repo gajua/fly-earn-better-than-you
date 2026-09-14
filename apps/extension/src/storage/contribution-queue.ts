@@ -120,55 +120,65 @@ export const writeContributionMeta = async (
   await chrome.storage.local.set({ [META_KEY]: { lastSyncAt } });
 };
 
-/**
- * Batch upload when opt-in + env configured. Failures never break Paper.
- */
-export const flushContributionQueue = async (input: {
+/** Pure helpers — unit-tested without IndexedDB / network. */
+export const shouldAttemptContributionUpload = (input: {
+  readonly contributeOptIn: boolean;
   readonly enabled: boolean;
   readonly supabaseUrl?: string;
   readonly publishableKey?: string;
+}): boolean =>
+  Boolean(
+    input.contributeOptIn &&
+    input.enabled &&
+    input.supabaseUrl &&
+    input.publishableKey,
+  );
+
+export const buildIngestPayload = (
+  rows: readonly QueueRow[],
+): AnonymousPaperObservation[] =>
+  rows.map(({ id: _id, ...observation }) => {
+    void _id;
+    return stripForbidden(observation);
+  });
+
+/**
+ * Batch upload via Edge Function when opt-in + env configured.
+ * Failures never break Paper; queue rows stay until success.
+ */
+export const flushContributionQueue = async (input: {
+  readonly enabled: boolean;
+  readonly contributeOptIn?: boolean;
+  readonly supabaseUrl?: string;
+  readonly publishableKey?: string;
   readonly batchSize?: number;
+  readonly fetchImpl?: typeof fetch;
 }): Promise<{ uploaded: number; reason?: string }> => {
-  if (!input.enabled || !input.supabaseUrl || !input.publishableKey) {
+  if (
+    !shouldAttemptContributionUpload({
+      contributeOptIn: input.contributeOptIn ?? true,
+      enabled: input.enabled,
+      supabaseUrl: input.supabaseUrl,
+      publishableKey: input.publishableKey,
+    })
+  ) {
     return { uploaded: 0, reason: "skipped" };
   }
   const batchSize = Math.min(Math.max(input.batchSize ?? 25, 1), 50);
   const queue = await listContributionQueue();
   if (queue.length === 0) return { uploaded: 0 };
   const batch = queue.slice(0, batchSize);
-  const body = batch.map((row) => {
-    const { id, ...observation } = row;
-    void id;
-    return {
-      schema_version: observation.schemaVersion,
-      preset_version: observation.presetVersion,
-      broker_category: observation.brokerCategory,
-      momentum: observation.marketFeatures.momentum,
-      volatility: observation.marketFeatures.volatility,
-      volume_strength: observation.marketFeatures.volumeStrength,
-      market_return: observation.marketFeatures.return,
-      buy_drive: observation.brain.buyDrive,
-      sell_drive: observation.brain.sellDrive,
-      curiosity: observation.brain.curiosity,
-      danger: observation.brain.danger,
-      activity: observation.brain.activity,
-      action: observation.action,
-      outcome_return_pct: observation.outcome.returnPct,
-      holding_duration_bucket: observation.outcome.holdingDurationBucket,
-      created_at: observation.createdAt,
-      install_id: observation.installId ?? null,
-    };
-  });
+  const body = buildIngestPayload(batch);
+  const fetchImpl = input.fetchImpl ?? fetch;
   try {
-    const response = await fetch(
-      `${input.supabaseUrl.replace(/\/$/, "")}/rest/v1/learning_observations`,
+    const response = await fetchImpl(
+      `${input.supabaseUrl!.replace(/\/$/, "")}/functions/v1/ingest-learning-observation`,
       {
         method: "POST",
         headers: {
-          apikey: input.publishableKey,
-          Authorization: `Bearer ${input.publishableKey}`,
+          apikey: input.publishableKey!,
+          Authorization: `Bearer ${input.publishableKey!}`,
           "Content-Type": "application/json",
-          Prefer: "return=minimal",
         },
         body: JSON.stringify(body),
         credentials: "omit",

@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { createOrderProposal, paperQuantityForPrice } from "./orders";
+import {
+  createOrderProposal,
+  marketFeaturesFromEnvironment,
+  paperQuantityForPrice,
+} from "./orders";
 import {
   DEFAULT_RISK_POLICY,
   deriveSessionState,
@@ -70,5 +74,24 @@ describe("extension order safety", () => {
         marketOpen: true,
       }),
     ).toBe("NO_BROKER");
+  });
+
+  it("maps MarketEnvironment features onto proposals without inventing stubs", () => {
+    const features = marketFeaturesFromEnvironment({
+      market: { momentum: 0.21, volatility: 0.33, volumeStrength: 0.44 },
+      asset: { changePercent: 1.5 },
+    });
+    expect(features).toEqual({
+      momentum: 0.21,
+      volatility: 0.33,
+      volumeStrength: 0.44,
+      return: 0.015,
+    });
+    expect(
+      marketFeaturesFromEnvironment({
+        market: { momentum: Number.NaN, volatility: 0.1, volumeStrength: 0.2 },
+        asset: { changePercent: 1 },
+      }),
+    ).toBeUndefined();
   });
 });

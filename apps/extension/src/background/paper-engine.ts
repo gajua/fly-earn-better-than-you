@@ -159,35 +159,46 @@ export const maybeExecutePaperTrade = async (
       (cycle) => cycle.id === fill.trade.cycleId && cycle.status === "closed",
     );
     if (closed && typeof closed.realizedReturnPercent === "number") {
-      void enqueueContribution({
-        schemaVersion: 1,
-        brainMode: "real-connectome",
-        presetVersion: preset.presetVersion,
-        brokerCategory: brokerCategoryFromBrokerId(proposal.broker),
-        marketFeatures: {
-          momentum: 0,
-          volatility: 0,
-          volumeStrength: 0.5,
-          return: closed.realizedReturnPercent / 100,
-        },
-        brain: {
-          buyDrive: proposal.brainSnapshot.buyDrive,
-          sellDrive: proposal.brainSnapshot.sellDrive,
-          curiosity: proposal.brainSnapshot.curiosity,
-          danger: proposal.brainSnapshot.danger,
-          activity: proposal.brainSnapshot.activity,
-        },
-        action: "paper_sell",
-        outcome: {
-          returnPct: closed.realizedReturnPercent,
-          holdingDurationBucket: holdingDurationBucket(
-            closed.openedAt,
-            closed.closedAt ?? fill.trade.timestamp,
-          ),
-        },
-        createdAt: new Date().toISOString(),
-        installId: await readInstallId(),
-      });
+      const features = proposal.marketFeatures;
+      if (
+        !features ||
+        !Number.isFinite(features.momentum) ||
+        !Number.isFinite(features.volatility) ||
+        !Number.isFinite(features.volumeStrength) ||
+        !Number.isFinite(features.return)
+      ) {
+        // Skip contribution rather than inventing stub market features.
+      } else {
+        void enqueueContribution({
+          schemaVersion: 1,
+          brainMode: "real-connectome",
+          presetVersion: preset.presetVersion,
+          brokerCategory: brokerCategoryFromBrokerId(proposal.broker),
+          marketFeatures: {
+            momentum: features.momentum,
+            volatility: features.volatility,
+            volumeStrength: features.volumeStrength,
+            return: features.return,
+          },
+          brain: {
+            buyDrive: proposal.brainSnapshot.buyDrive,
+            sellDrive: proposal.brainSnapshot.sellDrive,
+            curiosity: proposal.brainSnapshot.curiosity,
+            danger: proposal.brainSnapshot.danger,
+            activity: proposal.brainSnapshot.activity,
+          },
+          action: "paper_sell",
+          outcome: {
+            returnPct: closed.realizedReturnPercent,
+            holdingDurationBucket: holdingDurationBucket(
+              closed.openedAt,
+              closed.closedAt ?? fill.trade.timestamp,
+            ),
+          },
+          createdAt: new Date().toISOString(),
+          installId: await readInstallId(),
+        });
+      }
     }
   }
 

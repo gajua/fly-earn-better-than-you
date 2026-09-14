@@ -85,12 +85,17 @@ All users on the same Fly version and GlobalCalibrationPreset start with the
 same calibration behavior. MaleCNS connectivity is **not** retrained.
 
 - Bundled verified preset ships with the extension (works offline)
-- Optional remote published preset (schema + SHA-256 checked)
-- Opt-in anonymous **Paper-only** contribution (default **OFF**)
+- Optional remote published preset from
+  [`sfimnzdjndmipmtlnniq`](https://supabase.com/dashboard/project/sfimnzdjndmipmtlnniq)
+  (schema + SHA-256 checked)
+- Opt-in anonymous **Paper-only** contribution via Edge Function
+  `ingest-learning-observation` (default **OFF**)
 - No broker credentials, symbols, or live-account data uploaded
 - Forks work without Supabase (bundled preset only)
+- Local Paper/history source of truth remains IndexedDB
 
-See [`docs/GLOBAL_LEARNING.md`](docs/GLOBAL_LEARNING.md).
+See [`docs/GLOBAL_LEARNING.md`](docs/GLOBAL_LEARNING.md) and
+`apps/extension/.env.example`.
 Experimental PersonalCalibration is demoted — see
 [`docs/LOCAL_LEARNING.md`](docs/LOCAL_LEARNING.md).
 

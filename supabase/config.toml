@@ -1,0 +1,12 @@
+# Linked Fly shared-learning project (dashboard):
+# https://supabase.com/dashboard/project/sfimnzdjndmipmtlnniq
+project_id = "sfimnzdjndmipmtlnniq"
+
+[api]
+enabled = true
+
+[db]
+major_version = 15
+
+[functions.ingest-learning-observation]
+verify_jwt = true

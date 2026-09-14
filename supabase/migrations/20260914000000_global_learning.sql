@@ -1,5 +1,5 @@
 -- Global community learning (optional). Product history remains IndexedDB.
--- Extension may use publishable/anon key only — never service_role in clients.
+-- Extension uses Edge Function + publishable/anon key only — never service_role in clients.
 
 create extension if not exists pgcrypto;
 
@@ -66,35 +66,51 @@ create index if not exists global_calibration_presets_status_idx
 alter table public.learning_observations enable row level security;
 alter table public.global_calibration_presets enable row level security;
 
--- Anonymous insert of Paper learning rows (abuse still possible — validate offline).
-create policy learning_observations_anon_insert
-  on public.learning_observations
-  for insert
-  to anon, authenticated
-  with check (
-    schema_version = 1
-    and action in ('paper_buy', 'paper_sell')
-    and buy_drive between 0 and 1
-    and sell_drive between 0 and 1
-    and outcome_return_pct between -500 and 500
-  );
-
--- Clients must not read raw observations (aggregation is offline/admin).
+-- No direct client INSERT: ingestion goes through Edge Function (service role).
 create policy learning_observations_no_select
   on public.learning_observations
   for select
   to anon, authenticated
   using (false);
 
--- Published presets are readable; writes require service role (bypasses RLS).
+create policy learning_observations_no_update
+  on public.learning_observations
+  for update
+  to anon, authenticated
+  using (false);
+
+create policy learning_observations_no_delete
+  on public.learning_observations
+  for delete
+  to anon, authenticated
+  using (false);
+
 create policy global_presets_public_read_published
   on public.global_calibration_presets
   for select
   to anon, authenticated
   using (status = 'published');
 
+create policy global_presets_no_insert
+  on public.global_calibration_presets
+  for insert
+  to anon, authenticated
+  with check (false);
+
+create policy global_presets_no_update
+  on public.global_calibration_presets
+  for update
+  to anon, authenticated
+  using (false);
+
+create policy global_presets_no_delete
+  on public.global_calibration_presets
+  for delete
+  to anon, authenticated
+  using (false);
+
 comment on table public.learning_observations is
-  'Anonymous Paper-only learning observations. Retention target: 90 days. No symbols/PII.';
+  'Anonymous Paper-only learning observations. Retention target: 90 days. No symbols/PII. Insert via Edge Function only.';
 
 comment on table public.global_calibration_presets is
   'Versioned GlobalCalibrationPreset. Publish only via service_role / trusted CI.';

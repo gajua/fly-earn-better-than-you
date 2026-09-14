@@ -128,11 +128,7 @@ export type LoginState = "LOGGED_IN" | "LOGGED_OUT" | "UNKNOWN";
 
 export type Timeframe = "1m" | "5m" | "15m" | "1h" | "4h" | "1d";
 
-export type AdapterStatus =
-  | "SUPPORTED"
-  | "PARTIAL"
-  | "BROKEN"
-  | "UNKNOWN";
+export type AdapterStatus = "SUPPORTED" | "PARTIAL" | "BROKEN" | "UNKNOWN";
 
 export type TradingMode = "paper" | "live-assist";
 
@@ -149,11 +145,7 @@ export type BrokerPageKind =
   | "unknown";
 
 export type ModalKind =
-  | "order"
-  | "order-confirmation"
-  | "login"
-  | "warning"
-  | "other";
+  "order" | "order-confirmation" | "login" | "warning" | "other";
 
 export type ObservationSource =
   | "tradecanvas"
@@ -172,10 +164,7 @@ export interface DataProviderProvenance {
   readonly endpointFamily?: string;
 }
 
-export type LiveFillConfidence =
-  | "VERIFIED"
-  | "USER_CONFIRMED"
-  | "UNVERIFIED";
+export type LiveFillConfidence = "VERIFIED" | "USER_CONFIRMED" | "UNVERIFIED";
 
 export interface InstrumentRef {
   readonly broker: string;
@@ -289,6 +278,15 @@ export interface OrderProposal {
   readonly brainSnapshot: BrainOutput;
   readonly brainMode: BrainMode;
   readonly status?: "pending" | "accepted" | "rejected" | "invalidated";
+  /**
+   * Anonymous learning features only (no symbol). Sourced from MarketEnvironment.
+   */
+  readonly marketFeatures?: {
+    readonly momentum: number;
+    readonly volatility: number;
+    readonly volumeStrength: number;
+    readonly return: number;
+  };
 }
 
 export interface TradeRecord {
