@@ -2,12 +2,21 @@
 
 Prepared files for Chrome Web Store listing.
 
-| File                                  | Purpose                       | Size     |
-| ------------------------------------- | ----------------------------- | -------- |
-| `icon-128.png`                        | Store / extension icon source | 128×128  |
-| `small-promo-440x280.png`             | Required small promo tile     | 440×280  |
-| `screenshot-binance-fly-1280x800.png` | Listing screenshot candidate  | 1280×800 |
-| `screenshot-upbit-fly-1280x800.png`   | Listing screenshot candidate  | 1280×800 |
+| File                                  | Purpose                       | Size            |
+| ------------------------------------- | ----------------------------- | --------------- |
+| `icon-128.png`                        | Store / extension icon source | 128×128         |
+| `small-promo-440x280.png`             | Required small promo tile     | 440×280         |
+| `screenshot-binance-fly-1280x800.png` | Listing screenshot candidate  | 1280×800        |
+| `screenshot-upbit-fly-1280x800.png`   | Listing screenshot candidate  | 1280×800        |
+| `binance-fly-demo-15s.webm`           | Binance Spot + Fly promo clip | ~15s / 1280×800 |
+| `binance-fly-demo-still.png`          | Frame still from the clip     | 1280×800        |
+
+Re-record:
+
+```bash
+# MaleCNS on :8000 recommended for real-connectome motion
+node scripts/record-binance-fly-video.mjs
+```
 
 ## Still needed (manual capture)
 
