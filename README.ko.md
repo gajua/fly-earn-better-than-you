@@ -2,14 +2,22 @@
 
 [English](README.md) | **한국어**
 
-> 진짜 초파리 커넥톰이 거래소 차트 위를 걸어 다닌다.
-> 알파를 원했는데 곤충학이 도착했다.
+```text
+초파리 커넥톰이 거래 화면을 보면 어떻게 될까?
+```
 
-**Fly Earn Better Than You**는 지원 거래소 페이지를 관찰하고, **실제** 시장
-데이터를 MaleCNS v1.0 초파리 커넥톰으로 제약된 신경 시뮬레이션에 넣고, BUY/SELL
-근처에서 반응하는 초파리를 그리는 오픈소스 Chrome 실험이다.
+**Fly Earn Better Than You**는 시장 관찰을 MaleCNS 기반 신경 시뮬레이션에
+넣고, 작은 초파리가 BUY/SELL 인터페이스를 탐색하게 하는 오픈소스 실험이다.
 
-이건 투자 자문이 아니며, 초파리가 시장을 예측한다는 주장도 아니다.
+- 지원 공개 시세 관찰에 브로커 API 키 불필요
+- 자동 실주문 없음
+- Paper-first
+- Open source
+
+**실험적 / exploratory** 프로젝트다. MaleCNS connectome 사용 ≠ 초파리가
+주식을 이해함. Paper 성과 ≠ 미래 투자 성과. 투자 자문이 아니다.
+
+> **Neural simulation constrained by real MaleCNS connectivity.**
 
 ## 지금 사용 / 인식 가능한 거래소
 
@@ -29,20 +37,27 @@ Bybit / Kraken / Coinbase — public candle provider only.
 
 주식 브로커, 자동 실주문 제출.
 
-## Global Learning
+## Community Global Learning
 
-같은 Fly 버전과 Global Calibration 버전을 사용하는 사용자는 동일한
-calibration 품질로 시작합니다. MaleCNS connectome 자체는 재학습하지 않습니다.
+모든 사용자는 동일하게 공개된 calibration preset을 사용한다.
 
-- 번들 verified preset으로 오프라인에서도 동작
-- 원격 published preset은 optional
-  ([`sfimnzdjndmipmtlnniq`](https://supabase.com/dashboard/project/sfimnzdjndmipmtlnniq),
-  스키마 + SHA-256 검증)
-- 익명 Paper 학습 기여는 **opt-in** (기본 OFF), Edge Function
-  `ingest-learning-observation` 경유
-- 계좌 인증정보 / 심볼 / 실거래 데이터 업로드 없음
-- Supabase 없는 fork도 기본 기능 정상
-- Paper/history 원본은 IndexedDB
+최초 실행 시 Global Learning 참여 여부를 **직접 선택**한다
+(미리 선택된 항목 없음). 기여 여부와 관계없이 Fly / MaleCNS / Paper 품질은
+동일하다.
+
+익명 Paper 결과가 많아질수록 다음 공통 보정 버전을 평가할 근거가 늘어난다.
+MaleCNS 자체는 재학습하지 않는다. 새 preset은 검증 후 수동 배포한다.
+
+개인정보: 거래소 로그인, 계좌번호, 잔고/보유, 실거래, 쿠키/토큰, 원본 심볼,
+이메일은 업로드하지 않는다.
+
+버전은 서로 다른 개념이다:
+
+```text
+Extension v1.1.0
+Global Calibration v1.0.0
+MaleCNS dataset v1.0
+```
 
 자세한 내용: [`docs/GLOBAL_LEARNING.md`](docs/GLOBAL_LEARNING.md),
 `apps/extension/.env.example`
@@ -58,22 +73,27 @@ Auto / 한국어 / English. 말풍선·팝업 문자열 번역. 비즈니스 키
 
 과거 Paper 성과가 미래 수익을 보장하지 않습니다.
 
-## Generic broker detection
-
-미지원 페이지용 DOM semantic foundation. 높은 confidence일 때만 **Paper only**.
-기존 Binance/Upbit adapter는 유지.
-
 ## 설치
 
 ```bash
 git clone https://github.com/gajua/fly-earn-better-than-you.git
 cd fly-earn-better-than-you
-git checkout main
 pnpm install
+
+# MaleCNS real-connectome 사용 시에만 (optional)
+cd services/brain
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+uvicorn app.main:app --host 127.0.0.1 --port 8000
+cd ../..
+
 pnpm --filter @fly/extension build
 ```
 
 `chrome://extensions` → Load unpacked → `apps/extension/dist`
+
+팝업 최초 실행: 언어 + Global Learning 선택 후 진행.
 
 기본: Paper + Mock brain.
 
@@ -82,7 +102,7 @@ pnpm --filter @fly/extension build
 - 자동 live order submit 없음
 - API 키 / 쿠키 / Authorization 수집 없음
 - runtime hosted LLM 없음
-- 공유 학습은 사용자가 켠 경우에만 익명 Paper 관찰 전송
+- 공유 학습은 사용자가 명시적으로 선택한 경우에만 익명 Paper 관찰 전송
 
 ## 문서
 
@@ -91,3 +111,4 @@ pnpm --filter @fly/extension build
 - [`docs/PERFORMANCE.md`](docs/PERFORMANCE.md)
 - [`docs/GENERIC_BROKER_DETECTOR.md`](docs/GENERIC_BROKER_DETECTOR.md)
 - [`docs/REAL_BROWSER_QA.md`](docs/REAL_BROWSER_QA.md)
+- [`docs/RELEASE_READINESS.md`](docs/RELEASE_READINESS.md)

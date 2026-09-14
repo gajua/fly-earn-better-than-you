@@ -58,8 +58,10 @@ export const readPreferences = async (): Promise<ExtensionPreferences> => {
 
 export const writePreferences = async (
   preferences: ExtensionPreferences,
-): Promise<void> => {
-  await chrome.storage.local.set({ [PREFS_KEY]: preferences });
+): Promise<ExtensionPreferences> => {
+  const normalized = normalizePreferences(preferences);
+  await chrome.storage.local.set({ [PREFS_KEY]: normalized });
+  return normalized;
 };
 
 export const publishStatus = async (

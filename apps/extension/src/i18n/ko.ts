@@ -38,7 +38,7 @@ export const ko: MessageDictionary = {
   "popup.contributeLearning": "익명 Paper 학습 데이터 제공",
   "popup.contributePrivacy":
     "제공된 데이터는 모든 사용자가 동일하게 사용하는 공통 calibration 개선에 활용됩니다. 계좌 인증정보나 로그인 정보는 전송되지 않습니다.",
-  "popup.presetVersion": "프리셋",
+  "popup.presetVersion": "현재 공통 보정",
   "popup.queuedObservations": "대기 중 관찰",
   "popup.lastSync": "마지막 동기화",
   "popup.clearQueue": "기여 큐 비우기",
@@ -46,6 +46,31 @@ export const ko: MessageDictionary = {
   "popup.rollbackPreset": "번들 프리셋으로 롤백",
   "popup.sameQuality":
     "같은 Fly 버전과 Global Calibration 버전을 사용하는 사용자는 동일한 calibration 품질로 시작합니다.",
+  "popup.oneFlyShared": "하나의 Fly, 함께 쌓는 학습 데이터",
+  "popup.oneFlySharedBody":
+    "모든 사용자는 동일하게 공개된 Global Calibration을 사용합니다. 커뮤니티의 익명 Paper 결과는 다음 공통 보정 버전을 평가하는 데 활용됩니다.",
+  "popup.consentContribute": "익명 Paper 결과 제공",
+  "popup.consentLocalOnly": "Paper 학습 데이터를 이 기기에만 저장",
+  "popup.paperObservations": "Paper 관찰 수",
+  "popup.lastCalibration": "마지막 보정",
+  "popup.unavailableStat": "—",
+  "onboarding.title": "함께 Fly를 개선해 주세요",
+  "onboarding.body":
+    "익명화된 Paper 거래 결과를 제공하면 모든 사용자가 동일하게 사용하는 Fly의 공통 보정값 개선에 활용됩니다.",
+  "onboarding.moreEvidence":
+    "Fly를 사용하는 사람이 많아지고 Paper 결과가 많이 쌓일수록, 다음 공통 보정값을 평가하고 개선할 수 있는 근거 데이터가 더 많아집니다.",
+  "onboarding.notRetrain":
+    "MaleCNS 초파리 connectome 자체를 재학습하거나 수정하는 것은 아닙니다.",
+  "onboarding.neverCollect": "의도적으로 수집하지 않는 정보:",
+  "onboarding.neverCredentials": "거래소 로그인 정보",
+  "onboarding.neverAccount": "계좌번호",
+  "onboarding.neverHoldings": "실제 보유자산 및 잔고",
+  "onboarding.neverLive": "실제 돈으로 실행한 거래",
+  "onboarding.neverCookies": "쿠키 및 인증 토큰",
+  "onboarding.neverSymbols": "원본 주식/코인 종목명",
+  "onboarding.neverEmail": "이메일 및 개인 식별정보",
+  "onboarding.choose": "Fly 사용 방식을 선택해 주세요.",
+  "onboarding.continue": "계속",
   "popup.performance": "초파리 성과",
   "popup.experimentalPerformance": "실험용 Paper 성과",
   "popup.rangeAll": "전체",

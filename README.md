@@ -2,18 +2,23 @@
 
 **English** | [한국어](README.ko.md)
 
-> A fruit fly with a real connectome walks onto your trading page and starts
-> judging candles. You wanted alpha. You got entomology.
+```text
+What happens if a fruit-fly connectome watches a trading screen?
+```
 
-**Fly Earn Better Than You** is an open-source Chrome experiment that watches
-supported trading pages, feeds **real** market observations into a neural
-simulation constrained by the real **MaleCNS v1.0** fruit-fly connectome, and
-draws a tiny fly that buzzes toward BUY / SELL like it has opinions (it does
-not; it has synapses and vibes).
+**Fly Earn Better Than You** maps market observations into a MaleCNS-based
+neural simulation and lets a tiny fly explore BUY/SELL interfaces.
 
-This is **not** financial advice, not a proven trading strategy, and not a claim
-that fruit flies predict markets. If the fly looks confident, that is your
-problem, not its edge.
+- No broker API keys required for supported public observation
+- No automatic live trading
+- Paper-first
+- Open source
+
+This is an **experimental / exploratory** project. MaleCNS connectome usage
+does **not** mean a fruit fly understands stocks. Paper performance ≠ future
+investment performance. Not financial advice.
+
+> **Neural simulation constrained by real MaleCNS connectivity.**
 
 ```text
 Open a supported broker
@@ -79,25 +84,43 @@ TemporalAggregator → Mock or MaleCNS → BehaviorDecoder →
 **GlobalCalibrationPreset** → Fly overlay → ProposalGuard / RiskEngine → Paper
 (default) or Live Assist.
 
-## Global Learning
+## Community Global Learning
 
-All users on the same Fly version and GlobalCalibrationPreset start with the
-same calibration behavior. MaleCNS connectivity is **not** retrained.
+Everyone uses the same published calibration preset.
 
-- Bundled verified preset ships with the extension (works offline)
-- Optional remote published preset from
-  [`sfimnzdjndmipmtlnniq`](https://supabase.com/dashboard/project/sfimnzdjndmipmtlnniq)
-  (schema + SHA-256 checked)
-- Opt-in anonymous **Paper-only** contribution via Edge Function
-  `ingest-learning-observation` (default **OFF**)
-- No broker credentials, symbols, or live-account data uploaded
-- Forks work without Supabase (bundled preset only)
-- Local Paper/history source of truth remains IndexedDB
+Users can optionally contribute anonymous Paper results after an explicit
+first-run choice (no preselected option; product quality is identical either
+way).
+
+More observations provide more evidence for evaluating future calibration
+versions.
+
+MaleCNS itself is not retrained.
+
+New presets are validated and manually published:
+
+```text
+Community Paper observations
+→ calibration dataset
+→ candidate calibration
+→ validation
+→ manual approval
+→ published GlobalCalibrationPreset
+```
+
+Privacy: no broker login credentials, account numbers, holdings/balances,
+real-money trades, cookies/tokens, raw symbols, or email/identity are uploaded.
+
+Versions are independent concepts:
+
+```text
+Extension v1.1.0
+Global Calibration v1.0.0
+MaleCNS dataset v1.0
+```
 
 See [`docs/GLOBAL_LEARNING.md`](docs/GLOBAL_LEARNING.md) and
 `apps/extension/.env.example`.
-Experimental PersonalCalibration is demoted — see
-[`docs/LOCAL_LEARNING.md`](docs/LOCAL_LEARNING.md).
 
 ## Language
 
@@ -140,16 +163,26 @@ See [`docs/GENERIC_BROKER_DETECTOR.md`](docs/GENERIC_BROKER_DETECTOR.md).
 ```bash
 git clone https://github.com/gajua/fly-earn-better-than-you.git
 cd fly-earn-better-than-you
-git checkout main
 pnpm install
+
+# Optional MaleCNS local service (required only for real-connectome mode)
+cd services/brain
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+uvicorn app.main:app --host 127.0.0.1 --port 8000
+cd ../..
+
 pnpm --filter @fly/extension build
 ```
 
 1. Open `chrome://extensions`
 2. Enable Developer mode → Load unpacked → `apps/extension/dist`
-3. Open a **usable** trade page above, or `pnpm --filter @fly/demo dev`
+3. First popup open: choose language + Global Learning consent (required)
+4. Open a **usable** trade page above, or `pnpm --filter @fly/demo dev`
 
-Default: Paper trading + Mock brain.
+Default after consent: Paper trading + Mock brain. Same Fly quality whether or
+not you contribute anonymous Paper results.
 
 ## Binance
 

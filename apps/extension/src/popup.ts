@@ -12,9 +12,13 @@ import {
 } from "./i18n";
 import type {
   ExtensionPreferences,
+  GlobalLearningConsent,
   RuntimeStatus,
 } from "./storage/preferences";
+import { needsGlobalLearningOnboarding } from "./storage/preferences";
 
+const mainApp = document.getElementById("main-app")!;
+const onboarding = document.getElementById("onboarding")!;
 const statusTitle = document.getElementById("status-title")!;
 const statusMessage = document.getElementById("status-message")!;
 const flyEmoji = document.getElementById("fly-emoji")!;
@@ -27,12 +31,30 @@ const startingCapital = document.getElementById(
   "starting-capital",
 ) as HTMLInputElement;
 const localeSelect = document.getElementById("locale") as HTMLSelectElement;
-const contributeLearning = document.getElementById(
-  "contribute-learning",
+const onboardingLocale = document.getElementById(
+  "onboarding-locale",
+) as HTMLSelectElement;
+const consentContribute = document.getElementById(
+  "consent-contribute",
 ) as HTMLInputElement;
+const consentLocal = document.getElementById(
+  "consent-local",
+) as HTMLInputElement;
+const onboardingContribute = document.getElementById(
+  "onboarding-contribute",
+) as HTMLInputElement;
+const onboardingLocal = document.getElementById(
+  "onboarding-local",
+) as HTMLInputElement;
+const onboardingContinue = document.getElementById(
+  "onboarding-continue",
+) as HTMLButtonElement;
 const presetVersion = document.getElementById("preset-version")!;
 const presetSource = document.getElementById("preset-source")!;
-const presetSamples = document.getElementById("preset-samples")!;
+const communityObservations = document.getElementById(
+  "community-observations",
+)!;
+const lastCalibration = document.getElementById("last-calibration")!;
 const buyThreshold = document.getElementById("buy-threshold")!;
 const sellThreshold = document.getElementById("sell-threshold")!;
 const queuedObservations = document.getElementById("queued-observations")!;
@@ -53,6 +75,15 @@ const applyStaticI18n = (locale: ResolvedLocale) => {
     if (!key) continue;
     node.textContent = t(key, locale);
   }
+};
+
+const selectedConsent = (
+  contributeEl: HTMLInputElement,
+  localEl: HTMLInputElement,
+): GlobalLearningConsent | null => {
+  if (contributeEl.checked) return "contribute";
+  if (localEl.checked) return "local_only";
+  return null;
 };
 
 const renderStatus = (status: RuntimeStatus | null) => {
@@ -132,7 +163,9 @@ const loadPerformance = async () => {
   brainPerformance.textContent = formatBrain(perfResponse.byBrainMode ?? []);
 };
 
-const loadGlobalLearning = async () => {
+const loadGlobalLearning = async (
+  preferences: ExtensionPreferences,
+): Promise<void> => {
   const learning = (await chrome.runtime.sendMessage({
     kind: "get-global-learning",
   })) as {
@@ -141,25 +174,45 @@ const loadGlobalLearning = async () => {
     source?: string;
     buyThreshold?: number;
     sellThreshold?: number;
-    contributeAnonymousLearning?: boolean;
     queuedObservations?: number;
     lastSyncAt?: string | null;
+    communityObservationCount?: number | null;
+    lastCalibrationAt?: string | null;
   };
   presetVersion.textContent = `v${learning.presetVersion ?? "1.0.0"}`;
   presetSource.textContent = learning.source ?? "bundled";
-  presetSamples.textContent = String(learning.sampleCount ?? 0);
   buyThreshold.textContent = Number(learning.buyThreshold ?? 0.82).toFixed(2);
   sellThreshold.textContent = Number(learning.sellThreshold ?? 0.82).toFixed(2);
-  contributeLearning.checked = Boolean(learning.contributeAnonymousLearning);
   queuedObservations.textContent = String(learning.queuedObservations ?? 0);
   lastSync.textContent = learning.lastSyncAt ?? "—";
+
+  const count = learning.communityObservationCount;
+  communityObservations.textContent =
+    typeof count === "number" && Number.isFinite(count)
+      ? count.toLocaleString(currentLocale)
+      : t("popup.unavailableStat", currentLocale);
+  lastCalibration.textContent = learning.lastCalibrationAt
+    ? learning.lastCalibrationAt.slice(0, 10)
+    : t("popup.unavailableStat", currentLocale);
+
+  consentContribute.checked =
+    preferences.globalLearningConsent === "contribute";
+  consentLocal.checked = preferences.globalLearningConsent === "local_only";
 };
 
-const load = async () => {
-  const prefsResponse = (await chrome.runtime.sendMessage({
-    kind: "get-preferences",
-  })) as { preferences: ExtensionPreferences };
-  const preferences = prefsResponse.preferences;
+const showOnboarding = (preferences: ExtensionPreferences) => {
+  onboarding.hidden = false;
+  mainApp.hidden = true;
+  onboardingLocale.value = preferences.locale;
+  onboardingContribute.checked = false;
+  onboardingLocal.checked = false;
+  onboardingContinue.disabled = true;
+  applyStaticI18n(resolveLocale(preferences.locale));
+};
+
+const showMain = async (preferences: ExtensionPreferences) => {
+  onboarding.hidden = true;
+  mainApp.hidden = false;
   const locale = resolveLocale(preferences.locale);
   applyStaticI18n(locale);
 
@@ -174,7 +227,7 @@ const load = async () => {
   startingCapital.value = String(preferences.startingPaperCapital);
   localeSelect.value = preferences.locale;
 
-  await loadGlobalLearning();
+  await loadGlobalLearning(preferences);
   await loadPerformance();
 
   const diagnostics = statusResponse.status?.diagnostics;
@@ -184,18 +237,51 @@ const load = async () => {
   }
 };
 
+const load = async () => {
+  const prefsResponse = (await chrome.runtime.sendMessage({
+    kind: "get-preferences",
+  })) as { preferences: ExtensionPreferences };
+  const preferences = prefsResponse.preferences;
+  if (needsGlobalLearningOnboarding(preferences)) {
+    showOnboarding(preferences);
+    return;
+  }
+  await showMain(preferences);
+};
+
+const savePreferencesPatch = async (
+  patch: Partial<ExtensionPreferences>,
+): Promise<ExtensionPreferences> => {
+  const prefsResponse = (await chrome.runtime.sendMessage({
+    kind: "get-preferences",
+  })) as { preferences: ExtensionPreferences };
+  const next: ExtensionPreferences = {
+    ...prefsResponse.preferences,
+    ...patch,
+  };
+  const response = (await chrome.runtime.sendMessage({
+    kind: "set-preferences",
+    preferences: next,
+  })) as { preferences: ExtensionPreferences };
+  return response.preferences;
+};
+
 document.getElementById("save-prefs")!.addEventListener("click", () => {
   void (async () => {
+    const consent = selectedConsent(consentContribute, consentLocal);
+    if (!consent) {
+      statusMessage.textContent = t("onboarding.choose", currentLocale);
+      return;
+    }
     const prefsResponse = (await chrome.runtime.sendMessage({
       kind: "get-preferences",
     })) as { preferences: ExtensionPreferences };
     const current = prefsResponse.preferences;
-    const next: ExtensionPreferences = {
-      ...current,
+    const next = await savePreferencesPatch({
       tradingMode: tradingMode.value as ExtensionPreferences["tradingMode"],
       brainMode: brainMode.value as ExtensionPreferences["brainMode"],
       locale: localeSelect.value as LocalePreference,
-      contributeAnonymousLearning: contributeLearning.checked,
+      globalLearningConsent: consent,
       experimentalPersonalCalibration: false,
       startingPaperCapital:
         Number(startingCapital.value) || current.startingPaperCapital,
@@ -204,33 +290,65 @@ document.getElementById("save-prefs")!.addEventListener("click", () => {
         maxTradingCapital:
           Number(maxCapital.value) || current.riskPolicy.maxTradingCapital,
       },
-    };
-    await chrome.runtime.sendMessage({
-      kind: "set-preferences",
-      preferences: next,
     });
     applyStaticI18n(resolveLocale(next.locale));
-    await load();
+    await showMain(next);
     statusMessage.textContent = t("status.saved", currentLocale);
   })();
 });
 
+const refreshOnboardingContinue = () => {
+  onboardingContinue.disabled =
+    selectedConsent(onboardingContribute, onboardingLocal) == null;
+};
+
+onboardingContribute.addEventListener("change", refreshOnboardingContinue);
+onboardingLocal.addEventListener("change", refreshOnboardingContinue);
+
+onboardingLocale.addEventListener("change", () => {
+  applyStaticI18n(resolveLocale(onboardingLocale.value as LocalePreference));
+});
+
+onboardingContinue.addEventListener("click", () => {
+  void (async () => {
+    const consent = selectedConsent(onboardingContribute, onboardingLocal);
+    if (!consent) return;
+    const next = await savePreferencesPatch({
+      globalLearningConsent: consent,
+      locale: onboardingLocale.value as LocalePreference,
+    });
+    await showMain(next);
+  })();
+});
+
 document.getElementById("sync-learning")!.addEventListener("click", () => {
-  void chrome.runtime
-    .sendMessage({ kind: "sync-global-learning" })
-    .then(() => loadGlobalLearning());
+  void (async () => {
+    await chrome.runtime.sendMessage({ kind: "sync-global-learning" });
+    const response = (await chrome.runtime.sendMessage({
+      kind: "get-preferences",
+    })) as { preferences: ExtensionPreferences };
+    await loadGlobalLearning(response.preferences);
+  })();
 });
 
 document.getElementById("clear-queue")!.addEventListener("click", () => {
-  void chrome.runtime
-    .sendMessage({ kind: "clear-contribution-queue" })
-    .then(() => loadGlobalLearning());
+  void (async () => {
+    await chrome.runtime.sendMessage({ kind: "clear-contribution-queue" });
+    const response = (await chrome.runtime.sendMessage({
+      kind: "get-preferences",
+    })) as { preferences: ExtensionPreferences };
+    await loadGlobalLearning(response.preferences);
+  })();
 });
 
 document.getElementById("rollback-preset")!.addEventListener("click", () => {
-  void chrome.runtime
-    .sendMessage({ kind: "rollback-global-preset" })
-    .then(() => loadGlobalLearning());
+  void (async () => {
+    await chrome.runtime.sendMessage({ kind: "rollback-global-preset" });
+    const response = (await chrome.runtime.sendMessage({
+      kind: "get-preferences",
+    })) as { preferences: ExtensionPreferences };
+    await loadGlobalLearning(response.preferences);
+  })();
 });
 
 document.getElementById("clear-history")!.addEventListener("click", () => {

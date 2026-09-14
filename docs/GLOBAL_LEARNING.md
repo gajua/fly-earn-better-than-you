@@ -97,10 +97,17 @@ Env (build-time, extension) — see `apps/extension/.env.example`:
 
 ## Retention
 
-Raw `learning_observations`: target **90 days** (or delete after aggregate
-snapshot). Document honestly: once anonymously aggregated, per-user delete of
-server rows may be impossible if no install ID was stored; local contribution
-queue can always be cleared.
+Raw `learning_observations`: target **90 days**.
+
+SQL helper (service_role / ops):
+
+```sql
+select public.purge_learning_observations_older_than_90_days();
+```
+
+Schedule with pg_cron or external ops if volume grows. Document honestly: once
+anonymously aggregated into a published preset, per-user delete of server rows
+may be impossible; local contribution queue can always be cleared.
 
 ## Publishing gate
 

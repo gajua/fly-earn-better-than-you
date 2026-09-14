@@ -41,6 +41,27 @@ export type MessageKey =
   | "popup.syncLearning"
   | "popup.rollbackPreset"
   | "popup.sameQuality"
+  | "popup.oneFlyShared"
+  | "popup.oneFlySharedBody"
+  | "popup.consentContribute"
+  | "popup.consentLocalOnly"
+  | "popup.paperObservations"
+  | "popup.lastCalibration"
+  | "popup.unavailableStat"
+  | "onboarding.title"
+  | "onboarding.body"
+  | "onboarding.moreEvidence"
+  | "onboarding.notRetrain"
+  | "onboarding.neverCollect"
+  | "onboarding.neverCredentials"
+  | "onboarding.neverAccount"
+  | "onboarding.neverHoldings"
+  | "onboarding.neverLive"
+  | "onboarding.neverCookies"
+  | "onboarding.neverSymbols"
+  | "onboarding.neverEmail"
+  | "onboarding.choose"
+  | "onboarding.continue"
   | "popup.performance"
   | "popup.experimentalPerformance"
   | "popup.rangeAll"
@@ -108,7 +129,7 @@ export const en: MessageDictionary = {
     "Contribute anonymous Paper-trading learning data",
   "popup.contributePrivacy":
     "Your data helps improve the same global calibration used by all Fly users. No broker credentials or account information are uploaded.",
-  "popup.presetVersion": "Preset",
+  "popup.presetVersion": "Current shared calibration",
   "popup.queuedObservations": "Queued observations",
   "popup.lastSync": "Last sync",
   "popup.clearQueue": "Clear contribution queue",
@@ -116,6 +137,30 @@ export const en: MessageDictionary = {
   "popup.rollbackPreset": "Rollback to bundled preset",
   "popup.sameQuality":
     "All users on the same Fly version and GlobalCalibrationPreset start with the same calibration behavior.",
+  "popup.oneFlyShared": "One Fly. Shared learning.",
+  "popup.oneFlySharedBody":
+    "Everyone uses the same published Global Calibration. Community Paper results help us evaluate the next calibration version.",
+  "popup.consentContribute": "Share anonymous Paper results",
+  "popup.consentLocalOnly": "Keep my Paper learning data on this device",
+  "popup.paperObservations": "Paper observations",
+  "popup.lastCalibration": "Last calibration",
+  "popup.unavailableStat": "—",
+  "onboarding.title": "Help Fly learn together",
+  "onboarding.body":
+    "Fly can use anonymous Paper-trading results to improve the shared calibration used by everyone.",
+  "onboarding.moreEvidence":
+    "The more people use Fly and contribute Paper results, the more evidence we can use to evaluate and improve the next shared calibration.",
+  "onboarding.notRetrain": "MaleCNS itself is not retrained or modified.",
+  "onboarding.neverCollect": "We never intentionally collect:",
+  "onboarding.neverCredentials": "Broker login credentials",
+  "onboarding.neverAccount": "Account numbers",
+  "onboarding.neverHoldings": "Portfolio holdings or balances",
+  "onboarding.neverLive": "Real-money trades",
+  "onboarding.neverCookies": "Cookies or authentication tokens",
+  "onboarding.neverSymbols": "Raw stock/crypto symbols",
+  "onboarding.neverEmail": "Email or personal identity",
+  "onboarding.choose": "Choose how you want to use Fly:",
+  "onboarding.continue": "Continue",
   "popup.performance": "Fly Performance",
   "popup.experimentalPerformance": "Experimental paper performance",
   "popup.rangeAll": "All",

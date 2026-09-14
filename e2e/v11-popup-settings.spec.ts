@@ -10,7 +10,7 @@ const enabled = Boolean(process.env.RUN_EXTENSION_E2E);
 test.describe("v1.1 popup persistence", () => {
   test.skip(!enabled, "Set RUN_EXTENSION_E2E=1 with E2E_TEST_MODE=1 build");
 
-  test("language, global learning, and performance settings persist", async () => {
+  test("language, global learning consent, and performance settings persist", async () => {
     test.setTimeout(120_000);
     const harness = await launchExtensionContext({ headless: false });
     try {
@@ -18,7 +18,7 @@ test.describe("v1.1 popup persistence", () => {
         brainMode: "mock",
         tradingMode: "paper",
         locale: "en",
-        contributeAnonymousLearning: false,
+        globalLearningConsent: "local_only",
       });
 
       const popup = await harness.newPage();
@@ -26,7 +26,7 @@ test.describe("v1.1 popup persistence", () => {
       await expect(popup.locator("#locale")).toBeVisible({ timeout: 15_000 });
 
       await popup.locator("#locale").selectOption("ko");
-      await popup.locator("#contribute-learning").check();
+      await popup.locator("#consent-contribute").check();
       await popup.locator("#save-prefs").click();
       await expect(popup.locator("#status-message")).toContainText(
         /저장|saved/i,
@@ -34,7 +34,7 @@ test.describe("v1.1 popup persistence", () => {
 
       await popup.reload();
       await expect(popup.locator("#locale")).toHaveValue("ko");
-      await expect(popup.locator("#contribute-learning")).toBeChecked();
+      await expect(popup.locator("#consent-contribute")).toBeChecked();
       await expect(popup.locator("body")).toContainText("글로벌");
       await expect(popup.locator("#preset-version")).toBeVisible();
       await expect(popup.locator("#performance")).toBeVisible();

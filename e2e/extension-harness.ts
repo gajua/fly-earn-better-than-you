@@ -88,6 +88,7 @@ export const setExtensionPreferences = async (
       enabledBrokerIds: ["demo", "binance", "upbit"],
       maxHistoryDays: 90,
       locale: "auto",
+      globalLearningConsent: "local_only",
       contributeAnonymousLearning: false,
       experimentalPersonalCalibration: false,
       learningMinSamples: 30,

@@ -110,9 +110,74 @@ pre {
   margin-top: 2px;
 }
 
+.radio {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+
+.consent-fieldset {
+  border: 0;
+  margin: 0 0 8px;
+  padding: 0;
+}
+
+.consent-fieldset legend {
+  padding: 0;
+  margin-bottom: 6px;
+  font-size: 12px;
+}
+
+.headline {
+  margin: 0 0 6px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.onboarding {
+  padding: 14px;
+  background:
+    radial-gradient(circle at 10% 0%, #ffe8a3 0, transparent 45%),
+    linear-gradient(160deg, #f7f1e8, #e7eef7);
+}
+
+.onboarding h1 {
+  margin: 8px 0;
+  font-size: 18px;
+}
+
+.onboarding p {
+  margin: 0 0 8px;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.never-list {
+  margin: 0 0 12px;
+  padding-left: 18px;
+  font-size: 11px;
+}
+
+.onboarding-lang {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 10px;
+  font-size: 12px;
+}
+
+#onboarding-continue:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 #reset-learning,
 #reset-all,
-#clear-history {
+#clear-history,
+#clear-queue,
+#rollback-preset,
+#sync-learning {
   margin-top: 6px;
   background: #475569;
 }

@@ -191,10 +191,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
 
     if (kind === "set-preferences") {
-      const preferences = normalizeIncomingPreferences(
-        (message as { preferences: ExtensionPreferences }).preferences,
+      const preferences = await writePreferences(
+        normalizeIncomingPreferences(
+          (message as { preferences: ExtensionPreferences }).preferences,
+        ),
       );
-      await writePreferences(preferences);
       if (preferences.contributeAnonymousLearning) {
         void flushContributionQueue({
           enabled: GLOBAL_LEARNING_ENABLED,
@@ -212,6 +213,44 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       const active = await loadActiveGlobalPreset();
       const queue = await listContributionQueue();
       const meta = await readContributionMeta();
+      let communityObservationCount: number | null = null;
+      let lastCalibrationAt: string | null = active.preset.generatedAt ?? null;
+      if (GLOBAL_LEARNING_ENABLED && SUPABASE_URL && SUPABASE_PUBLISHABLE_KEY) {
+        try {
+          const response = await fetch(
+            `${SUPABASE_URL.replace(/\/$/, "")}/rest/v1/rpc/global_learning_public_stats`,
+            {
+              method: "POST",
+              headers: {
+                apikey: SUPABASE_PUBLISHABLE_KEY,
+                Authorization: `Bearer ${SUPABASE_PUBLISHABLE_KEY}`,
+                "Content-Type": "application/json",
+              },
+              body: "{}",
+              credentials: "omit",
+              cache: "no-store",
+              referrerPolicy: "no-referrer",
+            },
+          );
+          if (response.ok) {
+            const stats = (await response.json()) as {
+              observationCount?: number;
+              lastCalibrationAt?: string | null;
+            };
+            if (
+              typeof stats.observationCount === "number" &&
+              Number.isFinite(stats.observationCount)
+            ) {
+              communityObservationCount = stats.observationCount;
+            }
+            if (typeof stats.lastCalibrationAt === "string") {
+              lastCalibrationAt = stats.lastCalibrationAt;
+            }
+          }
+        } catch {
+          // Stats are optional — never block Fly / Paper.
+        }
+      }
       sendResponse({
         ok: true,
         presetVersion: active.preset.presetVersion,
@@ -222,8 +261,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         buyThreshold: active.gates.buyThreshold,
         sellThreshold: active.gates.sellThreshold,
         contributeAnonymousLearning: preferences.contributeAnonymousLearning,
+        globalLearningConsent: preferences.globalLearningConsent,
         queuedObservations: queue.length,
         lastSyncAt: meta.lastSyncAt,
+        communityObservationCount,
+        lastCalibrationAt,
         remoteConfigured: Boolean(
           GLOBAL_LEARNING_ENABLED && SUPABASE_URL && SUPABASE_PUBLISHABLE_KEY,
         ),
