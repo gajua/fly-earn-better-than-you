@@ -210,7 +210,10 @@ const showOnboarding = (preferences: ExtensionPreferences) => {
   applyStaticI18n(resolveLocale(preferences.locale));
 };
 
-const showMain = async (preferences: ExtensionPreferences) => {
+const showMain = async (
+  preferences: ExtensionPreferences,
+  options?: { readonly flashMessage?: string },
+) => {
   onboarding.hidden = true;
   mainApp.hidden = false;
   const locale = resolveLocale(preferences.locale);
@@ -219,7 +222,12 @@ const showMain = async (preferences: ExtensionPreferences) => {
   const statusResponse = (await chrome.runtime.sendMessage({
     kind: "get-status",
   })) as { status?: RuntimeStatus | null };
-  renderStatus(statusResponse.status ?? null);
+  if (options?.flashMessage) {
+    statusTitle.textContent = "Fly";
+    statusMessage.textContent = options.flashMessage;
+  } else {
+    renderStatus(statusResponse.status ?? null);
+  }
 
   tradingMode.value = preferences.tradingMode;
   brainMode.value = preferences.brainMode;
@@ -229,6 +237,11 @@ const showMain = async (preferences: ExtensionPreferences) => {
 
   await loadGlobalLearning(preferences);
   await loadPerformance();
+
+  // Keep explicit save/reset flashes visible after async refresh.
+  if (options?.flashMessage) {
+    statusMessage.textContent = options.flashMessage;
+  }
 
   const diagnostics = statusResponse.status?.diagnostics;
   const diagnosticsEl = document.getElementById("diagnostics");
@@ -291,9 +304,8 @@ document.getElementById("save-prefs")!.addEventListener("click", () => {
           Number(maxCapital.value) || current.riskPolicy.maxTradingCapital,
       },
     });
-    applyStaticI18n(resolveLocale(next.locale));
-    await showMain(next);
-    statusMessage.textContent = t("status.saved", currentLocale);
+    const locale = resolveLocale(next.locale);
+    await showMain(next, { flashMessage: t("status.saved", locale) });
   })();
 });
 

@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Privacy Policy — Fly Earn Better Than You</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: ui-sans-serif, system-ui, sans-serif;
+        line-height: 1.5;
+        color: #14213d;
+        background: #f7f1e8;
+      }
+      body {
+        max-width: 760px;
+        margin: 0 auto;
+        padding: 32px 20px 64px;
+      }
+      h1,
+      h2 {
+        line-height: 1.25;
+      }
+      a {
+        color: #0f4c81;
+      }
+      code {
+        background: rgba(20, 33, 61, 0.08);
+        padding: 0.1em 0.35em;
+      }
+      ul {
+        padding-left: 1.2em;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Privacy Policy — Fly Earn Better Than You</h1>
+    <p><strong>Last updated:</strong> 2026-09-14</p>
+    <p>
+      This page mirrors the repository privacy policy for Chrome Web Store
+      submission. Canonical source:
+      <a href="https://github.com/gajua/fly-earn-better-than-you/blob/main/PRIVACY.md"
+        >PRIVACY.md</a
+      >.
+    </p>
+
+    <h2>Summary</h2>
+    <ul>
+      <li>
+        Fly is Paper-first and does <strong>not</strong> automatically submit
+        real-money orders.
+      </li>
+      <li>
+        Most data stays on your device (IndexedDB /
+        <code>chrome.storage</code>).
+      </li>
+      <li>
+        Optional Global Learning uploads anonymous Paper observations only after
+        an explicit consent choice.
+      </li>
+      <li>We do not sell data and do not use data for advertising.</li>
+    </ul>
+
+    <h2>What pages Fly can read</h2>
+    <p>
+      On supported trading pages (currently Binance Spot and Upbit, plus optional
+      local demo / MaleCNS localhost), Fly may read page structure for UI
+      detection, publicly visible market context, chart and BUY/SELL landmarks,
+      and public market candle/feature data.
+    </p>
+
+    <h2>Why broker host permissions are needed</h2>
+    <p>
+      Host permissions allow Fly to detect supported pages, observe public market
+      context, draw a non-interactive overlay, and run Paper simulation. Fly does
+      not use <code>&lt;all_urls&gt;</code>.
+    </p>
+
+    <h2>Local storage</h2>
+    <p>
+      Language, Global Learning consent, Paper history, preferences, and an
+      optional contribution queue are stored locally. IndexedDB remains the
+      product source of truth for Paper/history.
+    </p>
+
+    <h2>Optional Global Learning (Supabase)</h2>
+    <p>
+      If you choose to share anonymous Paper results, privacy-filtered Paper
+      observations may be batched to Supabase Edge Function
+      <code>ingest-learning-observation</code>. Local-only mode makes no Global
+      Learning upload requests. Product quality is identical either way.
+    </p>
+
+    <h2>What we do not collect / upload</h2>
+    <ul>
+      <li>Passwords, OTPs, cookies, session tokens, Authorization headers</li>
+      <li>Broker API keys or secrets</li>
+      <li>Email or personal identity</li>
+      <li>Account numbers, real balances, real holdings</li>
+      <li>Real-money / live-order history</li>
+      <li>Raw symbols in contribution payloads</li>
+    </ul>
+
+    <h2>Retention</h2>
+    <p>
+      Raw anonymous learning observations target 90 days. Local data remains
+      until you clear it in the popup.
+    </p>
+
+    <h2>Changing consent / deleting local data</h2>
+    <p>
+      Use the Fly popup Global Learning radios to change consent, and Privacy
+      actions to clear Paper history, contribution queue, or all local Fly data.
+    </p>
+
+    <h2>Contact</h2>
+    <p>
+      <a href="https://github.com/gajua/fly-earn-better-than-you/issues"
+        >GitHub Issues</a
+      >
+    </p>
+  </body>
+</html>
