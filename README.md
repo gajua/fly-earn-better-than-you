@@ -1,27 +1,30 @@
 # Fly Earn Better Than You
 
-> Let a fruit fly's real connectome watch the market.
+> A fruit fly with a real connectome walks onto your trading page and starts
+> judging candles. You wanted alpha. You got entomology.
 
-Fly Earn Better Than You is an open-source Chrome experiment that watches
-supported trading pages, turns real market observations into neural input, runs
-an experimental simulation constrained by the real **MaleCNS v1.0** fruit-fly
-connectome, and renders a fly that reacts to the result.
+**Fly Earn Better Than You** is an open-source Chrome experiment that watches
+supported trading pages, feeds **real** market observations into a neural
+simulation constrained by the real **MaleCNS v1.0** fruit-fly connectome, and
+draws a tiny fly that buzzes toward BUY / SELL like it has opinions (it does
+not; it has synapses and vibes).
 
 This is **not** financial advice, not a proven trading strategy, and not a claim
-that fruit flies predict markets.
+that fruit flies predict markets. If the fly looks confident, that is your
+problem, not its edge.
 
 ```text
 Open a supported broker
         ↓
-Fly wakes up
+Fly wakes up (politely, with pointer-events: none)
         ↓
-Real market observations
+Real market observations (no fake candles)
         ↓
 MaleCNS-constrained neural simulation
         ↓
 Fly reacts near BUY / SELL
         ↓
-Paper trade or Live Assist
+Paper trade (default) or Live Assist
         ↓
 Local performance history
 ```
@@ -29,6 +32,43 @@ Local performance history
 Prefer this phrase for the brain:
 
 > **Neural simulation constrained by real MaleCNS connectivity.**
+
+## Currently usable / recognizable exchanges
+
+Honest split: **usable** means the extension detects the page, mounts Fly, reads
+real market data, and can Paper-trade. **Recognizable (data only)** means public
+candles exist in code, but there is **no** on-page Fly UI adapter yet.
+
+### Usable now (USABLE BETA)
+
+| Exchange / surface | What Fly does today                                                                   | Example URL                                              |
+| ------------------ | ------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| **Local demo**     | Full local playground                                                                 | `pnpm --filter @fly/demo dev`                            |
+| **Binance Spot**   | Detect trade page, chart, Max Buy / Max Sell, public candles, Fly overlay, Paper      | `https://www.binance.com/en/trade/BTC_USDT?type=spot`    |
+| **Upbit**          | Detect exchange page, chart, 매수 / 매도, official public candles, Fly overlay, Paper | `https://www.upbit.com/exchange?code=CRIX.UPBIT.KRW-BTC` |
+
+Binance Spot + Upbit are **USABLE BETA** (packed-extension Paper + UX verified).
+Not Stable. Login / portfolio remain **NOT VERIFIED**. Live order click/submit is
+**never** automated.
+
+### Recognizable — market data only (not usable in the UI yet)
+
+| Exchange | Status                                          |
+| -------- | ----------------------------------------------- |
+| Bybit    | Public candle provider only — no Fly UI adapter |
+| Kraken   | Public candle provider only — no Fly UI adapter |
+| Coinbase | Public candle provider only — no Fly UI adapter |
+
+### Not yet
+
+| Surface                     | Status        |
+| --------------------------- | ------------- |
+| Stock brokers               | Planned       |
+| Automatic live order submit | Will not ship |
+
+**Market Data Ready ≠ Full Broker Support.** Evidence:
+[`docs/REAL_BROWSER_QA.md`](docs/REAL_BROWSER_QA.md),
+[`docs/IMPLEMENTATION_STATUS.md`](docs/IMPLEMENTATION_STATUS.md).
 
 ## How it works
 
@@ -44,35 +84,19 @@ ProposalGuard / RiskEngine → Paper (default) or Live Assist.
 - No synthetic candles / fake timeframes / silent TF fallback.
 - Extension runtime does **not** call hosted LLMs.
 
-## Supported brokers
-
-| Broker                    | UI              | Market Data      | Paper | Live Assist | Full Support    |
-| ------------------------- | --------------- | ---------------- | ----- | ----------- | --------------- |
-| Local demo                | DONE            | DONE             | DONE  | PARTIAL     | YES (local)     |
-| Binance Spot              | DONE (public)   | DONE             | DONE  | PARTIAL     | **USABLE BETA** |
-| Upbit                     | DONE (public)   | DONE             | DONE  | PARTIAL     | **USABLE BETA** |
-| Bybit / Kraken / Coinbase | NOT IMPLEMENTED | MARKET DATA ONLY | —     | —           | NO              |
-| Stock brokers             | Planned         | —                | —     | —           | NO              |
-
-**Market Data Ready ≠ Full Broker Support.** See
-[`docs/REAL_BROWSER_QA.md`](docs/REAL_BROWSER_QA.md).
-
-Binance Spot and Upbit are **USABLE BETA** (packed-extension Paper + UX verified).
-Not Stable. Login/portfolio remain NOT VERIFIED.
-
 ## Install / Quick start
 
 ```bash
 git clone https://github.com/gajua/fly-earn-better-than-you.git
 cd fly-earn-better-than-you
-git checkout feat/reuse-open-source-broker-adapters
+git checkout main
 pnpm install
 pnpm --filter @fly/extension build
 ```
 
 1. Open `chrome://extensions`
 2. Enable Developer mode → Load unpacked → `apps/extension/dist`
-3. Open a supported trade page or `pnpm --filter @fly/demo dev`
+3. Open a **usable** trade page above, or `pnpm --filter @fly/demo dev`
 
 Default: Paper trading + Mock brain.
 
