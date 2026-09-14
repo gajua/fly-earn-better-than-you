@@ -5,39 +5,31 @@ import type {
   ModuleOutputRecord,
   PendingOutcomeRecord,
 } from "@fly/core";
+import {
+  ensureFlyIdbStores,
+  FLY_IDB_NAME,
+  FLY_IDB_VERSION,
+} from "./idb-schema";
 
-const DB_NAME = "fly-earn-better-than-you";
-const DB_VERSION = 5;
+let idbChain: Promise<void> = Promise.resolve();
+
+const withLearningDbLock = async <T>(run: () => Promise<T>): Promise<T> => {
+  const task = idbChain.then(run, run);
+  idbChain = task.then(
+    () => undefined,
+    () => undefined,
+  );
+  return task;
+};
 const OBS_STORE = "market-observations";
 const MODULE_STORE = "module-outputs";
 const OUTCOME_STORE = "future-outcomes";
 const PENDING_STORE = "pending-outcomes";
-const UPLOAD_SUMMARY_STORE = "learning-upload-summaries";
-
-const ensureStores = (db: IDBDatabase): void => {
-  const names = [
-    "trades",
-    "cycles",
-    "learning-observations",
-    "broker-detection-feedback",
-    "contribution-queue",
-    OBS_STORE,
-    MODULE_STORE,
-    OUTCOME_STORE,
-    PENDING_STORE,
-    UPLOAD_SUMMARY_STORE,
-  ];
-  for (const name of names) {
-    if (!db.objectStoreNames.contains(name)) {
-      db.createObjectStore(name, { keyPath: "id" });
-    }
-  }
-};
 
 const openDb = (): Promise<IDBDatabase> =>
   new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
-    request.onupgradeneeded = () => ensureStores(request.result);
+    const request = indexedDB.open(FLY_IDB_NAME, FLY_IDB_VERSION);
+    request.onupgradeneeded = () => ensureFlyIdbStores(request.result);
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error ?? new Error("idb-open"));
   });
@@ -52,87 +44,97 @@ export const anonymizeSymbol = (symbol: string): string => {
 
 export const appendMarketObservation = async (
   row: MarketObservationRecord,
-): Promise<void> => {
-  const db = await openDb();
-  await new Promise<void>((resolve, reject) => {
-    const tx = db.transaction(OBS_STORE, "readwrite");
-    tx.objectStore(OBS_STORE).put(row);
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error ?? new Error("obs-write"));
+): Promise<void> =>
+  withLearningDbLock(async () => {
+    const db = await openDb();
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(OBS_STORE, "readwrite");
+      tx.objectStore(OBS_STORE).put(row);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error ?? new Error("obs-write"));
+    });
+    db.close();
   });
-  db.close();
-};
 
 export const appendModuleOutputs = async (
   rows: readonly ModuleOutputRecord[],
 ): Promise<void> => {
   if (rows.length === 0) return;
-  const db = await openDb();
-  await new Promise<void>((resolve, reject) => {
-    const tx = db.transaction(MODULE_STORE, "readwrite");
-    const store = tx.objectStore(MODULE_STORE);
-    for (const row of rows) store.put(row);
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error ?? new Error("module-write"));
+  await withLearningDbLock(async () => {
+    const db = await openDb();
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(MODULE_STORE, "readwrite");
+      const store = tx.objectStore(MODULE_STORE);
+      for (const row of rows) store.put(row);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error ?? new Error("module-write"));
+    });
+    db.close();
   });
-  db.close();
 };
 
 export const appendFutureOutcome = async (
   row: FutureOutcomeRecord,
-): Promise<void> => {
-  const db = await openDb();
-  await new Promise<void>((resolve, reject) => {
-    const tx = db.transaction(OUTCOME_STORE, "readwrite");
-    tx.objectStore(OUTCOME_STORE).put(row);
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error ?? new Error("outcome-write"));
+): Promise<void> =>
+  withLearningDbLock(async () => {
+    const db = await openDb();
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(OUTCOME_STORE, "readwrite");
+      tx.objectStore(OUTCOME_STORE).put(row);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error ?? new Error("outcome-write"));
+    });
+    db.close();
   });
-  db.close();
-};
 
-export const listPendingOutcomes = async (): Promise<
-  PendingOutcomeRecord[]
-> => {
-  const db = await openDb();
-  const rows = await new Promise<PendingOutcomeRecord[]>((resolve, reject) => {
-    const tx = db.transaction(PENDING_STORE, "readonly");
-    const request = tx.objectStore(PENDING_STORE).getAll();
-    request.onsuccess = () =>
-      resolve((request.result as PendingOutcomeRecord[]) ?? []);
-    request.onerror = () => reject(request.error ?? new Error("pending-read"));
+export const listPendingOutcomes = async (): Promise<PendingOutcomeRecord[]> =>
+  withLearningDbLock(async () => {
+    const db = await openDb();
+    const rows = await new Promise<PendingOutcomeRecord[]>(
+      (resolve, reject) => {
+        const tx = db.transaction(PENDING_STORE, "readonly");
+        const request = tx.objectStore(PENDING_STORE).getAll();
+        request.onsuccess = () =>
+          resolve((request.result as PendingOutcomeRecord[]) ?? []);
+        request.onerror = () =>
+          reject(request.error ?? new Error("pending-read"));
+      },
+    );
+    db.close();
+    return rows;
   });
-  db.close();
-  return rows;
-};
 
 export const upsertPendingOutcomes = async (
   rows: readonly PendingOutcomeRecord[],
 ): Promise<void> => {
-  const db = await openDb();
-  await new Promise<void>((resolve, reject) => {
-    const tx = db.transaction(PENDING_STORE, "readwrite");
-    const store = tx.objectStore(PENDING_STORE);
-    for (const row of rows) store.put(row);
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error ?? new Error("pending-write"));
+  await withLearningDbLock(async () => {
+    const db = await openDb();
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(PENDING_STORE, "readwrite");
+      const store = tx.objectStore(PENDING_STORE);
+      for (const row of rows) store.put(row);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error ?? new Error("pending-write"));
+    });
+    db.close();
   });
-  db.close();
 };
 
 export const deletePendingOutcomeIds = async (
   ids: readonly string[],
 ): Promise<void> => {
   if (ids.length === 0) return;
-  const db = await openDb();
-  await new Promise<void>((resolve, reject) => {
-    const tx = db.transaction(PENDING_STORE, "readwrite");
-    const store = tx.objectStore(PENDING_STORE);
-    for (const id of ids) store.delete(id);
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error ?? new Error("pending-delete"));
+  await withLearningDbLock(async () => {
+    const db = await openDb();
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(PENDING_STORE, "readwrite");
+      const store = tx.objectStore(PENDING_STORE);
+      for (const id of ids) store.delete(id);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error ?? new Error("pending-delete"));
+    });
+    db.close();
   });
-  db.close();
 };
 
 export interface LocalLearningStats {

@@ -160,7 +160,7 @@ chrome.runtime.onStartup.addListener(() => {
 
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name !== "resolve-learning-outcomes") return;
-  void resolveDueOutcomes({ fetchPrice: async () => null });
+  void resolveDueOutcomes();
 });
 
 chrome.tabs.onUpdated.addListener(() => void refreshBrokerPresence());
@@ -356,31 +356,46 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
 
     if (kind === "get-local-learning-stats") {
-      sendResponse({ ok: true, stats: await readLocalLearningStats() });
+      try {
+        sendResponse({ ok: true, stats: await readLocalLearningStats() });
+      } catch (error) {
+        sendResponse({
+          ok: false,
+          reason: error instanceof Error ? error.message : "stats-failed",
+        });
+      }
       return;
     }
 
     if (kind === "record-modular-observation") {
-      const preferences = await readPreferences();
-      const payload = (
-        message as {
-          payload: Parameters<typeof recordModularObservation>[0];
-        }
-      ).payload;
-      sendResponse({
-        ok: true,
-        result: await recordModularObservation({
-          ...payload,
-          preferences,
-        }),
-      });
+      try {
+        const preferences = await readPreferences();
+        const payload = (
+          message as {
+            payload: Omit<
+              Parameters<typeof recordModularObservation>[0],
+              "preferences"
+            >;
+          }
+        ).payload;
+        sendResponse({
+          ok: true,
+          result: await recordModularObservation({
+            ...payload,
+            preferences,
+          }),
+        });
+      } catch (error) {
+        sendResponse({
+          ok: false,
+          reason: error instanceof Error ? error.message : "record-failed",
+        });
+      }
       return;
     }
 
     if (kind === "resolve-learning-outcomes") {
-      const resolved = await resolveDueOutcomes({
-        fetchPrice: async () => null,
-      });
+      const resolved = await resolveDueOutcomes();
       sendResponse({ ok: true, resolved });
       return;
     }

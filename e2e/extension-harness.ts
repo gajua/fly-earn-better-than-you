@@ -145,6 +145,7 @@ export type E2EDiagnostics = {
   }>;
   output?: { state?: string } | null;
   brokerClickCount?: number;
+  localModularRecordCount?: number;
   fly?: {
     root?: boolean;
     shadow?: boolean;

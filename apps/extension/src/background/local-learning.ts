@@ -18,6 +18,7 @@ import {
   type LocalLearningStats,
 } from "../storage/local-learning-store";
 import type { ExtensionPreferences } from "../storage/preferences";
+import { resolvePendingOutcomeMetrics } from "./outcome-price-fetch";
 
 const pendingId = (observationId: string, horizon: OutcomeHorizon): string =>
   `${observationId}:${horizon}`;
@@ -26,6 +27,7 @@ export const recordModularObservation = async (input: {
   readonly preferences: ExtensionPreferences;
   readonly broker: string;
   readonly symbol: string;
+  readonly instrumentId: string;
   readonly timeframe: string;
   readonly price: number;
   readonly momentum: number;
@@ -126,7 +128,7 @@ export const recordModularObservation = async (input: {
       horizon,
       dueAt: Date.now() + OUTCOME_HORIZON_MS[horizon],
       anchorPrice: input.price,
-      instrumentId: input.symbol,
+      instrumentId: input.instrumentId,
       broker: input.broker,
     })),
   );
@@ -165,29 +167,23 @@ const maybeEnqueueFilteredUpload = async (_input: {
   // Detailed modular upload rows land in a future edge function; Paper queue unchanged.
 };
 
-export const resolveDueOutcomes = async (input: {
-  readonly fetchPrice: (
-    broker: string,
-    instrumentId: string,
-  ) => Promise<number | null>;
-}): Promise<number> => {
+export const resolveDueOutcomes = async (): Promise<number> => {
   const pending = await listPendingOutcomes();
   const now = Date.now();
   let resolved = 0;
   const toDelete: string[] = [];
   for (const row of pending) {
     if (row.dueAt > now) continue;
-    const price = await input.fetchPrice(row.broker, row.instrumentId);
-    if (!price || row.anchorPrice <= 0) continue;
-    const futureReturn = (price - row.anchorPrice) / row.anchorPrice;
+    const metrics = await resolvePendingOutcomeMetrics(row);
+    if (!metrics) continue;
     await appendFutureOutcome({
       id: crypto.randomUUID(),
       observationId: row.observationId,
       horizon: row.horizon,
-      futureReturn,
-      futureVolatility: Math.abs(futureReturn),
-      maxAdverseMove: Math.min(0, futureReturn),
-      maxFavorableMove: Math.max(0, futureReturn),
+      futureReturn: metrics.futureReturn,
+      futureVolatility: metrics.futureVolatility,
+      maxAdverseMove: metrics.maxAdverseMove,
+      maxFavorableMove: metrics.maxFavorableMove,
       resolvedAt: new Date().toISOString(),
     });
     toDelete.push(`${row.observationId}:${row.horizon}`);

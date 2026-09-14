@@ -96,6 +96,8 @@ export {
   shouldEvaluateBrain,
   shouldUploadSummary,
   validateModuleDefinitions,
+  type BrainGatingInput,
+  type BrainGatingState,
   type ChartModuleOutput,
   type DecisionModuleOutput,
   type FutureOutcomeRecord,

@@ -240,6 +240,7 @@ const start = async () => {
     lastSymbol: null,
     lastTimeframe: null,
   };
+  let localModularRecordCount = 0;
 
   const recordLocalModular = (
     environment: NonNullable<
@@ -249,12 +250,16 @@ const start = async () => {
     timeframe: string,
   ): void => {
     if (livePreferences?.localDataCollection === false) return;
+    localModularRecordCount += 1;
     void chrome.runtime
       .sendMessage({
         kind: "record-modular-observation",
         payload: {
           broker: adapter.id,
           symbol: environment.asset?.symbol ?? "UNKNOWN",
+          instrumentId:
+            environment.asset?.instrumentId ??
+            `${adapter.id}:spot:${environment.asset?.symbol ?? "UNKNOWN"}:USDT`,
           timeframe,
           price: environment.asset?.price ?? 0,
           momentum: environment.market.momentum,
@@ -445,6 +450,16 @@ const start = async () => {
         const usable = filterUsableTimeframeObservations(latestObservations);
         dataProviderError = usable.length === 0;
         if (dataProviderError && !(__FLY_E2E__ && e2eForcedOutput)) {
+          if (
+            __FLY_E2E__ &&
+            livePreferences?.localDataCollection !== false &&
+            mode === "mock" &&
+            environment.asset &&
+            environment.asset.price > 0
+          ) {
+            const modular = evaluateModularMock(environment);
+            recordLocalModular(environment, modular, "1h");
+          }
           latestOutput = {
             state: "sleep",
             buyDrive: 0,
@@ -762,6 +777,7 @@ const start = async () => {
             }
           : null,
         brokerClickCount,
+        localModularRecordCount,
         fly: (() => {
           const root = document.getElementById("fly-earn-better-root");
           const shadow = root?.shadowRoot ?? null;
