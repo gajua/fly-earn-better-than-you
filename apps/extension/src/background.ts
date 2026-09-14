@@ -9,7 +9,11 @@ import {
   scanBrokerTabs,
   writePreferences,
 } from "./background/broker-tabs";
-import { getExposureSummary, markToMarketPositions, maybeExecutePaperTrade } from "./background/paper-engine";
+import {
+  getExposureSummary,
+  markToMarketPositions,
+  maybeExecutePaperTrade,
+} from "./background/paper-engine";
 import { clearTrades, listTrades } from "./storage/trade-ledger";
 import { STATUS_KEY, type ExtensionPreferences } from "./storage/preferences";
 import { computePerformance, summarizeClosedCycles } from "@fly/core";
@@ -162,16 +166,19 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
     if (kind === "paper-trade") {
       const preferences = await readPreferences();
-      const proposal = (message as { proposal: Parameters<typeof maybeExecutePaperTrade>[1] })
-        .proposal;
+      const proposal = (
+        message as { proposal: Parameters<typeof maybeExecutePaperTrade>[1] }
+      ).proposal;
       sendResponse(await maybeExecutePaperTrade(preferences, proposal));
       return;
     }
 
     if (kind === "mark-to-market") {
-      const quotes = (message as {
-        quotes: { instrumentId: string; price: number; observedAt: string }[];
-      }).quotes;
+      const quotes = (
+        message as {
+          quotes: { instrumentId: string; price: number; observedAt: string }[];
+        }
+      ).quotes;
       const map = new Map(
         quotes.map((quote) => [
           quote.instrumentId,
@@ -249,9 +256,55 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return;
     }
 
+    // Local MaleCNS only — content scripts cannot CORS-fetch localhost from broker origins.
+    if (kind === "brain-fetch") {
+      const url = (message as { url?: string }).url;
+      const method = (message as { method?: string }).method ?? "GET";
+      const body = (message as { body?: string }).body;
+      if (!url || typeof url !== "string") {
+        sendResponse({ ok: false, status: 0, body: "", reason: "missing-url" });
+        return;
+      }
+      let parsed: URL;
+      try {
+        parsed = new URL(url);
+      } catch {
+        sendResponse({ ok: false, status: 0, body: "", reason: "bad-url" });
+        return;
+      }
+      const isLocal =
+        (parsed.hostname === "127.0.0.1" || parsed.hostname === "localhost") &&
+        parsed.port === "8000";
+      if (!isLocal || parsed.protocol !== "http:") {
+        sendResponse({ ok: false, status: 0, body: "", reason: "host-denied" });
+        return;
+      }
+      try {
+        const response = await fetch(url, {
+          method,
+          headers: { "Content-Type": "application/json" },
+          body: method === "GET" || method === "HEAD" ? undefined : body,
+          credentials: "omit",
+          cache: "no-store",
+          referrerPolicy: "no-referrer",
+        });
+        sendResponse({
+          ok: response.ok,
+          status: response.status,
+          body: await response.text(),
+        });
+      } catch {
+        sendResponse({ ok: false, status: 0, body: "", reason: "network" });
+      }
+      return;
+    }
+
     if (kind === "clear-history") {
       await clearTrades();
-      await chrome.storage.local.remove(["fly-paper-positions", "fly-daily-exposure"]);
+      await chrome.storage.local.remove([
+        "fly-paper-positions",
+        "fly-daily-exposure",
+      ]);
       sendResponse({ ok: true });
       return;
     }

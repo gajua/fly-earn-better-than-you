@@ -15,11 +15,13 @@ export default defineConfig({
     {
       name: "chromium",
       use: { ...devices["Desktop Chrome"] },
-      testIgnore: /extension-load\.spec\.ts/,
+      testIgnore:
+        /extension-load\.spec\.ts|binance-paper-usable\.spec\.ts|upbit-extension\.spec\.ts|extension-binance-smoke\.spec\.ts/,
     },
     {
       name: "extension",
-      testMatch: /extension-load\.spec\.ts/,
+      testMatch:
+        /extension-load\.spec\.ts|binance-paper-usable\.spec\.ts|upbit-extension\.spec\.ts|extension-binance-smoke\.spec\.ts/,
       use: { ...devices["Desktop Chrome"] },
     },
   ],

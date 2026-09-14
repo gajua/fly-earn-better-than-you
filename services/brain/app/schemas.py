@@ -23,13 +23,16 @@ class RectModel(ApiModel):
 
 
 class AssetModel(ApiModel):
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
     symbol: str = Field(min_length=1, max_length=32)
     name: str | None = Field(default=None, max_length=128)
     price: float
     changePercent: float
+    instrumentId: str | None = None
 
 
 class PositionModel(ApiModel):
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
     quantity: float
     averagePrice: float
     pnlAmount: float
@@ -37,12 +40,14 @@ class PositionModel(ApiModel):
 
 
 class MarketModel(ApiModel):
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
     momentum: float = Field(ge=-1, le=1)
     volatility: float = Field(ge=0, le=1)
     volumeStrength: float = Field(ge=0, le=1)
 
 
 class UiModel(ApiModel):
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
     chart: RectModel | None = None
     buy: RectModel | None = None
     sell: RectModel | None = None
@@ -50,6 +55,7 @@ class UiModel(ApiModel):
 
 
 class MarketEnvironmentModel(ApiModel):
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
     asset: AssetModel | None = None
     position: PositionModel | None = None
     market: MarketModel

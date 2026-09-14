@@ -105,6 +105,36 @@ const buildTimeframeObservations = async (): Promise<
   return observations;
 };
 
+/** Route MaleCNS HTTP through the service worker (broker pages block localhost CORS). */
+const createBrainFetch = (): typeof fetch => {
+  return async (input, init) => {
+    const url =
+      typeof input === "string"
+        ? input
+        : input instanceof URL
+          ? input.href
+          : input.url;
+    const result = (await chrome.runtime.sendMessage({
+      kind: "brain-fetch",
+      url,
+      method: init?.method ?? "GET",
+      body: typeof init?.body === "string" ? init.body : undefined,
+    })) as {
+      ok?: boolean;
+      status?: number;
+      body?: string;
+      reason?: string;
+    };
+    if (!result || typeof result.body !== "string") {
+      throw new Error(result?.reason ?? "brain-fetch-failed");
+    }
+    return new Response(result.body, {
+      status: result.status ?? 0,
+      headers: { "Content-Type": "application/json" },
+    });
+  };
+};
+
 const resolveBrain = async () => {
   const response = (await chrome.runtime.sendMessage({
     kind: "get-preferences",
@@ -118,16 +148,21 @@ const resolveBrain = async () => {
   const preferences = response.preferences;
   const mode = preferences?.brainMode ?? "mock";
   const baseUrl = preferences?.brainBaseUrl ?? "http://127.0.0.1:8000";
+  const fetchImpl = createBrainFetch();
   if (mode === "real-connectome") {
     return {
-      brain: createMaleCNSBrain({ mode: "malecns", baseUrl }),
+      brain: createMaleCNSBrain({ mode: "malecns", baseUrl, fetchImpl }),
       mode: "real-connectome" as const,
       tradingMode: preferences?.tradingMode ?? "paper",
     };
   }
   if (mode === "shuffled-control") {
     return {
-      brain: createMaleCNSBrain({ mode: "shuffled-control", baseUrl }),
+      brain: createMaleCNSBrain({
+        mode: "shuffled-control",
+        baseUrl,
+        fetchImpl,
+      }),
       mode: "shuffled-control" as const,
       tradingMode: preferences?.tradingMode ?? "paper",
     };
@@ -335,7 +370,13 @@ const start = async () => {
               brainOutput: output,
               brainMode: mode,
             });
-            void chrome.runtime.sendMessage({ kind: "paper-trade", proposal });
+            const paperResult = chrome.runtime.sendMessage({
+              kind: "paper-trade",
+              proposal,
+            });
+            if (__FLY_E2E__) {
+              await paperResult;
+            }
           }
 
           if (environment.asset?.instrumentId) {
@@ -437,15 +478,82 @@ const start = async () => {
 
   if (__FLY_E2E__) {
     const host = window as E2EHost;
+    let brokerClickCount = 0;
+    document.addEventListener(
+      "click",
+      (event) => {
+        const text = (event.target as HTMLElement | null)?.textContent ?? "";
+        if (/Max Buy|Max Sell|^(Buy|Sell)$/i.test(text.trim())) {
+          brokerClickCount += 1;
+        }
+      },
+      true,
+    );
+
+    const collectDiagnostics = () => {
+      const resolved = adapter.resolveTargets();
+      return {
+        brokerId: adapter.id,
+        brainMode: mode,
+        tradingMode,
+        brainUnavailable,
+        dataProviderError,
+        page: adapter.detectPageContext(),
+        asset: adapter.readCurrentAsset(),
+        targets: {
+          buy: Boolean(resolved.buy),
+          sell: Boolean(resolved.sell),
+          chart: Boolean(resolved.chart),
+          buyText: resolved.buy?.element.textContent?.trim() ?? null,
+          sellText: resolved.sell?.element.textContent?.trim() ?? null,
+        },
+        observations: latestObservations.map((item) => ({
+          timeframe: item.timeframe,
+          available: item.available,
+          candleCount: item.candleCount,
+          source: item.source,
+        })),
+        output: latestOutput,
+        brokerClickCount,
+        fly: (() => {
+          const root = document.getElementById("fly-earn-better-root");
+          const shadow = root?.shadowRoot ?? null;
+          const overlay = shadow?.querySelector(
+            ".overlay",
+          ) as HTMLElement | null;
+          const fly = shadow?.querySelector(".fly");
+          return {
+            root: Boolean(root),
+            shadow: Boolean(shadow),
+            pointerEvents: overlay
+              ? getComputedStyle(overlay).pointerEvents
+              : null,
+            visible: Boolean(fly),
+            state: fly?.getAttribute("data-fly-state") ?? null,
+          };
+        })(),
+      };
+    };
+
     host.__flyE2EForce = (output) => {
       e2eForcedOutput = output;
     };
-    host.__flyE2EGetDiagnostics = () => ({
-      brokerId: adapter.id,
-      page: adapter.detectPageContext(),
-      targets: adapter.resolveTargets(),
-      observations: latestObservations,
-      output: latestOutput,
+    host.__flyE2EGetDiagnostics = collectDiagnostics;
+
+    // Page-world bridge for Playwright (content scripts are isolated).
+    document.documentElement.addEventListener("fly-e2e-force", ((
+      event: CustomEvent<BrainOutput>,
+    ) => {
+      e2eForcedOutput = event.detail;
+    }) as EventListener);
+    document.documentElement.addEventListener("fly-e2e-diag-request", () => {
+      document.documentElement.setAttribute(
+        "data-fly-e2e-diag",
+        JSON.stringify(collectDiagnostics()),
+      );
+      document.documentElement.dispatchEvent(
+        new CustomEvent("fly-e2e-diag-ready"),
+      );
     });
   }
 };
