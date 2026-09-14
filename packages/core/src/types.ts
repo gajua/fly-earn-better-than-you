@@ -38,6 +38,10 @@ export interface MarketEnvironment {
     readonly momentum: number;
     readonly volatility: number;
     readonly volumeStrength: number;
+    /** MODELED agent-layer novelty, not a biological MaleCNS quantity. */
+    readonly novelty?: number;
+    /** MODELED cross-timeframe disagreement used as curiosity, not a trade signal. */
+    readonly trendConflict?: number;
   };
   readonly ui: {
     readonly chart?: DOMRectLike;
@@ -46,6 +50,7 @@ export interface MarketEnvironment {
     readonly portfolio?: DOMRectLike;
     readonly search?: DOMRectLike;
     readonly login?: DOMRectLike;
+    readonly timeframe?: DOMRectLike;
   };
 }
 

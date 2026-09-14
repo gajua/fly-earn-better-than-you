@@ -93,6 +93,11 @@ export const setExtensionPreferences = async (
       experimentalPersonalCalibration: false,
       learningMinSamples: 30,
       startingPaperCapital: 1_000_000,
+      autonomousExploration: false,
+      explorationSpeed: "fast",
+      visibleBrowserControl: false,
+      flyActivityHud: false,
+      explorationPaused: false,
     };
     await chrome.storage.local.set({
       "fly-preferences": { ...defaults, ...prefs },
@@ -146,6 +151,14 @@ export type E2EDiagnostics = {
     visible?: boolean;
     state?: string | null;
   };
+  exploration?: {
+    state?: string;
+    symbol?: string;
+    timeframe?: string;
+    intent?: string;
+    thought?: string | null;
+    hud?: boolean;
+  } | null;
 };
 
 export const readE2EDiagnostics = async (

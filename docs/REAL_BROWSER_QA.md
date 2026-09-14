@@ -3,7 +3,39 @@
 Only record results from commands/sessions that actually ran.
 
 Last updated: 2026-09-14  
-Branch: `feat/reuse-open-source-broker-adapters`
+Branch: `feat/global-community-learning`
+
+## Autonomous Exploration v1 (2026-09-14)
+
+Commands that actually ran this session:
+
+```bash
+pnpm test                          # 92 passed
+pnpm test:python                   # 8 passed
+pnpm --filter @fly/extension build
+pnpm test:e2e -- e2e/binance-public.spec.ts --project=chromium
+E2E_TEST_MODE=1 pnpm --filter @fly/extension build
+SKIP_WEB_SERVER=1 RUN_EXTENSION_E2E=1 \
+  pnpm exec playwright test \
+  e2e/binance-autonomous-exploration.spec.ts \
+  e2e/extension-binance-smoke.spec.ts \
+  --project=extension --workers=1
+```
+
+| Check                                          | Result                                                   |
+| ---------------------------------------------- | -------------------------------------------------------- |
+| Unit: interest / novelty / conflict / gating   | PASS                                                     |
+| Click guard (no BUY/SELL automation)           | PASS                                                     |
+| Python MaleCNS graph + encoder                 | PASS                                                     |
+| Binance public landmarks                       | PASS                                                     |
+| Fly overlay + Binance smoke                    | PASS                                                     |
+| Exploration HUD wake, no broker BUY/SELL click | PASS                                                     |
+| Production extension build                     | PASS                                                     |
+| Full headed suite in parallel (Paper/Upbit UX) | NOT VERIFIED this session (timeouts / worker contention) |
+
+BTC→ETH URL change and 1d→4h clicks were exercised by the agent; the passing E2E asserts HUD + zero BUY/SELL clicks, not a strict ETH URL.
+
+---
 
 ## Summary
 

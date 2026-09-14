@@ -207,6 +207,21 @@ Binance Spot + Upbit는 **USABLE BETA**. Stable 아님. 로그인/포트폴리�
 
 ---
 
+## 자율 탐색 (Binance Spot)
+
+Binance에서 Fly는 BUY/SELL 버튼만 맴돌지 않고 시장을 둘러볼 수 있습니다.
+
+- BTC / ETH / SOL 등 작은 USDT 후보군
+- 관심 있으면 1d → 4h → 1h → 15m
+- HUD에서 종목 / 시간봉 / curiosity / 관찰 이유
+- **거래하지 않는 것이 정상** — 충분히 본 뒤에만 Paper proposal
+
+화면 조종은 BUY/SELL·주문 제출을 클릭하지 않습니다. HUD/팝업에서 즉시 멈출 수 있습니다.
+
+설명: [`docs/AUTONOMOUS_EXPLORATION.md`](docs/AUTONOMOUS_EXPLORATION.md).
+
+---
+
 ## 내 거래소에 초파리 한 마리 풀어놓기
 
 ```bash

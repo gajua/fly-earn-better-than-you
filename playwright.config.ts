@@ -16,12 +16,12 @@ export default defineConfig({
       name: "chromium",
       use: { ...devices["Desktop Chrome"] },
       testIgnore:
-        /extension-load\.spec\.ts|binance-paper-usable\.spec\.ts|upbit-paper-usable\.spec\.ts|upbit-extension\.spec\.ts|extension-binance-smoke\.spec\.ts|v11-popup-settings\.spec\.ts/,
+        /extension-load\.spec\.ts|binance-paper-usable\.spec\.ts|upbit-paper-usable\.spec\.ts|upbit-extension\.spec\.ts|extension-binance-smoke\.spec\.ts|v11-popup-settings\.spec\.ts|binance-autonomous-exploration\.spec\.ts/,
     },
     {
       name: "extension",
       testMatch:
-        /extension-load\.spec\.ts|binance-paper-usable\.spec\.ts|upbit-paper-usable\.spec\.ts|upbit-extension\.spec\.ts|extension-binance-smoke\.spec\.ts|v11-popup-settings\.spec\.ts/,
+        /extension-load\.spec\.ts|binance-paper-usable\.spec\.ts|upbit-paper-usable\.spec\.ts|upbit-extension\.spec\.ts|extension-binance-smoke\.spec\.ts|v11-popup-settings\.spec\.ts|binance-autonomous-exploration\.spec\.ts/,
       use: { ...devices["Desktop Chrome"] },
     },
   ],

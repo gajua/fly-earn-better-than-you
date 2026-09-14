@@ -57,6 +57,33 @@
       </section>
 
       <section class="card">
+        <h2 data-i18n="popup.exploration">Autonomous exploration</h2>
+        <label class="check">
+          <input id="exploration-on" type="checkbox" checked />
+          <span data-i18n="popup.explorationOn">Autonomous exploration</span>
+        </label>
+        <label>
+          <span data-i18n="popup.explorationSpeed">Exploration speed</span>
+          <select id="exploration-speed">
+            <option value="slow" data-i18n="popup.speedSlow">Slow</option>
+            <option value="normal" data-i18n="popup.speedNormal">Normal</option>
+            <option value="fast" data-i18n="popup.speedFast">Fast</option>
+          </select>
+        </label>
+        <label class="check">
+          <input id="visible-control" type="checkbox" checked />
+          <span data-i18n="popup.visibleControl">Visible browser control</span>
+        </label>
+        <label class="check">
+          <input id="activity-hud" type="checkbox" checked />
+          <span data-i18n="popup.activityHud">Fly activity HUD</span>
+        </label>
+        <button id="pause-exploration" type="button" data-i18n="popup.pauseExploration">
+          Pause exploration / stop controlling screen
+        </button>
+      </section>
+
+      <section class="card">
         <h2 data-i18n="popup.globalLearning">Global Learning</h2>
         <p class="headline" data-i18n="popup.oneFlyShared">
           One Fly. Shared learning.

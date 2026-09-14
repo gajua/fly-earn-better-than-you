@@ -2,8 +2,10 @@ import type { BrokerAdapter } from "@fly/broker-adapters";
 import type {
   BrainOutput,
   DOMRectLike,
+  ExplorationMotion,
   FlyBrain,
   FlyState,
+  HudSnapshot,
   MarketEnvironment,
 } from "@fly/core";
 import { canTransition, MINIMUM_STATE_DURATION_MS } from "./state-machine";
@@ -16,12 +18,28 @@ export interface ShadowFlyOptions {
   readonly onBrainOutput?: (output: BrainOutput) => void;
   readonly onBrainError?: (error: Error) => void;
   readonly forceState?: () => FlyState | null;
+  readonly explorationHint?: () => {
+    readonly motion: ExplorationMotion;
+    readonly thought?: string | null;
+    readonly hud?: HudSnapshot | null;
+  } | null;
+  readonly onPauseExploration?: () => void;
 }
 
 export interface ShadowFlyHandle {
   readonly root: HTMLElement;
   destroy(): void;
 }
+
+const SPEED_BY_MOTION: Record<ExplorationMotion, number> = {
+  wide: 78,
+  "orbit-symbol": 70,
+  "orbit-timeframe": 74,
+  "orbit-chart": 62,
+  curious: 128,
+  focus: 44,
+  rest: 0,
+};
 
 const SPEED_BY_STATE: Record<FlyState, number> = {
   sleep: 0,
@@ -84,6 +102,38 @@ const STYLES = `
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
   z-index: 2;
 }
+.hud {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: min(260px, 86vw);
+  pointer-events: auto;
+  padding: 10px 12px 8px;
+  border-radius: 12px;
+  background: rgba(10, 14, 22, 0.88);
+  color: #e8eefc;
+  font: 12px/1.4 ui-sans-serif, system-ui, sans-serif;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.32);
+  z-index: 3;
+}
+.hud[hidden] { display: none; }
+.hud-title { font-weight: 650; margin: 0 0 4px; }
+.hud-meta { opacity: 0.9; margin: 0 0 6px; }
+.hud-watch { margin: 0 0 6px; padding-left: 16px; }
+.hud-row { display: flex; justify-content: space-between; gap: 8px; opacity: 0.92; }
+.hud-log { margin: 8px 0 0; padding: 0; list-style: none; opacity: 0.78; font-size: 11px; }
+.hud-actions { margin-top: 8px; display: flex; gap: 6px; }
+.hud button {
+  pointer-events: auto;
+  border: 0;
+  border-radius: 8px;
+  padding: 5px 8px;
+  background: #e8eefc;
+  color: #121826;
+  font: 11px/1.2 ui-sans-serif, system-ui, sans-serif;
+  cursor: pointer;
+}
+.hud-note { margin: 6px 0 0; opacity: 0.75; font-size: 11px; }
 @keyframes flap {
   from { transform: scaleY(0.7) rotate(-8deg); }
   to { transform: scaleY(1.05) rotate(8deg); }
@@ -149,11 +199,43 @@ export const mountShadowFly = (
       </svg>
     </div>
     <div class="bubble" hidden data-testid="fly-bubble"></div>
+    <aside class="hud" hidden data-testid="fly-hud">
+      <p class="hud-title" data-testid="fly-hud-title"></p>
+      <p class="hud-meta" data-testid="fly-hud-meta"></p>
+      <ul class="hud-watch" data-testid="fly-hud-watch"></ul>
+      <div class="hud-detail" hidden></div>
+      <p class="hud-note" data-testid="fly-hud-note"></p>
+      <ul class="hud-log" data-testid="fly-hud-log"></ul>
+      <div class="hud-actions">
+        <button type="button" data-testid="fly-hud-pause">Pause exploration</button>
+      </div>
+    </aside>
   `;
   shadow.append(style, overlay);
 
   const fly = overlay.querySelector<HTMLElement>(".fly")!;
   const bubble = overlay.querySelector<HTMLElement>(".bubble")!;
+  const hud = overlay.querySelector<HTMLElement>(".hud")!;
+  const hudTitle = overlay.querySelector<HTMLElement>(
+    "[data-testid='fly-hud-title']",
+  )!;
+  const hudMeta = overlay.querySelector<HTMLElement>(
+    "[data-testid='fly-hud-meta']",
+  )!;
+  const hudWatch = overlay.querySelector<HTMLElement>(
+    "[data-testid='fly-hud-watch']",
+  )!;
+  const hudDetail = overlay.querySelector<HTMLElement>(".hud-detail")!;
+  const hudNote = overlay.querySelector<HTMLElement>(
+    "[data-testid='fly-hud-note']",
+  )!;
+  const hudLog = overlay.querySelector<HTMLElement>(
+    "[data-testid='fly-hud-log']",
+  )!;
+  const hudPause = overlay.querySelector<HTMLButtonElement>(
+    "[data-testid='fly-hud-pause']",
+  )!;
+  hudPause.addEventListener("click", () => options.onPauseExploration?.());
 
   let frameId = 0;
   let evaluationTimer = 0;
@@ -265,9 +347,105 @@ export const mountShadowFly = (
     }
   };
 
+  const renderHud = (snapshot: HudSnapshot | null | undefined) => {
+    if (!snapshot) {
+      hud.hidden = true;
+      return;
+    }
+    hud.hidden = false;
+    hudTitle.textContent = snapshot.compactTitle;
+    hudMeta.textContent = `${snapshot.symbol}  ${snapshot.timeframe} · ${snapshot.intent}`;
+    hudWatch.innerHTML = snapshot.watching
+      .map((item) => `<li>${item}</li>`)
+      .join("");
+    hudNote.textContent = snapshot.uiControlNote ?? snapshot.thought;
+    hudLog.innerHTML = snapshot.log
+      .slice(-6)
+      .map((line) => `<li>${line}</li>`)
+      .join("");
+    hudPause.textContent = snapshot.paused
+      ? "Resume exploration"
+      : "Pause exploration";
+    if (snapshot.detailed) {
+      hudDetail.hidden = false;
+      hudDetail.innerHTML = [
+        `<div class="hud-row"><span>Novelty</span><span>${Math.round(snapshot.novelty * 100)}</span></div>`,
+        `<div class="hud-row"><span>Volatility</span><span>${Math.round(snapshot.volatility * 100)}</span></div>`,
+        `<div class="hud-row"><span>Trend conflict</span><span>${Math.round(snapshot.trendConflict * 100)}</span></div>`,
+        `<div class="hud-row"><span>Rel volume</span><span>${Math.round(snapshot.relativeVolume * 100)}</span></div>`,
+        `<div class="hud-row"><span>Approach</span><span>${snapshot.approach.toFixed(2)}</span></div>`,
+        `<div class="hud-row"><span>Avoid</span><span>${snapshot.avoid.toFixed(2)}</span></div>`,
+        `<div class="hud-row"><span>Explore</span><span>${snapshot.explore.toFixed(2)}</span></div>`,
+        `<div class="hud-row"><span>Next</span><span>${snapshot.nextHint}</span></div>`,
+      ].join("");
+    } else {
+      hudDetail.hidden = true;
+      hudDetail.replaceChildren();
+    }
+  };
+
+  const orbitAround = (
+    rect: DOMRectLike | undefined,
+    now: number,
+    radius: number,
+    fallback: { x: number; y: number },
+  ) => {
+    if (!rect || rect.width <= 0 || rect.height <= 0) return fallback;
+    const center = centerOf(rect);
+    return {
+      x: center.x + Math.cos(now * 0.0018) * radius,
+      y: center.y + Math.sin(now * 0.0022) * (radius * 0.55),
+    };
+  };
+
   const updateTarget = (now: number) => {
-    if (state === "sleep") {
+    const hint = options.explorationHint?.() ?? null;
+    if (hint?.motion === "rest" || state === "sleep") {
       target = { x: view().innerWidth - 56, y: view().innerHeight - 56 };
+      return;
+    }
+    if (hint) {
+      const ui = environment?.ui;
+      if (hint.motion === "orbit-symbol") {
+        target = orbitAround(ui?.search ?? ui?.chart, now, 46, {
+          x: view().innerWidth * 0.78,
+          y: view().innerHeight * 0.28,
+        });
+        return;
+      }
+      if (hint.motion === "orbit-timeframe") {
+        target = orbitAround(ui?.timeframe ?? ui?.chart, now, 36, {
+          x: (ui?.chart?.left ?? 80) + 80,
+          y: (ui?.chart?.top ?? 80) + 24,
+        });
+        return;
+      }
+      if (hint.motion === "orbit-chart" || hint.motion === "focus") {
+        target = orbitAround(
+          ui?.chart,
+          now,
+          hint.motion === "focus" ? 18 : 42,
+          {
+            x: view().innerWidth * 0.42,
+            y: view().innerHeight * 0.38,
+          },
+        );
+        return;
+      }
+      if (hint.motion === "curious") {
+        target = orbitAround(ui?.chart, now, 70, {
+          x: view().innerWidth * 0.45,
+          y: view().innerHeight * 0.4,
+        });
+        return;
+      }
+      if (now - targetUpdatedAt > 1_400) {
+        target = {
+          x: 48 + Math.random() * Math.max(80, view().innerWidth - 96),
+          y: 64 + Math.random() * Math.max(80, view().innerHeight - 120),
+        };
+        targetUpdatedAt = now;
+      }
       return;
     }
     const rect = targetRectForState(state, environment);
@@ -295,7 +473,11 @@ export const mountShadowFly = (
     const dx = target.x - position.x;
     const dy = target.y - position.y;
     const distance = Math.max(1, Math.hypot(dx, dy));
-    const speed = SPEED_BY_STATE[state] * (0.9 + Math.random() * 0.2);
+    const hint = options.explorationHint?.() ?? null;
+    renderHud(hint?.hud ?? null);
+    const speed = hint
+      ? SPEED_BY_MOTION[hint.motion] * (0.9 + Math.random() * 0.2)
+      : SPEED_BY_STATE[state] * (0.9 + Math.random() * 0.2);
     if (speed > 0) {
       const desiredX = (dx / distance) * speed;
       const desiredY = (dy / distance) * speed;

@@ -9,12 +9,15 @@ import {
   aggregateTimeframeObservations,
   demoInstrumentId,
   deriveSessionState,
+  featuresToMarketSlice,
   filterUsableTimeframeObservations,
   type BrainOutput,
   type TimeframeObservation,
 } from "@fly/core";
 import { mountShadowFly } from "@fly/fly-ui/shadow-fly";
 import { loadActiveGlobalPreset } from "./global-preset-runtime";
+import { startExplorationRuntime } from "./exploration/runtime";
+import type { ExplorationHint } from "./exploration/runtime";
 import { bubbleMessageKey, resolveLocale, t } from "./i18n";
 import {
   createOrderProposal,
@@ -205,11 +208,17 @@ const start = async () => {
   if (!adapter.detect()) return;
 
   const { brain, mode, tradingMode, locale, thresholds } = await resolveBrain();
+  const prefsResponse = (await chrome.runtime.sendMessage({
+    kind: "get-preferences",
+  })) as { preferences?: ExtensionPreferences };
+  let livePreferences = prefsResponse.preferences;
   let latestOutput: BrainOutput | null = null;
   let sessionMessage = "";
   let brainUnavailable = false;
   let dataProviderError = false;
   let latestObservations: TimeframeObservation[] = [];
+  let explorationHint: ExplorationHint | null = null;
+  let exploration = null as ReturnType<typeof startExplorationRuntime> | null;
 
   const guestMarketOk = (): boolean => {
     const page = adapter.detectPageContext();
@@ -238,7 +247,8 @@ const start = async () => {
       latestOutput?.state,
       dataProviderError,
     );
-    sessionMessage = bubbleKey ? t(bubbleKey, locale) : "";
+    sessionMessage =
+      explorationHint?.thought || (bubbleKey ? t(bubbleKey, locale) : "");
     const resolved = adapter.resolveTargets();
     await chrome.runtime.sendMessage({
       kind: "runtime-status",
@@ -399,21 +409,40 @@ const start = async () => {
         }
 
         const aggregated = aggregateTimeframeObservations(usable, environment);
+        const slice = exploration?.latest();
+        const observed =
+          slice?.memory.observations[slice.symbol]?.[slice.timeframe]?.features;
+        const marketExtras = observed ? featuresToMarketSlice(observed) : null;
+        const environmentForBrain = marketExtras
+          ? {
+              ...aggregated,
+              market: {
+                ...aggregated.market,
+                novelty: marketExtras.novelty,
+                trendConflict: marketExtras.trendConflict,
+              },
+            }
+          : aggregated;
 
         try {
           const output =
             __FLY_E2E__ && e2eForcedOutput
               ? e2eForcedOutput
-              : await brain.evaluate(aggregated);
+              : await brain.evaluate(environmentForBrain);
           brainUnavailable = false;
           latestOutput = output;
           await publish();
 
+          const explorationAllowsPaper =
+            !livePreferences?.autonomousExploration ||
+            Boolean(exploration?.latest()?.allowPaperProposal) ||
+            Boolean(__FLY_E2E__ && e2eForcedOutput);
           const canTradePage =
             page.pageKind === "trade" || page.pageKind === "asset-detail";
           if (
             tradingMode === "paper" &&
             canTradePage &&
+            explorationAllowsPaper &&
             !brainUnavailable &&
             (!dataProviderError || (__FLY_E2E__ && e2eForcedOutput)) &&
             environment.asset &&
@@ -484,6 +513,8 @@ const start = async () => {
       },
     },
     bubbleText: () => sessionMessage || null,
+    explorationHint: () => explorationHint,
+    onPauseExploration: () => exploration?.pause(),
     forceState: () => {
       const loginState = adapter.detectLoginState();
       // Only hard overrides. Let MaleCNS/Mock brain drive explore/chart/buy/sell.
@@ -533,12 +564,58 @@ const start = async () => {
       window.clearInterval(intervalId);
       window.clearTimeout(mutationTimer);
       observer.disconnect();
+      exploration?.stop();
       handle.destroy();
     },
     { once: true },
   );
 
   await publish();
+
+  if (livePreferences?.autonomousExploration !== false) {
+    exploration = startExplorationRuntime({
+      adapter,
+      getNeural: () => latestOutput,
+      getPreferences: () =>
+        livePreferences ??
+        ({
+          autonomousExploration: true,
+          explorationSpeed: "normal",
+          visibleBrowserControl: true,
+          flyActivityHud: true,
+          explorationPaused: false,
+        } as ExtensionPreferences),
+      locale,
+      onHint: (next) => {
+        explorationHint = next;
+      },
+      onWakeNotice: (message) => {
+        sessionMessage = message;
+      },
+      setPaused: async (paused) => {
+        const current = (await chrome.runtime.sendMessage({
+          kind: "get-preferences",
+        })) as { preferences?: ExtensionPreferences };
+        if (!current.preferences) return;
+        livePreferences = {
+          ...current.preferences,
+          explorationPaused: paused,
+        };
+        await chrome.runtime.sendMessage({
+          kind: "set-preferences",
+          preferences: livePreferences,
+        });
+      },
+    });
+  }
+
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area !== "local" || !changes["fly-preferences"]) return;
+    void chrome.runtime.sendMessage({ kind: "get-preferences" }).then((raw) => {
+      const response = raw as { preferences?: ExtensionPreferences };
+      if (response.preferences) livePreferences = response.preferences;
+    });
+  });
 
   if (__FLY_E2E__) {
     const host = window as E2EHost;
@@ -581,6 +658,16 @@ const start = async () => {
           source: item.source,
         })),
         output: latestOutput,
+        exploration: exploration?.latest()
+          ? {
+              state: exploration.latest()?.state,
+              symbol: exploration.latest()?.symbol,
+              timeframe: exploration.latest()?.timeframe,
+              intent: exploration.latest()?.intent,
+              thought: exploration.hint()?.thought ?? null,
+              hud: Boolean(exploration.hint()?.hud),
+            }
+          : null,
         brokerClickCount,
         fly: (() => {
           const root = document.getElementById("fly-earn-better-root");

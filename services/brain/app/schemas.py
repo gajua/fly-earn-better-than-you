@@ -44,6 +44,9 @@ class MarketModel(ApiModel):
     momentum: float = Field(ge=-1, le=1)
     volatility: float = Field(ge=0, le=1)
     volumeStrength: float = Field(ge=0, le=1)
+    # MODELED agent-layer extras. Not biological MaleCNS quantities.
+    novelty: float | None = None
+    trendConflict: float | None = None
 
 
 class UiModel(ApiModel):
