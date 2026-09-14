@@ -44,4 +44,9 @@ describe("canTransition", () => {
       ),
     ).toBe(true);
   });
+
+  it("allows leaving enter after a short settle", () => {
+    expect(canTransition("enter", "explore", output, 500)).toBe(false);
+    expect(canTransition("enter", "explore", output, 900)).toBe(true);
+  });
 });

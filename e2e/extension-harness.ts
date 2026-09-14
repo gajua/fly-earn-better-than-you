@@ -119,8 +119,11 @@ export type E2EDiagnostics = {
     buy?: boolean;
     sell?: boolean;
     chart?: boolean;
+    search?: boolean;
     buyText?: string | null;
     sellText?: string | null;
+    chartStrategy?: string | null;
+    searchStrategy?: string | null;
   };
   observations?: Array<{
     timeframe: string;

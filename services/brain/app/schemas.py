@@ -52,6 +52,8 @@ class UiModel(ApiModel):
     buy: RectModel | None = None
     sell: RectModel | None = None
     portfolio: RectModel | None = None
+    search: RectModel | None = None
+    login: RectModel | None = None
 
 
 class MarketEnvironmentModel(ApiModel):

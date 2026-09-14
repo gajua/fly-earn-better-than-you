@@ -10,12 +10,11 @@ import {
   demoInstrumentId,
   deriveSessionState,
   filterUsableTimeframeObservations,
-  sessionToFlyState,
   type BrainOutput,
   type TimeframeObservation,
 } from "@fly/core";
 import { mountShadowFly } from "@fly/fly-ui/shadow-fly";
-import { createOrderProposal } from "./orders";
+import { createOrderProposal, paperQuantityForPrice } from "./orders";
 
 declare const __FLY_E2E__: boolean;
 
@@ -227,13 +226,22 @@ const start = async () => {
         ? "로그인하면 포트폴리오도 볼 수 있어."
         : session === "BRAIN_UNAVAILABLE"
           ? dataProviderError
-            ? "Market data unavailable — proposals paused."
-            : "MaleCNS unavailable — proposals paused."
-          : session === "BUY_INTEREST"
-            ? "이 종목에 강하게 반응 중"
-            : session === "SELL_INTEREST"
-              ? "이 포지션에서 멀어지고 싶어 하는 중."
-              : "";
+            ? "시세 데이터를 못 받아서 쉬고 있어."
+            : "MaleCNS가 끊겨서 쉬고 있어."
+          : latestOutput?.state === "approach_buy"
+            ? "매수 버튼 쪽에 끌리고 있어."
+            : latestOutput?.state === "approach_sell"
+              ? "매도 버튼 쪽을 기웃거리는 중."
+              : latestOutput?.state === "scan_assets"
+                ? "오른쪽 종목 리스트를 훑어보는 중."
+                : latestOutput?.state === "observe_chart" ||
+                    latestOutput?.state === "interested"
+                  ? "차트를 가만히 살펴보는 중."
+                  : latestOutput?.state === "explore"
+                    ? "화면 여기저기를 돌아다니는 중."
+                    : latestOutput?.state === "panic"
+                      ? "변동이 커서 조금 도망가는 중."
+                      : "";
     const resolved = adapter.resolveTargets();
     await chrome.runtime.sendMessage({
       kind: "runtime-status",
@@ -289,6 +297,61 @@ const start = async () => {
         const loginState = adapter.detectLoginState();
         const page = adapter.detectPageContext();
         const guestOk = guestMarketOk();
+
+        if (__FLY_E2E__ && e2eForcedOutput) {
+          brainUnavailable = false;
+          const output = e2eForcedOutput;
+          latestOutput = output;
+          await publish();
+
+          const canTradePage =
+            page.pageKind === "trade" || page.pageKind === "asset-detail";
+          if (
+            tradingMode === "paper" &&
+            canTradePage &&
+            environment.asset &&
+            (output.state === "approach_buy" ||
+              output.state === "approach_sell") &&
+            Math.max(output.buyDrive, output.sellDrive) > 0.82
+          ) {
+            const side = output.state === "approach_buy" ? "buy" : "sell";
+            const quantity = paperQuantityForPrice(environment.asset.price);
+            if (quantity <= 0) {
+              return output;
+            }
+            const proposal = createOrderProposal({
+              broker: adapter.id,
+              symbol: environment.asset.symbol,
+              instrumentId:
+                environment.asset.instrumentId ??
+                demoInstrumentId(environment.asset.symbol),
+              side,
+              price: environment.asset.price,
+              quantity,
+              brainOutput: output,
+              brainMode: mode,
+            });
+            await chrome.runtime.sendMessage({
+              kind: "paper-trade",
+              proposal,
+            });
+          }
+
+          if (environment.asset?.instrumentId) {
+            void chrome.runtime.sendMessage({
+              kind: "mark-to-market",
+              quotes: [
+                {
+                  instrumentId: environment.asset.instrumentId,
+                  price: environment.asset.price,
+                  observedAt: new Date().toISOString(),
+                },
+              ],
+            });
+          }
+
+          return output;
+        }
 
         if (loginState === "LOGGED_OUT" && !guestOk) {
           brainUnavailable = false;
@@ -358,6 +421,10 @@ const start = async () => {
             Math.max(output.buyDrive, output.sellDrive) > 0.82
           ) {
             const side = output.state === "approach_buy" ? "buy" : "sell";
+            const quantity = paperQuantityForPrice(environment.asset.price);
+            if (quantity <= 0) {
+              return output;
+            }
             const proposal = createOrderProposal({
               broker: adapter.id,
               symbol: environment.asset.symbol,
@@ -366,7 +433,7 @@ const start = async () => {
                 demoInstrumentId(environment.asset.symbol),
               side,
               price: environment.asset.price,
-              quantity: 1,
+              quantity,
               brainOutput: output,
               brainMode: mode,
             });
@@ -414,21 +481,13 @@ const start = async () => {
     bubbleText: () => sessionMessage || null,
     forceState: () => {
       const loginState = adapter.detectLoginState();
+      // Only hard overrides. Let MaleCNS/Mock brain drive explore/chart/buy/sell.
       if (loginState === "LOGGED_OUT" && !guestMarketOk()) return "login_hint";
       if (!adapter.isMarketOpen()) return "sleep";
-      if (brainUnavailable || (dataProviderError && !e2eForcedOutput))
+      if (brainUnavailable || (dataProviderError && !e2eForcedOutput)) {
         return "sleep";
-      if (!latestOutput) return null;
-      return sessionToFlyState(
-        deriveSessionState({
-          hasBrokerTab: true,
-          loginState,
-          marketOpen: true,
-          brainOutput: latestOutput,
-          brainUnavailable,
-          guestMarketOk: guestMarketOk(),
-        }),
-      );
+      }
+      return null;
     },
   });
 
@@ -483,7 +542,7 @@ const start = async () => {
       "click",
       (event) => {
         const text = (event.target as HTMLElement | null)?.textContent ?? "";
-        if (/Max Buy|Max Sell|^(Buy|Sell)$/i.test(text.trim())) {
+        if (/Max Buy|Max Sell|^(Buy|Sell)$|^(매수|매도)$/i.test(text.trim())) {
           brokerClickCount += 1;
         }
       },
@@ -504,8 +563,11 @@ const start = async () => {
           buy: Boolean(resolved.buy),
           sell: Boolean(resolved.sell),
           chart: Boolean(resolved.chart),
+          search: Boolean(resolved.search),
           buyText: resolved.buy?.element.textContent?.trim() ?? null,
           sellText: resolved.sell?.element.textContent?.trim() ?? null,
+          chartStrategy: resolved.chart?.strategy ?? null,
+          searchStrategy: resolved.search?.strategy ?? null,
         },
         observations: latestObservations.map((item) => ({
           timeframe: item.timeframe,

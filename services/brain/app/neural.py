@@ -153,6 +153,7 @@ class BehaviorDecoder:
         elif buy_drive >= 0.56 and buy_drive > sell_drive + 0.06:
             state = "approach_buy"
         elif curiosity >= 0.48:
+            # Default: attend to chart. Stronger exploration → scan list when present.
             state = "observe_chart"
         elif activity_drive < 0.12:
             state = "leave"
@@ -186,6 +187,15 @@ class MaleCNSBrain:
         currents = self.encoder.currents(stimulus, self.graph)
         activity = self.simulation.run(self.graph, currents, mode)
         output = self.decoder.decode(self.graph, activity)
+
+        # Landmark-aware locomotion only: keep REAL drives, adjust MODELED state
+        # so the fly can visit search/list when curiosity is high.
+        if (
+            output.state == "observe_chart"
+            and output.curiosity >= 0.62
+            and environment.ui.search is not None
+        ):
+            output = output.model_copy(update={"state": "scan_assets"})
 
         active_inputs = sorted(
             (

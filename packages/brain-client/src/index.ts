@@ -226,6 +226,11 @@ const chooseState = ({
     return "inspect_portfolio";
   }
   if (Math.max(buyDrive, sellDrive) >= 0.48) return "interested";
-  if (curiosity >= 0.55 && environment.ui.chart) return "observe_chart";
+  if (curiosity >= 0.55) {
+    // High curiosity with a market-list/search landmark → browse symbols.
+    if (environment.ui.search && curiosity >= 0.7) return "scan_assets";
+    if (environment.ui.chart) return "observe_chart";
+    if (environment.ui.search) return "scan_assets";
+  }
   return "explore";
 };

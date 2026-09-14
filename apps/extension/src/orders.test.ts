@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createOrderProposal } from "./orders";
+import { createOrderProposal, paperQuantityForPrice } from "./orders";
 import {
   DEFAULT_RISK_POLICY,
   deriveSessionState,
@@ -32,6 +32,34 @@ describe("extension order safety", () => {
       positions: [],
     });
     expect(decision.ok).toBe(false);
+  });
+
+  it("sizes Upbit-scale KRW prices under maxSingleOrderValue", () => {
+    const price = 104_623_000;
+    const quantity = paperQuantityForPrice(price);
+    const proposal = createOrderProposal({
+      broker: "upbit",
+      symbol: "KRW-BTC",
+      side: "buy",
+      price,
+      quantity,
+      brainMode: "mock",
+      brainOutput: {
+        state: "approach_buy",
+        buyDrive: 0.95,
+        sellDrive: 0.05,
+        curiosity: 0.2,
+        danger: 0,
+        activity: 0.6,
+      },
+    });
+    expect(proposal.estimatedValue).toBeCloseTo(100_000, 5);
+    const decision = evaluateOrderRisk(proposal, DEFAULT_RISK_POLICY, {
+      currentExposure: 0,
+      dailyNewExposure: 0,
+      positions: [],
+    });
+    expect(decision.ok).toBe(true);
   });
 
   it("maps broker absence to NO_BROKER", () => {

@@ -17,12 +17,12 @@ Status reflects executable evidence, not intent.
 - Controlled paper + risk unit tests.
 - Sanitized Binance/Upbit fixtures; Max Buy/Max Sell locators.
 - **Binance Spot packed-extension Paper path: USABLE BETA** (see REAL_BROWSER_QA).
+- **Upbit packed-extension Paper + UX path: USABLE BETA** (iframe chart, market list scan, Paper notional sizing).
 
 ## PARTIAL
 
-- Upbit: public landmarks + candles; packed-extension Fly/Paper **NOT VERIFIED**.
 - Live Assist: approach/proposal only.
-- Binance login / portfolio: **NOT VERIFIED**.
+- Binance/Upbit login / portfolio: **NOT VERIFIED**.
 
 ## NOT IMPLEMENTED
 
@@ -37,7 +37,7 @@ Status reflects executable evidence, not intent.
 | ------------ | --------------- | ---------------- | --------------- | --------------- | ---------------------------- |
 | Demo         | DONE            | DONE             | DONE            | PARTIAL         | YES (local)                  |
 | Binance Spot | DONE (public)   | DONE             | DONE (paper)    | PARTIAL         | **USABLE BETA** (not Stable) |
-| Upbit        | PARTIAL         | DONE             | PARTIAL         | PARTIAL         | NO                           |
+| Upbit        | DONE (public)   | DONE             | DONE (paper)    | PARTIAL         | **USABLE BETA** (not Stable) |
 | Bybit        | NOT IMPLEMENTED | MARKET DATA ONLY | NOT IMPLEMENTED | NOT IMPLEMENTED | NO                           |
 | Kraken       | NOT IMPLEMENTED | MARKET DATA ONLY | NOT IMPLEMENTED | NOT IMPLEMENTED | NO                           |
 | Coinbase     | NOT IMPLEMENTED | MARKET DATA ONLY | NOT IMPLEMENTED | NOT IMPLEMENTED | NO                           |

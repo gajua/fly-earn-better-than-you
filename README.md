@@ -46,19 +46,19 @@ ProposalGuard / RiskEngine → Paper (default) or Live Assist.
 
 ## Supported brokers
 
-| Broker                    | UI              | Market Data      | Paper   | Live Assist | Full Support    |
-| ------------------------- | --------------- | ---------------- | ------- | ----------- | --------------- |
-| Local demo                | DONE            | DONE             | DONE    | PARTIAL     | YES (local)     |
-| Binance Spot              | DONE (public)   | DONE             | DONE    | PARTIAL     | **USABLE BETA** |
-| Upbit                     | PARTIAL         | DONE             | PARTIAL | PARTIAL     | NO              |
-| Bybit / Kraken / Coinbase | NOT IMPLEMENTED | MARKET DATA ONLY | —       | —           | NO              |
-| Stock brokers             | Planned         | —                | —       | —           | NO              |
+| Broker                    | UI              | Market Data      | Paper | Live Assist | Full Support    |
+| ------------------------- | --------------- | ---------------- | ----- | ----------- | --------------- |
+| Local demo                | DONE            | DONE             | DONE  | PARTIAL     | YES (local)     |
+| Binance Spot              | DONE (public)   | DONE             | DONE  | PARTIAL     | **USABLE BETA** |
+| Upbit                     | DONE (public)   | DONE             | DONE  | PARTIAL     | **USABLE BETA** |
+| Bybit / Kraken / Coinbase | NOT IMPLEMENTED | MARKET DATA ONLY | —     | —           | NO              |
+| Stock brokers             | Planned         | —                | —     | —           | NO              |
 
 **Market Data Ready ≠ Full Broker Support.** See
 [`docs/REAL_BROWSER_QA.md`](docs/REAL_BROWSER_QA.md).
 
-Binance Spot is **USABLE BETA** (packed-extension Paper path verified). Not Stable.
-Login/portfolio remain NOT VERIFIED.
+Binance Spot and Upbit are **USABLE BETA** (packed-extension Paper + UX verified).
+Not Stable. Login/portfolio remain NOT VERIFIED.
 
 ## Install / Quick start
 
@@ -85,8 +85,14 @@ Default: Paper trading + Mock brain.
 
 ## Upbit
 
-Open `https://www.upbit.com/exchange?code=CRIX.UPBIT.KRW-BTC`.
-UI + public candles are PARTIAL; Fly/Paper on live page may be NOT VERIFIED.
+1. Load the unpacked extension (`apps/extension/dist`).
+2. Popup → Trading `Paper` → Brain `Mock` or `MaleCNS real-connectome` → Save.
+3. Open `https://www.upbit.com/exchange?code=CRIX.UPBIT.KRW-BTC` (logged out OK).
+4. Confirm Fly overlay, 매수/매도 landmarks, official public candles.
+5. Paper fills stay in IndexedDB. Live order submit is never automated.
+
+MaleCNS: same local service as Binance (`http://127.0.0.1:8000`). After changing
+Brain mode, refresh the Upbit tab.
 
 ## MaleCNS
 

@@ -13,6 +13,8 @@ export default tseslint.config(
       "**/.venv/**",
       ".cursor/hooks/**",
       "packages/broker-adapters/template/**",
+      "**/src-tauri/target/**",
+      "**/target/**",
     ],
   },
   eslint.configs.recommended,

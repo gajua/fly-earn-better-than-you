@@ -1,6 +1,16 @@
 import type { BrainMode, BrainOutput, OrderProposal } from "@fly/core";
 import { demoInstrumentId } from "@fly/core";
 
+/** Size Paper clips to a small notional so KRW BTC (~1e8) fits risk caps. */
+export const paperQuantityForPrice = (
+  price: number,
+  targetNotional = 100_000,
+): number => {
+  if (!Number.isFinite(price) || price <= 0) return 0;
+  if (!Number.isFinite(targetNotional) || targetNotional <= 0) return 0;
+  return targetNotional / price;
+};
+
 export const createOrderProposal = (input: {
   broker: string;
   symbol: string;

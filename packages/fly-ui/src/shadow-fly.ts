@@ -6,7 +6,7 @@ import type {
   FlyState,
   MarketEnvironment,
 } from "@fly/core";
-import { canTransition } from "./state-machine";
+import { canTransition, MINIMUM_STATE_DURATION_MS } from "./state-machine";
 
 export interface ShadowFlyOptions {
   readonly adapter: BrokerAdapter;
@@ -67,14 +67,22 @@ const STYLES = `
 .eye { fill: #f4d35e; }
 .bubble {
   position: absolute;
-  max-width: 220px;
-  padding: 8px 10px;
-  border-radius: 10px;
-  background: rgba(12, 16, 24, 0.88);
+  left: 0;
+  top: 0;
+  max-width: min(260px, 70vw);
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(12, 16, 24, 0.92);
   color: #eef2ff;
-  font: 12px/1.35 ui-sans-serif, system-ui, sans-serif;
-  transform: translate(-40%, -120%);
+  font: 13px/1.4 ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: 0;
+  white-space: normal;
+  writing-mode: horizontal-tb;
+  text-orientation: mixed;
+  transform: translate3d(0, 0, 0);
   pointer-events: none;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+  z-index: 2;
 }
 @keyframes flap {
   from { transform: scaleY(0.7) rotate(-8deg); }
@@ -95,8 +103,10 @@ const targetRectForState = (
   if (state === "approach_buy") return environment.ui.buy;
   if (state === "approach_sell") return environment.ui.sell;
   if (state === "inspect_portfolio") return environment.ui.portfolio;
-  if (state === "login_hint") return environment.ui.login ?? environment.ui.chart;
-  if (state === "scan_assets") return environment.ui.search ?? environment.ui.chart;
+  if (state === "login_hint")
+    return environment.ui.login ?? environment.ui.chart;
+  if (state === "scan_assets")
+    return environment.ui.search ?? environment.ui.chart;
   if (state === "observe_chart" || state === "interested") {
     return environment.ui.chart;
   }
@@ -137,8 +147,8 @@ export const mountShadowFly = (
         <circle class="eye" cx="15.5" cy="8.5" r="1"></circle>
         <circle class="eye" cx="18.5" cy="8.5" r="1"></circle>
       </svg>
-      <div class="bubble" hidden></div>
     </div>
+    <div class="bubble" hidden data-testid="fly-bubble"></div>
   `;
   shadow.append(style, overlay);
 
@@ -162,20 +172,45 @@ export const mountShadowFly = (
   };
   let position = { x: -30, y: hostDocument.defaultView!.innerHeight * 0.34 };
   const velocity = { x: 0, y: 0 };
+  let bubblePosition = {
+    x: Math.min(hostDocument.defaultView!.innerWidth * 0.3, 320),
+    y: hostDocument.defaultView!.innerHeight * 0.28,
+  };
   let target = {
     x: Math.min(hostDocument.defaultView!.innerWidth * 0.3, 320),
     y: hostDocument.defaultView!.innerHeight * 0.35,
   };
   let targetUpdatedAt = 0;
   let previousFrameAt = performance.now();
+  let lastBubbleText: string | null = null;
   const view = () => hostDocument.defaultView!;
+
+  const bubbleAnchorForState = (
+    currentState: FlyState,
+  ): { x: number; y: number; mode: "target" | "fly" } => {
+    const rect = targetRectForState(currentState, environment);
+    if (rect && rect.width > 0 && rect.height > 0) {
+      // Park above the BUY/SELL/chart landmark — readable, not spinning with the fly.
+      return {
+        x: rect.left + Math.min(Math.max(rect.width * 0.35, 8), 140),
+        y: Math.max(16, rect.top - 56),
+        mode: "target",
+      };
+    }
+    return {
+      x: position.x + 42,
+      y: Math.max(16, position.y - 48),
+      mode: "fly",
+    };
+  };
 
   const setRuntimeState = (next: FlyState, now: number) => {
     state = next;
     stateStartedAt = now;
     targetUpdatedAt = 0;
     fly.dataset.flyState = next;
-    fly.dataset.sleeping = next === "sleep" || next === "login_hint" ? "true" : "false";
+    fly.dataset.sleeping =
+      next === "sleep" || next === "login_hint" ? "true" : "false";
     if (next === "sleep") {
       position = {
         x: view().innerWidth - 56,
@@ -208,10 +243,17 @@ export const mountShadowFly = (
       latestOutput = await options.brain.evaluate(nextEnvironment);
       options.onBrainOutput?.(latestOutput);
       const now = performance.now();
-      if (
+      // Hard overrides already applied above. Brain-driven states use hysteresis
+      // unless the proposed state matches an urgent buy/sell/panic drive.
+      const elapsed = now - stateStartedAt;
+      const shouldApply =
         !forced &&
-        canTransition(state, latestOutput.state, latestOutput, now - stateStartedAt)
-      ) {
+        (canTransition(state, latestOutput.state, latestOutput, elapsed) ||
+          (elapsed >= MINIMUM_STATE_DURATION_MS &&
+            (latestOutput.state === "approach_buy" ||
+              latestOutput.state === "approach_sell") &&
+            Math.max(latestOutput.buyDrive, latestOutput.sellDrive) >= 0.85));
+      if (shouldApply) {
         setRuntimeState(latestOutput.state, now);
       }
     } catch (error) {
@@ -269,11 +311,27 @@ export const mountShadowFly = (
     const text = options.bubbleText?.() ?? null;
     if (text) {
       bubble.hidden = false;
-      bubble.textContent = text;
-      bubble.style.left = `${position.x}px`;
-      bubble.style.top = `${position.y}px`;
+      if (text !== lastBubbleText) {
+        bubble.textContent = text;
+        lastBubbleText = text;
+        // Snap once when copy changes so the label appears near its anchor immediately.
+        const snap = bubbleAnchorForState(state);
+        bubblePosition = { x: snap.x, y: snap.y };
+      }
+      const anchor = bubbleAnchorForState(state);
+      bubble.dataset.anchor = anchor.mode;
+      // Soft follow so the label stays readable while the fly buzzes nearby.
+      const follow = anchor.mode === "target" ? 0.14 : 0.05;
+      bubblePosition.x += (anchor.x - bubblePosition.x) * follow;
+      bubblePosition.y += (anchor.y - bubblePosition.y) * follow;
+      const maxLeft = Math.max(12, view().innerWidth - 272);
+      const maxTop = Math.max(12, view().innerHeight - 80);
+      const clampedX = Math.min(maxLeft, Math.max(12, bubblePosition.x));
+      const clampedY = Math.min(maxTop, Math.max(12, bubblePosition.y));
+      bubble.style.transform = `translate3d(${clampedX}px, ${clampedY}px, 0)`;
     } else {
       bubble.hidden = true;
+      lastBubbleText = null;
     }
 
     frameId = view().requestAnimationFrame(animate);

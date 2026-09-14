@@ -7,7 +7,11 @@ import {
   type PortfolioSnapshot,
   type Timeframe,
 } from "@fly/core";
-import { resolveLocator, revalidateTarget } from "../../locator";
+import {
+  resolveLocator,
+  revalidateTarget,
+  type LocatedTarget,
+} from "../../locator";
 import type { BrokerMarketDataProvider } from "../../page";
 import { parseUpbitExchangeSymbol } from "../../shared/symbol-resolver";
 import {
@@ -25,11 +29,116 @@ import {
 import { createUpbitMarketDataBridge } from "./market-data";
 import { classifyUpbitPage } from "./page-classifier";
 
-const readPriceFromTitle = (documentRef: Document): number => {
-  const match = documentRef.title.match(/([\d,]+)/);
-  if (!match?.[1]) return 0;
-  const parsed = Number(match[1].replace(/,/g, ""));
-  return Number.isFinite(parsed) ? parsed : 0;
+/** Prefer price next to pair text: `▲ 104,623,000 BTC/KRW +0.10% | ...`. */
+export const readPriceFromTitle = (documentRef: Document): number => {
+  const title = documentRef.title;
+  const nearPair = title.match(/([\d,]+)\s*[A-Z0-9]{2,15}\/[A-Z]{2,10}/i);
+  const fallback = title.match(/([\d,]{5,})/);
+  const raw = nearPair?.[1] ?? fallback?.[1];
+  if (!raw) return 0;
+  const parsed = Number(raw.replace(/,/g, ""));
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+};
+
+const areaOf = (element: HTMLElement): number => {
+  const rect = element.getBoundingClientRect();
+  return Math.max(0, rect.width) * Math.max(0, rect.height);
+};
+
+const isRoughlyInView = (element: HTMLElement): boolean => {
+  const view = element.ownerDocument.defaultView;
+  if (!view) return true;
+  const rect = element.getBoundingClientRect();
+  return (
+    rect.bottom > 0 &&
+    rect.right > 0 &&
+    rect.top < view.innerHeight &&
+    rect.left < view.innerWidth &&
+    rect.width >= 160 &&
+    rect.height >= 120
+  );
+};
+
+const pickLargestInView = (
+  elements: readonly HTMLElement[],
+): HTMLElement | null => {
+  let best: HTMLElement | null = null;
+  let bestArea = 0;
+  for (const element of elements) {
+    if (!element.isConnected || !isRoughlyInView(element)) continue;
+    const area = areaOf(element);
+    if (area > bestArea) {
+      best = element;
+      bestArea = area;
+    }
+  }
+  return best;
+};
+
+/**
+ * Upbit exchange chart is commonly hosted in a large iframe (TradingView),
+ * while tiny `.highcharts-container` nodes also exist. Prefer the visible
+ * primary surface so the fly actually visits the chart the user sees.
+ */
+export const resolveUpbitChartTarget = (
+  documentRef: Document,
+): LocatedTarget | null => {
+  const iframes = Array.from(
+    documentRef.querySelectorAll<HTMLElement>("iframe"),
+  );
+  const iframeChart = pickLargestInView(iframes);
+  if (iframeChart && areaOf(iframeChart) >= 80_000) {
+    return {
+      element: iframeChart,
+      confidence: 0.94,
+      strategy: "upbit-iframe-chart",
+    };
+  }
+
+  const highcharts = Array.from(
+    documentRef.querySelectorAll<HTMLElement>(".highcharts-container"),
+  );
+  const largestHighcharts = pickLargestInView(highcharts);
+  if (largestHighcharts) {
+    return {
+      element: largestHighcharts,
+      confidence: 0.9,
+      strategy: "upbit-highcharts-largest",
+    };
+  }
+
+  return resolveLocator(documentRef, UPBIT_CHART_LOCATORS);
+};
+
+/**
+ * Right-side market list: search input `코인명/심볼검색` plus tall panel.
+ */
+export const resolveUpbitSearchTarget = (
+  documentRef: Document,
+): LocatedTarget | null => {
+  const input = documentRef.querySelector<HTMLInputElement>(
+    'input[placeholder*="심볼검색"], input[placeholder*="코인명"]',
+  );
+  if (!input) return null;
+
+  let panel: HTMLElement | null = input;
+  for (let depth = 0; depth < 10 && panel; depth += 1) {
+    const rect = panel.getBoundingClientRect();
+    if (rect.width >= 260 && rect.height >= 360) {
+      return {
+        element: panel,
+        confidence: 0.9,
+        strategy: "upbit-market-list-panel",
+      };
+    }
+    panel = panel.parentElement;
+  }
+
+  return {
+    element: input,
+    confidence: 0.85,
+    strategy: "upbit-symbol-search-input",
+  };
 };
 
 export const createUpbitBrokerAdapter = (
@@ -46,9 +155,9 @@ export const createUpbitBrokerAdapter = (
   const resolveTargets = (): ResolvedBrokerTargets => ({
     buy: resolveLocator(documentRef, UPBIT_BUY_LOCATORS),
     sell: resolveLocator(documentRef, UPBIT_SELL_LOCATORS),
-    chart: resolveLocator(documentRef, UPBIT_CHART_LOCATORS),
+    chart: resolveUpbitChartTarget(documentRef),
     portfolio: null,
-    search: null,
+    search: resolveUpbitSearchTarget(documentRef),
     login: resolveLocator(documentRef, UPBIT_LOGIN_LOCATORS),
   });
 
@@ -58,6 +167,7 @@ export const createUpbitBrokerAdapter = (
       buy: revalidateTarget(resolved.buy)?.element,
       sell: revalidateTarget(resolved.sell)?.element,
       chart: revalidateTarget(resolved.chart)?.element,
+      search: revalidateTarget(resolved.search)?.element,
       login: revalidateTarget(resolved.login)?.element,
     };
   };
