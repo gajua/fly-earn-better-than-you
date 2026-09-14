@@ -112,6 +112,16 @@ button {
   box-shadow: 0 0 10px #5fe0a4;
 }
 
+.login-toggle {
+  margin-left: 8px;
+  border: 1px solid rgba(143, 151, 155, 0.45);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  padding: 2px 8px;
+  cursor: pointer;
+}
+
 .workspace {
   display: grid;
   grid-template-columns: minmax(0, 1.75fr) minmax(280px, 0.7fr);

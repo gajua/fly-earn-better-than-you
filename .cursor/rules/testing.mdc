@@ -1,0 +1,17 @@
+---
+description: Testing and browser QA honesty
+globs: "**/*.{test,spec}.{ts,tsx}",e2e/**,docs/IMPLEMENTATION_STATUS.md,docs/REAL_BROWSER_QA.md
+alwaysApply: false
+---
+
+# Testing
+
+Production broker changes require:
+
+1. unit tests
+2. sanitized fixtures
+3. extension build
+4. real browser QA record
+
+Write “tests passed” / PASS only when the command actually ran.
+Never invent browser QA results. Intent is not DONE.

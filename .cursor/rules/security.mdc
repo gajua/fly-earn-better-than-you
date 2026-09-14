@@ -1,0 +1,17 @@
+---
+description: Security and privacy fail-closed rules
+alwaysApply: true
+---
+
+# Security
+
+Forbidden:
+
+- broker credential storage
+- cookie extraction
+- Authorization header interception
+- live order click / submit automation
+- exposing Supabase `service_role` or secrets in the browser/extension
+
+If a change introduces these, stop and fail tests. Prefer IndexedDB local-first;
+Supabase remains future optional sync only.

@@ -103,6 +103,9 @@ export function App() {
     null,
   );
   const [brainError, setBrainError] = useState<string | null>(null);
+  const [loginState, setLoginState] = useState<"LOGGED_IN" | "LOGGED_OUT">(
+    "LOGGED_IN",
+  );
   const brain = useMemo<FlyBrain>(
     () =>
       brainMode === "mock"
@@ -151,6 +154,21 @@ export function App() {
       data-volatility={scenario.volatility}
       data-volume-strength={scenario.volumeStrength}
       data-active-scenario={scenarioName}
+      data-login-state={loginState}
+      data-watchlist="AAPL,NVDA,MSFT"
+      data-timeframes="1m,5m,15m,1h,1d"
+      data-market-open="true"
+      data-page-kind="trade"
+      data-tf-1m={JSON.stringify(
+        Array.from({ length: 30 }, (_, index) => ({
+          open: price * (1 - 0.01 + index * 0.0005),
+          high: price * (1 - 0.005 + index * 0.0005),
+          low: price * (1 - 0.015 + index * 0.0005),
+          close: price * (1 - 0.008 + index * 0.0005),
+          volume: 1_000 + index * 10,
+          timestamp: new Date(Date.now() - (29 - index) * 60_000).toISOString(),
+        })),
+      )}
     >
       <header className="topbar">
         <a className="brand" href="/" aria-label="Fly Trade home">
@@ -167,6 +185,18 @@ export function App() {
         <div className="market-status">
           <span className="status-dot" />
           Market open
+          <button
+            type="button"
+            data-fly-target="login"
+            className="login-toggle"
+            onClick={() =>
+              setLoginState((current) =>
+                current === "LOGGED_IN" ? "LOGGED_OUT" : "LOGGED_IN",
+              )
+            }
+          >
+            {loginState === "LOGGED_IN" ? "Log out (demo)" : "Log in (demo)"}
+          </button>
         </div>
       </header>
 

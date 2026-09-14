@@ -1,105 +1,623 @@
-(() => {
-  const ROOT_SELECTOR = "[data-demo-broker]";
-  const SAMPLE_INTERVAL_MS = 2_000;
+import {
+  createDemoBrokerAdapter,
+  findBrokerByUrl,
+  observationFromCandles,
+  type BrokerAdapter,
+} from "@fly/broker-adapters";
+import { createMaleCNSBrain, createMockFlyBrain } from "@fly/brain-client";
+import {
+  aggregateTimeframeObservations,
+  demoInstrumentId,
+  deriveSessionState,
+  filterUsableTimeframeObservations,
+  type BrainOutput,
+  type TimeframeObservation,
+} from "@fly/core";
+import { mountShadowFly } from "@fly/fly-ui/shadow-fly";
+import { createOrderProposal, paperQuantityForPrice } from "./orders";
 
-  const readFiniteNumber = (
-    value: string | undefined,
-    fallback = 0,
-  ): number => {
-    const parsed = Number(value);
-    return Number.isFinite(parsed) ? parsed : fallback;
-  };
+declare const __FLY_E2E__: boolean;
 
-  const readVisibleRect = (
-    root: HTMLElement,
-    target: "chart" | "buy" | "sell" | "portfolio",
-  ) => {
-    const element = root.querySelector<HTMLElement>(
-      `[data-fly-target="${target}"]`,
+const SAMPLE_INTERVAL_MS = 2_000;
+const MUTATION_DEBOUNCE_MS = 350;
+
+type E2EHost = Window & {
+  __flyE2EForce?: (output: BrainOutput) => void;
+  __flyE2EGetDiagnostics?: () => unknown;
+};
+
+let e2eForcedOutput: BrainOutput | null = null;
+
+const resolveAdapter = (): BrokerAdapter | null => {
+  const matched = findBrokerByUrl(window.location.href);
+  if (!matched) return null;
+  const adapter = matched.createAdapter(document);
+  return adapter.detect() ? adapter : null;
+};
+
+const adapter = resolveAdapter() ?? createDemoBrokerAdapter();
+
+const buildTimeframeObservations = async (): Promise<
+  TimeframeObservation[]
+> => {
+  const environment = adapter.readMarketEnvironment();
+  if (!environment?.asset) return [];
+  const provider = adapter.getMarketDataProvider();
+  const instrumentId =
+    environment.asset.instrumentId ??
+    demoInstrumentId(environment.asset.symbol);
+  const timeframes = adapter.getAvailableTimeframes();
+  const observations: TimeframeObservation[] = [];
+  const source =
+    adapter.id === "demo"
+      ? ("demo" as const)
+      : adapter.id === "upbit"
+        ? ("official-public" as const)
+        : ("tradecanvas" as const);
+
+  for (const timeframe of timeframes) {
+    const candles = provider
+      ? await provider.getCandles(instrumentId, timeframe)
+      : null;
+    if (!candles || candles.length === 0) {
+      observations.push({
+        symbol: environment.asset.symbol,
+        instrumentId,
+        timeframe,
+        price: environment.asset.price,
+        returnPercent: 0,
+        momentum: 0,
+        volatility: 0,
+        volumeStrength: 0,
+        timestamp: new Date().toISOString(),
+        observedAt: new Date().toISOString(),
+        source: "unavailable",
+        candleCount: 0,
+        available: false,
+        dataProvider: {
+          source: "unavailable",
+          provider: adapter.id,
+        },
+      });
+      continue;
+    }
+    observations.push(
+      observationFromCandles({
+        symbol: environment.asset.symbol,
+        instrumentId,
+        timeframe,
+        candles,
+        source,
+        dataProvider: {
+          source,
+          upstream:
+            source === "tradecanvas"
+              ? "bonguynvan/tradecanvas"
+              : source === "official-public"
+                ? "upbit-api"
+                : undefined,
+          provider: adapter.id,
+        },
+      }),
     );
-    if (!element) return undefined;
+  }
+  return observations;
+};
 
-    const style = getComputedStyle(element);
-    const rect = element.getBoundingClientRect();
-    const isVisible =
-      style.display !== "none" &&
-      style.visibility === "visible" &&
-      Number(style.opacity) > 0 &&
-      rect.width > 0 &&
-      rect.height > 0 &&
-      rect.right > 0 &&
-      rect.bottom > 0 &&
-      rect.left < window.innerWidth &&
-      rect.top < window.innerHeight;
+/** Route MaleCNS HTTP through the service worker (broker pages block localhost CORS). */
+const createBrainFetch = (): typeof fetch => {
+  return async (input, init) => {
+    const url =
+      typeof input === "string"
+        ? input
+        : input instanceof URL
+          ? input.href
+          : input.url;
+    const result = (await chrome.runtime.sendMessage({
+      kind: "brain-fetch",
+      url,
+      method: init?.method ?? "GET",
+      body: typeof init?.body === "string" ? init.body : undefined,
+    })) as {
+      ok?: boolean;
+      status?: number;
+      body?: string;
+      reason?: string;
+    };
+    if (!result || typeof result.body !== "string") {
+      throw new Error(result?.reason ?? "brain-fetch-failed");
+    }
+    return new Response(result.body, {
+      status: result.status ?? 0,
+      headers: { "Content-Type": "application/json" },
+    });
+  };
+};
 
-    if (!isVisible) return undefined;
-
-    return {
-      x: rect.x,
-      y: rect.y,
-      width: rect.width,
-      height: rect.height,
-      top: rect.top,
-      right: rect.right,
-      bottom: rect.bottom,
-      left: rect.left,
+const resolveBrain = async () => {
+  const response = (await chrome.runtime.sendMessage({
+    kind: "get-preferences",
+  })) as {
+    preferences?: {
+      brainMode?: string;
+      brainBaseUrl?: string;
+      tradingMode?: string;
     };
   };
-
-  const readEnvironment = () => {
-    const root = document.querySelector<HTMLElement>(ROOT_SELECTOR);
-    if (!root) return null;
-
-    const { dataset } = root;
-    const symbol = (dataset.symbol ?? "UNKNOWN").slice(0, 32);
-    const assetName = dataset.assetName?.slice(0, 128);
-
+  const preferences = response.preferences;
+  const mode = preferences?.brainMode ?? "mock";
+  const baseUrl = preferences?.brainBaseUrl ?? "http://127.0.0.1:8000";
+  const fetchImpl = createBrainFetch();
+  if (mode === "real-connectome") {
     return {
-      asset: {
-        symbol: symbol || "UNKNOWN",
-        ...(assetName ? { name: assetName } : {}),
-        price: readFiniteNumber(dataset.price),
-        changePercent: readFiniteNumber(dataset.changePercent),
-      },
-      position: {
-        quantity: readFiniteNumber(dataset.quantity),
-        averagePrice: readFiniteNumber(dataset.averagePrice),
-        pnlAmount: readFiniteNumber(dataset.pnlAmount),
-        pnlPercent: readFiniteNumber(dataset.pnlPercent),
-      },
-      market: {
-        momentum: readFiniteNumber(dataset.momentum),
-        volatility: readFiniteNumber(dataset.volatility),
-        volumeStrength: readFiniteNumber(dataset.volumeStrength, 0.5),
-      },
-      ui: {
-        chart: readVisibleRect(root, "chart"),
-        buy: readVisibleRect(root, "buy"),
-        sell: readVisibleRect(root, "sell"),
-        portfolio: readVisibleRect(root, "portfolio"),
-      },
+      brain: createMaleCNSBrain({ mode: "malecns", baseUrl, fetchImpl }),
+      mode: "real-connectome" as const,
+      tradingMode: preferences?.tradingMode ?? "paper",
+    };
+  }
+  if (mode === "shuffled-control") {
+    return {
+      brain: createMaleCNSBrain({
+        mode: "shuffled-control",
+        baseUrl,
+        fetchImpl,
+      }),
+      mode: "shuffled-control" as const,
+      tradingMode: preferences?.tradingMode ?? "paper",
+    };
+  }
+  return {
+    brain: createMockFlyBrain(),
+    mode: "mock" as const,
+    tradingMode: preferences?.tradingMode ?? "paper",
+  };
+};
+
+const patchHistory = (onNavigate: () => void) => {
+  const wrap = (method: "pushState" | "replaceState") => {
+    const original = history[method].bind(history);
+    history[method] = function patched(
+      ...args: Parameters<History["pushState"]>
+    ) {
+      const result = original(...args);
+      onNavigate();
+      return result;
     };
   };
+  wrap("pushState");
+  wrap("replaceState");
+  window.addEventListener("popstate", onNavigate);
+};
 
-  const capture = () => {
-    const environment = readEnvironment();
+const start = async () => {
+  if (!adapter.detect()) return;
+
+  const { brain, mode, tradingMode } = await resolveBrain();
+  let latestOutput: BrainOutput | null = null;
+  let sessionMessage = "";
+  let brainUnavailable = false;
+  let dataProviderError = false;
+  let latestObservations: TimeframeObservation[] = [];
+
+  const guestMarketOk = (): boolean => {
+    const page = adapter.detectPageContext();
+    const asset = adapter.readCurrentAsset();
+    return (
+      (page.pageKind === "trade" || page.pageKind === "asset-detail") &&
+      Boolean(asset?.symbol) &&
+      page.confidence >= 0.8
+    );
+  };
+
+  const publish = async () => {
+    const loginState = adapter.detectLoginState();
+    const page = adapter.detectPageContext();
+    const session = deriveSessionState({
+      hasBrokerTab: true,
+      loginState,
+      marketOpen: adapter.isMarketOpen(),
+      brainOutput: latestOutput,
+      brainUnavailable: brainUnavailable || dataProviderError,
+      pageKindUnknown: page.pageKind === "unknown" || page.confidence < 0.8,
+      guestMarketOk: guestMarketOk(),
+    });
+    sessionMessage =
+      session === "BROKER_LOGGED_OUT"
+        ? "로그인하면 포트폴리오도 볼 수 있어."
+        : session === "BRAIN_UNAVAILABLE"
+          ? dataProviderError
+            ? "시세 데이터를 못 받아서 쉬고 있어."
+            : "MaleCNS가 끊겨서 쉬고 있어."
+          : latestOutput?.state === "approach_buy"
+            ? "매수 버튼 쪽에 끌리고 있어."
+            : latestOutput?.state === "approach_sell"
+              ? "매도 버튼 쪽을 기웃거리는 중."
+              : latestOutput?.state === "scan_assets"
+                ? "오른쪽 종목 리스트를 훑어보는 중."
+                : latestOutput?.state === "observe_chart" ||
+                    latestOutput?.state === "interested"
+                  ? "차트를 가만히 살펴보는 중."
+                  : latestOutput?.state === "explore"
+                    ? "화면 여기저기를 돌아다니는 중."
+                    : latestOutput?.state === "panic"
+                      ? "변동이 커서 조금 도망가는 중."
+                      : "";
+    const resolved = adapter.resolveTargets();
+    await chrome.runtime.sendMessage({
+      kind: "runtime-status",
+      session,
+      hasBrokerTab: true,
+      activeBrokerId: adapter.id,
+      loginState,
+      message: sessionMessage,
+      diagnostics: {
+        pageKind: page.pageKind,
+        pageConfidence: page.confidence,
+        modal: page.modal,
+        symbol: page.symbol ?? null,
+        targets: {
+          buy: resolved.buy
+            ? {
+                status: "FOUND",
+                confidence: resolved.buy.confidence,
+                strategy: resolved.buy.strategy,
+              }
+            : { status: "MISSING" },
+          sell: resolved.sell
+            ? {
+                status: "FOUND",
+                confidence: resolved.sell.confidence,
+                strategy: resolved.sell.strategy,
+              }
+            : { status: "MISSING" },
+          chart: resolved.chart
+            ? {
+                status: "FOUND",
+                confidence: resolved.chart.confidence,
+                strategy: resolved.chart.strategy,
+              }
+            : { status: "MISSING" },
+        },
+        timeframes: latestObservations.map((observation) => ({
+          timeframe: observation.timeframe,
+          available: observation.available,
+          source: observation.source,
+          candleCount: observation.candleCount,
+          dataProvider: observation.dataProvider ?? null,
+        })),
+      },
+    });
+    return session;
+  };
+
+  const handle = mountShadowFly(document, {
+    adapter,
+    brain: {
+      async evaluate(environment) {
+        const loginState = adapter.detectLoginState();
+        const page = adapter.detectPageContext();
+        const guestOk = guestMarketOk();
+
+        if (__FLY_E2E__ && e2eForcedOutput) {
+          brainUnavailable = false;
+          const output = e2eForcedOutput;
+          latestOutput = output;
+          await publish();
+
+          const canTradePage =
+            page.pageKind === "trade" || page.pageKind === "asset-detail";
+          if (
+            tradingMode === "paper" &&
+            canTradePage &&
+            environment.asset &&
+            (output.state === "approach_buy" ||
+              output.state === "approach_sell") &&
+            Math.max(output.buyDrive, output.sellDrive) > 0.82
+          ) {
+            const side = output.state === "approach_buy" ? "buy" : "sell";
+            const quantity = paperQuantityForPrice(environment.asset.price);
+            if (quantity <= 0) {
+              return output;
+            }
+            const proposal = createOrderProposal({
+              broker: adapter.id,
+              symbol: environment.asset.symbol,
+              instrumentId:
+                environment.asset.instrumentId ??
+                demoInstrumentId(environment.asset.symbol),
+              side,
+              price: environment.asset.price,
+              quantity,
+              brainOutput: output,
+              brainMode: mode,
+            });
+            await chrome.runtime.sendMessage({
+              kind: "paper-trade",
+              proposal,
+            });
+          }
+
+          if (environment.asset?.instrumentId) {
+            void chrome.runtime.sendMessage({
+              kind: "mark-to-market",
+              quotes: [
+                {
+                  instrumentId: environment.asset.instrumentId,
+                  price: environment.asset.price,
+                  observedAt: new Date().toISOString(),
+                },
+              ],
+            });
+          }
+
+          return output;
+        }
+
+        if (loginState === "LOGGED_OUT" && !guestOk) {
+          brainUnavailable = false;
+          dataProviderError = false;
+          latestOutput = {
+            state: "login_hint",
+            buyDrive: 0,
+            sellDrive: 0,
+            curiosity: 0.2,
+            danger: 0,
+            activity: 0.1,
+          };
+          await publish();
+          return latestOutput;
+        }
+
+        if (page.pageKind === "unknown" || page.confidence < 0.8) {
+          latestOutput = {
+            state: "explore",
+            buyDrive: 0,
+            sellDrive: 0,
+            curiosity: 0.3,
+            danger: 0,
+            activity: 0.2,
+          };
+          await publish();
+          return latestOutput;
+        }
+
+        latestObservations = await buildTimeframeObservations();
+        const usable = filterUsableTimeframeObservations(latestObservations);
+        dataProviderError = usable.length === 0;
+        if (dataProviderError && !(__FLY_E2E__ && e2eForcedOutput)) {
+          latestOutput = {
+            state: "sleep",
+            buyDrive: 0,
+            sellDrive: 0,
+            curiosity: 0,
+            danger: 0,
+            activity: 0,
+          };
+          await publish();
+          return latestOutput;
+        }
+
+        const aggregated = aggregateTimeframeObservations(usable, environment);
+
+        try {
+          const output =
+            __FLY_E2E__ && e2eForcedOutput
+              ? e2eForcedOutput
+              : await brain.evaluate(aggregated);
+          brainUnavailable = false;
+          latestOutput = output;
+          await publish();
+
+          const canTradePage =
+            page.pageKind === "trade" || page.pageKind === "asset-detail";
+          if (
+            tradingMode === "paper" &&
+            canTradePage &&
+            !brainUnavailable &&
+            (!dataProviderError || (__FLY_E2E__ && e2eForcedOutput)) &&
+            environment.asset &&
+            (output.state === "approach_buy" ||
+              output.state === "approach_sell") &&
+            Math.max(output.buyDrive, output.sellDrive) > 0.82
+          ) {
+            const side = output.state === "approach_buy" ? "buy" : "sell";
+            const quantity = paperQuantityForPrice(environment.asset.price);
+            if (quantity <= 0) {
+              return output;
+            }
+            const proposal = createOrderProposal({
+              broker: adapter.id,
+              symbol: environment.asset.symbol,
+              instrumentId:
+                environment.asset.instrumentId ??
+                demoInstrumentId(environment.asset.symbol),
+              side,
+              price: environment.asset.price,
+              quantity,
+              brainOutput: output,
+              brainMode: mode,
+            });
+            const paperResult = chrome.runtime.sendMessage({
+              kind: "paper-trade",
+              proposal,
+            });
+            if (__FLY_E2E__) {
+              await paperResult;
+            }
+          }
+
+          if (environment.asset?.instrumentId) {
+            void chrome.runtime.sendMessage({
+              kind: "mark-to-market",
+              quotes: [
+                {
+                  instrumentId: environment.asset.instrumentId,
+                  price: environment.asset.price,
+                  observedAt: new Date().toISOString(),
+                },
+              ],
+            });
+          }
+
+          return output;
+        } catch {
+          brainUnavailable = mode !== "mock";
+          latestOutput = {
+            state: "sleep",
+            buyDrive: 0,
+            sellDrive: 0,
+            curiosity: 0,
+            danger: 0,
+            activity: 0,
+          };
+          await publish();
+          if (brainUnavailable) {
+            return latestOutput;
+          }
+          throw new Error("brain-unavailable");
+        }
+      },
+    },
+    bubbleText: () => sessionMessage || null,
+    forceState: () => {
+      const loginState = adapter.detectLoginState();
+      // Only hard overrides. Let MaleCNS/Mock brain drive explore/chart/buy/sell.
+      if (loginState === "LOGGED_OUT" && !guestMarketOk()) return "login_hint";
+      if (!adapter.isMarketOpen()) return "sleep";
+      if (brainUnavailable || (dataProviderError && !e2eForcedOutput)) {
+        return "sleep";
+      }
+      return null;
+    },
+  });
+
+  const captureForBridge = () => {
+    const environment = adapter.readMarketEnvironment();
     if (!environment) return;
-
     void chrome.runtime
       .sendMessage({
         kind: "market-environment",
-        source: "demo",
+        source: adapter.id,
         capturedAt: new Date().toISOString(),
         environment,
       })
-      .catch(() => {
-        // Extension reloads invalidate the content-script context.
-      });
+      .catch(() => undefined);
   };
 
-  capture();
-  const intervalId = window.setInterval(capture, SAMPLE_INTERVAL_MS);
-  window.addEventListener("pagehide", () => window.clearInterval(intervalId), {
-    once: true,
+  captureForBridge();
+  const intervalId = window.setInterval(captureForBridge, SAMPLE_INTERVAL_MS);
+  let mutationTimer = 0;
+  const observer = new MutationObserver(() => {
+    window.clearTimeout(mutationTimer);
+    mutationTimer = window.setTimeout(() => {
+      void publish();
+    }, MUTATION_DEBOUNCE_MS);
   });
-})();
+  observer.observe(document.documentElement, {
+    subtree: true,
+    childList: true,
+    attributes: true,
+  });
+  patchHistory(() => {
+    void publish();
+  });
+
+  window.addEventListener(
+    "pagehide",
+    () => {
+      window.clearInterval(intervalId);
+      window.clearTimeout(mutationTimer);
+      observer.disconnect();
+      handle.destroy();
+    },
+    { once: true },
+  );
+
+  await publish();
+
+  if (__FLY_E2E__) {
+    const host = window as E2EHost;
+    let brokerClickCount = 0;
+    document.addEventListener(
+      "click",
+      (event) => {
+        const text = (event.target as HTMLElement | null)?.textContent ?? "";
+        if (/Max Buy|Max Sell|^(Buy|Sell)$|^(매수|매도)$/i.test(text.trim())) {
+          brokerClickCount += 1;
+        }
+      },
+      true,
+    );
+
+    const collectDiagnostics = () => {
+      const resolved = adapter.resolveTargets();
+      return {
+        brokerId: adapter.id,
+        brainMode: mode,
+        tradingMode,
+        brainUnavailable,
+        dataProviderError,
+        page: adapter.detectPageContext(),
+        asset: adapter.readCurrentAsset(),
+        targets: {
+          buy: Boolean(resolved.buy),
+          sell: Boolean(resolved.sell),
+          chart: Boolean(resolved.chart),
+          search: Boolean(resolved.search),
+          buyText: resolved.buy?.element.textContent?.trim() ?? null,
+          sellText: resolved.sell?.element.textContent?.trim() ?? null,
+          chartStrategy: resolved.chart?.strategy ?? null,
+          searchStrategy: resolved.search?.strategy ?? null,
+        },
+        observations: latestObservations.map((item) => ({
+          timeframe: item.timeframe,
+          available: item.available,
+          candleCount: item.candleCount,
+          source: item.source,
+        })),
+        output: latestOutput,
+        brokerClickCount,
+        fly: (() => {
+          const root = document.getElementById("fly-earn-better-root");
+          const shadow = root?.shadowRoot ?? null;
+          const overlay = shadow?.querySelector(
+            ".overlay",
+          ) as HTMLElement | null;
+          const fly = shadow?.querySelector(".fly");
+          return {
+            root: Boolean(root),
+            shadow: Boolean(shadow),
+            pointerEvents: overlay
+              ? getComputedStyle(overlay).pointerEvents
+              : null,
+            visible: Boolean(fly),
+            state: fly?.getAttribute("data-fly-state") ?? null,
+          };
+        })(),
+      };
+    };
+
+    host.__flyE2EForce = (output) => {
+      e2eForcedOutput = output;
+    };
+    host.__flyE2EGetDiagnostics = collectDiagnostics;
+
+    // Page-world bridge for Playwright (content scripts are isolated).
+    document.documentElement.addEventListener("fly-e2e-force", ((
+      event: CustomEvent<BrainOutput>,
+    ) => {
+      e2eForcedOutput = event.detail;
+    }) as EventListener);
+    document.documentElement.addEventListener("fly-e2e-diag-request", () => {
+      document.documentElement.setAttribute(
+        "data-fly-e2e-diag",
+        JSON.stringify(collectDiagnostics()),
+      );
+      document.documentElement.dispatchEvent(
+        new CustomEvent("fly-e2e-diag-ready"),
+      );
+    });
+  }
+};
+
+void start();

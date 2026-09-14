@@ -1,32 +1,124 @@
 # Fly Earn Better Than You
 
-A tiny observation agent that flies over a simulated trading screen or the
-desktop. It never places trades.
+> A fruit fly with a real connectome walks onto your trading page and starts
+> judging candles. You wanted alpha. You got entomology.
 
-The project supports an explicit Mock mode and a local experimental neural
-simulation constrained by a derived subgraph of the real MaleCNS v1.0
-connectome. Real body IDs, directed topology, and raw connection weights are
-kept distinct from modeled dynamics and market semantics.
+**Fly Earn Better Than You** is an open-source Chrome experiment that watches
+supported trading pages, feeds **real** market observations into a neural
+simulation constrained by the real **MaleCNS v1.0** fruit-fly connectome, and
+draws a tiny fly that buzzes toward BUY / SELL like it has opinions (it does
+not; it has synapses and vibes).
 
-## Quick start
+This is **not** financial advice, not a proven trading strategy, and not a claim
+that fruit flies predict markets. If the fly looks confident, that is your
+problem, not its edge.
 
-Requirements: Node.js 22+ and pnpm 10+.
-
-```bash
-pnpm install
-pnpm dev
+```text
+Open a supported broker
+        ↓
+Fly wakes up (politely, with pointer-events: none)
+        ↓
+Real market observations (no fake candles)
+        ↓
+MaleCNS-constrained neural simulation
+        ↓
+Fly reacts near BUY / SELL
+        ↓
+Paper trade (default) or Live Assist
+        ↓
+Local performance history
 ```
 
-Open [http://127.0.0.1:5173](http://127.0.0.1:5173), then use the Fly Lab
-buttons. Bullish attracts the fly to BUY, Bearish to SELL, Volatile and Big
-Loss trigger panic, Big Profit attracts it to Portfolio, and Calm lets it watch
-the chart before periodically leaving and returning.
+Prefer this phrase for the brain:
 
-The default remains `mock`, so the demo works without the Python service.
+> **Neural simulation constrained by real MaleCNS connectivity.**
 
-## MaleCNS development mode
+## Currently usable / recognizable exchanges
 
-Generate or verify the committed derived artifact, then start the local service:
+Honest split: **usable** means the extension detects the page, mounts Fly, reads
+real market data, and can Paper-trade. **Recognizable (data only)** means public
+candles exist in code, but there is **no** on-page Fly UI adapter yet.
+
+### Usable now (USABLE BETA)
+
+| Exchange / surface | What Fly does today                                                                   | Example URL                                              |
+| ------------------ | ------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| **Local demo**     | Full local playground                                                                 | `pnpm --filter @fly/demo dev`                            |
+| **Binance Spot**   | Detect trade page, chart, Max Buy / Max Sell, public candles, Fly overlay, Paper      | `https://www.binance.com/en/trade/BTC_USDT?type=spot`    |
+| **Upbit**          | Detect exchange page, chart, 매수 / 매도, official public candles, Fly overlay, Paper | `https://www.upbit.com/exchange?code=CRIX.UPBIT.KRW-BTC` |
+
+Binance Spot + Upbit are **USABLE BETA** (packed-extension Paper + UX verified).
+Not Stable. Login / portfolio remain **NOT VERIFIED**. Live order click/submit is
+**never** automated.
+
+### Recognizable — market data only (not usable in the UI yet)
+
+| Exchange | Status                                          |
+| -------- | ----------------------------------------------- |
+| Bybit    | Public candle provider only — no Fly UI adapter |
+| Kraken   | Public candle provider only — no Fly UI adapter |
+| Coinbase | Public candle provider only — no Fly UI adapter |
+
+### Not yet
+
+| Surface                     | Status        |
+| --------------------------- | ------------- |
+| Stock brokers               | Planned       |
+| Automatic live order submit | Will not ship |
+
+**Market Data Ready ≠ Full Broker Support.** Evidence:
+[`docs/REAL_BROWSER_QA.md`](docs/REAL_BROWSER_QA.md),
+[`docs/IMPLEMENTATION_STATUS.md`](docs/IMPLEMENTATION_STATUS.md).
+
+## How it works
+
+Broker observation → validated candles → MarketFeatureExtractor /
+TemporalAggregator → Mock or MaleCNS → BehaviorDecoder → Fly overlay →
+ProposalGuard / RiskEngine → Paper (default) or Live Assist.
+
+## No API keys / No runtime LLM cost
+
+- No broker API keys, secrets, cookies, or OAuth trading tokens by default.
+- Market data priority: DOM → embedded public data → public no-auth endpoint →
+  `UNAVAILABLE`.
+- No synthetic candles / fake timeframes / silent TF fallback.
+- Extension runtime does **not** call hosted LLMs.
+
+## Install / Quick start
+
+```bash
+git clone https://github.com/gajua/fly-earn-better-than-you.git
+cd fly-earn-better-than-you
+git checkout main
+pnpm install
+pnpm --filter @fly/extension build
+```
+
+1. Open `chrome://extensions`
+2. Enable Developer mode → Load unpacked → `apps/extension/dist`
+3. Open a **usable** trade page above, or `pnpm --filter @fly/demo dev`
+
+Default: Paper trading + Mock brain.
+
+## Binance
+
+1. Load the unpacked extension.
+2. Open `https://www.binance.com/en/trade/BTC_USDT?type=spot` (logged out OK).
+3. Detect symbol, chart, Max Buy / Max Sell landmarks, public candles.
+4. Paper fills stay in IndexedDB. Live order submit is never automated.
+
+## Upbit
+
+1. Load the unpacked extension (`apps/extension/dist`).
+2. Popup → Trading `Paper` → Brain `Mock` or `MaleCNS real-connectome` → Save.
+3. Open `https://www.upbit.com/exchange?code=CRIX.UPBIT.KRW-BTC` (logged out OK).
+4. Confirm Fly overlay, 매수/매도 landmarks, official public candles.
+5. Paper fills stay in IndexedDB. Live order submit is never automated.
+
+MaleCNS: same local service as Binance (`http://127.0.0.1:8000`). After changing
+Brain mode, refresh the Upbit tab.
+
+## MaleCNS
 
 ```bash
 cd services/brain
@@ -36,16 +128,20 @@ pip install -r requirements.txt
 uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
-In another terminal:
+Popup → Brain → MaleCNS real-connectome. Missing service/artifact → hard fail
+(no Mock fallback).
 
-```bash
-VITE_FLY_BRAIN_MODE=malecns pnpm dev
-```
+## Paper / Live Assist / Risk / History
 
-The Fly Lab Developer Panel displays the mode, verified dataset, real neuron
-and edge counts, active real input body IDs, top output body IDs, simulation
-latency, and current FlyState. If the service or artifact is unavailable,
-MaleCNS mode shows an error and does not silently use MockFlyBrain.
+- Paper: virtual fills, PositionCycle, local performance.
+- Live Assist: approach + proposal only; user places the order.
+- Risk: ProposalGuard + RiskEngine.
+- History: IndexedDB local-first. Supabase is future optional sync only.
+
+## Add a broker
+
+See [`docs/ADDING_BROKER.md`](docs/ADDING_BROKER.md) and
+`packages/broker-adapters/template/`.
 
 ## Commands
 
@@ -55,83 +151,28 @@ pnpm typecheck
 pnpm test
 pnpm test:e2e
 pnpm build
+pnpm test:python
+pnpm test:rust
 ```
 
-Playwright downloads its Chromium binary on first setup:
+## Limitations
 
-```bash
-pnpm exec playwright install chromium
-```
+- No automatic live order automation.
+- No password / OTP / cookie / Authorization capture.
+- No synthetic multi-timeframe invention.
+- Logged-in portfolio reconciliation often NOT VERIFIED.
+- Stock brokers not in v1.
 
-## Desktop application
+## License / attribution
 
-The macOS-first Tauri 2 app creates a transparent primary-monitor overlay. The
-native window is always-on-top and ignores cursor events so applications below
-remain usable. Lifecycle and diagnostics live in the system tray and a separate
-interactive Developer Panel.
+MIT project code — see `LICENSE`. Third-party notices:
+[`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md),
+[`docs/THIRD_PARTY_ADAPTERS.md`](docs/THIRD_PARTY_ADAPTERS.md).
 
-```bash
-pnpm --filter @fly/desktop tauri dev
-CI=true pnpm --filter @fly/desktop tauri build --bundles dmg --no-sign
-```
+## Architecture docs
 
-The local `.dmg` is unsigned unless Apple Developer signing credentials are
-configured. Windows packaging, notarization, and packaged Python sidecar status
-are tracked honestly in [`docs/IMPLEMENTATION_STATUS.md`](docs/IMPLEMENTATION_STATUS.md).
-
-### Run at startup
-
-Automatic startup is not enabled in this iteration. Launch the app manually or
-add it through macOS Login Items after installing the `.app`.
-
-## Chrome extension installation
-
-Build the sensor-only extension:
-
-```bash
-pnpm --filter @fly/extension build
-```
-
-Open `chrome://extensions`, enable Developer mode, choose **Load unpacked**, and
-select `apps/extension/dist`. The extension is a read-only sensor and initially
-supports only the local demo. Pair each app launch using the random bridge port
-and session token shown by the desktop Developer Panel.
-
-## Privacy and safety
-
-- No password, OTP, cookie, authorization header, account password, or order
-  authentication value is read or stored.
-- BUY and SELL are visual targets only. No automatic click, event dispatch, or
-  order request exists.
-- Browser sensor payloads are in memory and sent only to an authenticated
-  `127.0.0.1` bridge.
-- This is not financial advice.
-
-## MaleCNS provenance
-
-This project uses connectivity derived from the MaleCNS v1.0 Drosophila
-connectome. Market inputs and behavioral decoding are experimental mappings
-created by this project and are not biological findings.
-
-Running from the generated artifact needs no neuPrint account,
-`NEUPRINT_TOKEN`, or original 1GB graph. The current development service still
-requires Python; a packaged sidecar is tracked as incomplete.
-`NEUPRINT_TOKEN` is accepted only by the developer regeneration path and must
-never be committed. See
-[`docs/MALECNS.md`](docs/MALECNS.md),
-[`docs/MALECNS_SELECTION.md`](docs/MALECNS_SELECTION.md), and
-[`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
-
-## Repository layout
-
-- `apps/demo` — simulated trading screen and development controls
-- `apps/desktop` — Tauri desktop overlay, tray, and loopback bridge
-- `apps/extension` — minimum-permission Chrome market sensor
-- `packages/core` — serializable environment and brain contracts
-- `packages/broker-adapters` — isolated DOM readers
-- `packages/brain-client` — temporary MockFlyBrain
-- `packages/fly-ui` — overlay, behavior loop, and movement engine
-- `services/brain` — future MaleCNS-backed FastAPI service
-- `docs` — architecture, behavior, adapter, and connectome notes
-
-See [Architecture](docs/ARCHITECTURE.md) and [Roadmap](docs/ROADMAP.md).
+- [`AGENTS.md`](AGENTS.md)
+- [`docs/EXTENSION_ARCHITECTURE.md`](docs/EXTENSION_ARCHITECTURE.md)
+- [`docs/REAL_BROWSER_QA.md`](docs/REAL_BROWSER_QA.md)
+- [`docs/IMPLEMENTATION_STATUS.md`](docs/IMPLEMENTATION_STATUS.md)
+- [`docs/RELEASE_READINESS.md`](docs/RELEASE_READINESS.md)

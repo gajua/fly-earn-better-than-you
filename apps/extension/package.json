@@ -1,6 +1,6 @@
 {
   "name": "@fly/extension",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -8,7 +8,14 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
+  "dependencies": {
+    "@fly/brain-client": "workspace:*",
+    "@fly/broker-adapters": "workspace:*",
+    "@fly/core": "workspace:*",
+    "@fly/fly-ui": "workspace:*"
+  },
   "devDependencies": {
+    "esbuild": "^0.25.9",
     "typescript": "^5.9.2",
     "vitest": "^3.2.4"
   }

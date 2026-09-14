@@ -1,0 +1,82 @@
+:root {
+  color-scheme: light;
+  font-family: "IBM Plex Sans", "Pretendard", ui-sans-serif, sans-serif;
+  color: #14213d;
+  background: #f7f1e8;
+}
+
+body {
+  margin: 0;
+  width: 320px;
+}
+
+.popup {
+  padding: 14px;
+  background:
+    radial-gradient(circle at 10% 0%, #ffe8a3 0, transparent 45%),
+    linear-gradient(160deg, #f7f1e8, #e7eef7);
+}
+
+header {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.emoji {
+  font-size: 28px;
+}
+
+h1,
+h2 {
+  margin: 0;
+  font-size: 16px;
+}
+
+h2 {
+  margin-bottom: 8px;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.card {
+  margin-top: 12px;
+  padding: 10px;
+  border: 1px solid rgba(20, 33, 61, 0.12);
+  background: rgba(255, 255, 255, 0.72);
+}
+
+label {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+
+input,
+select,
+button {
+  font: inherit;
+}
+
+button {
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  background: #14213d;
+  color: #f7f1e8;
+  cursor: pointer;
+}
+
+pre {
+  margin: 0;
+  white-space: pre-wrap;
+  font-size: 11px;
+}
+
+.fineprint {
+  margin-top: 10px;
+  font-size: 10px;
+  opacity: 0.75;
+}

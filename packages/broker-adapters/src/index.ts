@@ -1,59 +1,45 @@
-import { toDOMRectLike, type MarketEnvironment } from "@fly/core";
-
-export interface BrokerAdapter {
-  readonly id: string;
-  detect(): boolean;
-  readEnvironment(): MarketEnvironment | null;
-}
-
-const readNumber = (value: string | undefined, fallback = 0): number => {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : fallback;
-};
-
-const readRect = (selector: string) => {
-  const element = document.querySelector<HTMLElement>(selector);
-  return element ? toDOMRectLike(element.getBoundingClientRect()) : undefined;
-};
-
-/**
- * Reads only public, non-sensitive demo attributes and element geometry.
- * It never clicks, dispatches events, or inspects credentials.
- */
-export const createDemoBrokerAdapter = (
-  rootSelector = "[data-demo-broker]",
-): BrokerAdapter => ({
-  id: "demo",
-  detect: () => document.querySelector(rootSelector) !== null,
-  readEnvironment: () => {
-    const root = document.querySelector<HTMLElement>(rootSelector);
-    if (!root) return null;
-
-    const { dataset } = root;
-    return {
-      asset: {
-        symbol: dataset.symbol ?? "UNKNOWN",
-        name: dataset.assetName,
-        price: readNumber(dataset.price),
-        changePercent: readNumber(dataset.changePercent),
-      },
-      position: {
-        quantity: readNumber(dataset.quantity),
-        averagePrice: readNumber(dataset.averagePrice),
-        pnlAmount: readNumber(dataset.pnlAmount),
-        pnlPercent: readNumber(dataset.pnlPercent),
-      },
-      market: {
-        momentum: readNumber(dataset.momentum),
-        volatility: readNumber(dataset.volatility),
-        volumeStrength: readNumber(dataset.volumeStrength, 0.5),
-      },
-      ui: {
-        chart: readRect("[data-fly-target='chart']"),
-        buy: readRect("[data-fly-target='buy']"),
-        sell: readRect("[data-fly-target='sell']"),
-        portfolio: readRect("[data-fly-target='portfolio']"),
-      },
-    };
-  },
-});
+export type {
+  BrokerAdapter,
+  BrokerDefinition,
+  BrokerTargets,
+  ResolvedBrokerTargets,
+} from "./types";
+export { rectFromElement, targetsToUiRects } from "./types";
+export { createDemoBrokerAdapter, observationFromCandles } from "./demo";
+export {
+  BROKER_REGISTRY,
+  findBrokerByUrl,
+  listSupportedBrokers,
+} from "./registry";
+export {
+  LOCATOR_CONFIDENCE_THRESHOLD,
+  resolveLocator,
+  revalidateTarget,
+  type LocatedTarget,
+  type LocatorCandidate,
+} from "./locator";
+export { detectModal } from "./modal";
+export {
+  classifyDemoPage,
+  type BrokerMarketDataProvider,
+  type CandleBar,
+} from "./page";
+export {
+  createTradeCanvasBinanceProvider,
+  createTradeCanvasBybitProvider,
+  createTradeCanvasCoinbaseProvider,
+  createTradeCanvasKrakenProvider,
+  binanceInstrument,
+  bybitInstrument,
+  coinbaseInstrument,
+  krakenInstrument,
+} from "./market-data/tradecanvas/adapter";
+export { createUpbitOfficialPublicProvider, upbitInstrument } from "./market-data/upbit/official-public";
+export { validateCandleSeries } from "./market-data/candle-validator";
+export { extractMarketFeatures } from "./market-data/features";
+export { createProviderChain } from "./market-data/provider-chain";
+export { BrokerSymbolResolver } from "./shared/symbol-resolver";
+export { createBinanceBrokerAdapter } from "./brokers/binance/ui-adapter";
+export { createUpbitBrokerAdapter } from "./brokers/upbit/ui-adapter";
+export { BROKER_HEALTH } from "./health";
+export { scanCandidates } from "./candidate-scanner";

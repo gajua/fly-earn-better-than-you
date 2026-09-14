@@ -1,0 +1,25 @@
+---
+description: Broker UI vs market-data adapter rules
+globs: packages/broker-adapters/**
+alwaysApply: false
+---
+
+# Broker adapters
+
+- Keep **Broker UI Adapter** and **MarketDataProvider** separate.
+- New brokers should plug in via registry entry + adapter modules.
+- Market Data Ready ≠ Full Broker Support.
+
+Selector priority:
+
+1. stable data attribute
+2. ARIA
+3. semantic role
+4. accessible label
+5. visible text
+6. structural fallback
+
+Generated hashed CSS classes are last-resort only. Low confidence → do not use target.
+
+Never mark SUPPORTED / Full Support without real-site verification + fixtures + tests.
+Unsupported timeframe → UNAVAILABLE (no silent fallback). No synthetic candles.

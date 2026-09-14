@@ -29,11 +29,13 @@ const SPEED_BY_STATE: Record<FlyState, number> = {
   explore: 82,
   observe_chart: 68,
   inspect_portfolio: 62,
+  scan_assets: 90,
   interested: 105,
   approach_buy: 112,
   approach_sell: 112,
   panic: 285,
   leave: 210,
+  login_hint: 40,
 };
 
 const centerOf = (rect: DOMRectLike): Point => ({
@@ -72,6 +74,10 @@ const targetRectForState = (
   if (state === "approach_buy") return environment.ui.buy;
   if (state === "approach_sell") return environment.ui.sell;
   if (state === "inspect_portfolio") return environment.ui.portfolio;
+  if (state === "login_hint") return environment.ui.login ?? environment.ui.chart;
+  if (state === "scan_assets") {
+    return environment.ui.search ?? environment.ui.chart;
+  }
   if (state === "observe_chart" || state === "interested") {
     return environment.ui.chart;
   }
@@ -141,7 +147,7 @@ export function FlyOverlay({
 
     const evaluate = async () => {
       if (isDisposed || isEvaluating || !adapter.detect()) return;
-      const nextEnvironment = adapter.readEnvironment();
+      const nextEnvironment = adapter.readMarketEnvironment();
       if (!nextEnvironment) return;
       environment = nextEnvironment;
       isEvaluating = true;
