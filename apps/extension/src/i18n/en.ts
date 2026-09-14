@@ -31,6 +31,16 @@ export type MessageKey =
   | "popup.sellThreshold"
   | "popup.resetLearning"
   | "popup.learningPrivacy"
+  | "popup.globalLearning"
+  | "popup.contributeLearning"
+  | "popup.contributePrivacy"
+  | "popup.presetVersion"
+  | "popup.queuedObservations"
+  | "popup.lastSync"
+  | "popup.clearQueue"
+  | "popup.syncLearning"
+  | "popup.rollbackPreset"
+  | "popup.sameQuality"
   | "popup.performance"
   | "popup.experimentalPerformance"
   | "popup.rangeAll"
@@ -93,6 +103,19 @@ export const en: MessageDictionary = {
   "popup.resetLearning": "Reset learning",
   "popup.learningPrivacy":
     "Learning runs locally on this device. Your trading observations are not uploaded.",
+  "popup.globalLearning": "Global Learning",
+  "popup.contributeLearning":
+    "Contribute anonymous Paper-trading learning data",
+  "popup.contributePrivacy":
+    "Your data helps improve the same global calibration used by all Fly users. No broker credentials or account information are uploaded.",
+  "popup.presetVersion": "Preset",
+  "popup.queuedObservations": "Queued observations",
+  "popup.lastSync": "Last sync",
+  "popup.clearQueue": "Clear contribution queue",
+  "popup.syncLearning": "Sync now",
+  "popup.rollbackPreset": "Rollback to bundled preset",
+  "popup.sameQuality":
+    "All users on the same Fly version and GlobalCalibrationPreset start with the same calibration behavior.",
   "popup.performance": "Fly Performance",
   "popup.experimentalPerformance": "Experimental paper performance",
   "popup.rangeAll": "All",

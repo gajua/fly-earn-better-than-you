@@ -27,12 +27,16 @@ const startingCapital = document.getElementById(
   "starting-capital",
 ) as HTMLInputElement;
 const localeSelect = document.getElementById("locale") as HTMLSelectElement;
-const learningEnabled = document.getElementById(
-  "learning-enabled",
+const contributeLearning = document.getElementById(
+  "contribute-learning",
 ) as HTMLInputElement;
-const learningSamples = document.getElementById("learning-samples")!;
+const presetVersion = document.getElementById("preset-version")!;
+const presetSource = document.getElementById("preset-source")!;
+const presetSamples = document.getElementById("preset-samples")!;
 const buyThreshold = document.getElementById("buy-threshold")!;
 const sellThreshold = document.getElementById("sell-threshold")!;
+const queuedObservations = document.getElementById("queued-observations")!;
+const lastSync = document.getElementById("last-sync")!;
 const performance = document.getElementById("performance")!;
 const brainPerformance = document.getElementById("brain-performance")!;
 
@@ -128,6 +132,29 @@ const loadPerformance = async () => {
   brainPerformance.textContent = formatBrain(perfResponse.byBrainMode ?? []);
 };
 
+const loadGlobalLearning = async () => {
+  const learning = (await chrome.runtime.sendMessage({
+    kind: "get-global-learning",
+  })) as {
+    presetVersion?: string;
+    sampleCount?: number;
+    source?: string;
+    buyThreshold?: number;
+    sellThreshold?: number;
+    contributeAnonymousLearning?: boolean;
+    queuedObservations?: number;
+    lastSyncAt?: string | null;
+  };
+  presetVersion.textContent = `v${learning.presetVersion ?? "1.0.0"}`;
+  presetSource.textContent = learning.source ?? "bundled";
+  presetSamples.textContent = String(learning.sampleCount ?? 0);
+  buyThreshold.textContent = Number(learning.buyThreshold ?? 0.82).toFixed(2);
+  sellThreshold.textContent = Number(learning.sellThreshold ?? 0.82).toFixed(2);
+  contributeLearning.checked = Boolean(learning.contributeAnonymousLearning);
+  queuedObservations.textContent = String(learning.queuedObservations ?? 0);
+  lastSync.textContent = learning.lastSyncAt ?? "—";
+};
+
 const load = async () => {
   const prefsResponse = (await chrome.runtime.sendMessage({
     kind: "get-preferences",
@@ -146,27 +173,8 @@ const load = async () => {
   maxCapital.value = String(preferences.riskPolicy.maxTradingCapital);
   startingCapital.value = String(preferences.startingPaperCapital);
   localeSelect.value = preferences.locale;
-  learningEnabled.checked = preferences.learningEnabled;
 
-  const learning = (await chrome.runtime.sendMessage({
-    kind: "get-learning",
-  })) as {
-    sampleCount?: number;
-    buyThreshold?: number;
-    sellThreshold?: number;
-  };
-  learningSamples.textContent = String(learning.sampleCount ?? 0);
-  buyThreshold.textContent = String(
-    (
-      learning.buyThreshold ?? preferences.calibrationProfile.buyThreshold
-    ).toFixed(2),
-  );
-  sellThreshold.textContent = String(
-    (
-      learning.sellThreshold ?? preferences.calibrationProfile.sellThreshold
-    ).toFixed(2),
-  );
-
+  await loadGlobalLearning();
   await loadPerformance();
 
   const diagnostics = statusResponse.status?.diagnostics;
@@ -187,7 +195,8 @@ document.getElementById("save-prefs")!.addEventListener("click", () => {
       tradingMode: tradingMode.value as ExtensionPreferences["tradingMode"],
       brainMode: brainMode.value as ExtensionPreferences["brainMode"],
       locale: localeSelect.value as LocalePreference,
-      learningEnabled: learningEnabled.checked,
+      contributeAnonymousLearning: contributeLearning.checked,
+      experimentalPersonalCalibration: false,
       startingPaperCapital:
         Number(startingCapital.value) || current.startingPaperCapital,
       riskPolicy: {
@@ -206,12 +215,22 @@ document.getElementById("save-prefs")!.addEventListener("click", () => {
   })();
 });
 
-document.getElementById("reset-learning")!.addEventListener("click", () => {
-  if (!window.confirm(t("confirm.resetLearning", currentLocale))) return;
-  void chrome.runtime.sendMessage({ kind: "reset-learning" }).then(async () => {
-    statusMessage.textContent = t("status.learningReset", currentLocale);
-    await load();
-  });
+document.getElementById("sync-learning")!.addEventListener("click", () => {
+  void chrome.runtime
+    .sendMessage({ kind: "sync-global-learning" })
+    .then(() => loadGlobalLearning());
+});
+
+document.getElementById("clear-queue")!.addEventListener("click", () => {
+  void chrome.runtime
+    .sendMessage({ kind: "clear-contribution-queue" })
+    .then(() => loadGlobalLearning());
+});
+
+document.getElementById("rollback-preset")!.addEventListener("click", () => {
+  void chrome.runtime
+    .sendMessage({ kind: "rollback-global-preset" })
+    .then(() => loadGlobalLearning());
 });
 
 document.getElementById("clear-history")!.addEventListener("click", () => {

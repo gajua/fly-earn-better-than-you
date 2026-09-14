@@ -57,20 +57,19 @@
       </section>
 
       <section class="card">
-        <h2 data-i18n="popup.learning">Learning</h2>
-        <label class="checkbox">
-          <input id="learning-enabled" type="checkbox" />
-          <span data-i18n="popup.learningEnable"
-            >Learn from my Paper trading history</span
-          >
-        </label>
-        <p class="hint" data-i18n="popup.learningPrivacy">
-          Learning runs locally on this device. Your trading observations are
-          not uploaded.
+        <h2 data-i18n="popup.globalLearning">Global Learning</h2>
+        <p class="hint" data-i18n="popup.sameQuality">
+          All users on the same Fly version and GlobalCalibrationPreset start
+          with the same calibration behavior.
+        </p>
+        <p>
+          <span data-i18n="popup.presetVersion">Preset</span>:
+          <strong id="preset-version">v1.0.0</strong>
+          (<span id="preset-source">bundled</span>)
         </p>
         <p>
           <span data-i18n="popup.learningSamples">Learning samples</span>:
-          <strong id="learning-samples">0</strong>
+          <strong id="preset-samples">0</strong>
         </p>
         <p>
           <span data-i18n="popup.buyThreshold">Buy threshold</span>:
@@ -80,8 +79,40 @@
           <span data-i18n="popup.sellThreshold">Sell threshold</span>:
           <strong id="sell-threshold">0.82</strong>
         </p>
-        <button id="reset-learning" type="button" data-i18n="popup.resetLearning">
-          Reset learning
+        <label class="checkbox">
+          <input id="contribute-learning" type="checkbox" />
+          <span data-i18n="popup.contributeLearning"
+            >Contribute anonymous Paper-trading learning data</span
+          >
+        </label>
+        <p class="hint" data-i18n="popup.contributePrivacy">
+          Your data helps improve the same global calibration used by all Fly
+          users. No broker credentials or account information are uploaded.
+        </p>
+        <p>
+          <span data-i18n="popup.queuedObservations">Queued observations</span>:
+          <strong id="queued-observations">0</strong>
+        </p>
+        <p>
+          <span data-i18n="popup.lastSync">Last sync</span>:
+          <strong id="last-sync">—</strong>
+        </p>
+        <button id="sync-learning" type="button" data-i18n="popup.syncLearning">
+          Sync now
+        </button>
+        <button
+          id="clear-queue"
+          type="button"
+          data-i18n="popup.clearQueue"
+        >
+          Clear contribution queue
+        </button>
+        <button
+          id="rollback-preset"
+          type="button"
+          data-i18n="popup.rollbackPreset"
+        >
+          Rollback to bundled preset
         </button>
       </section>
 

@@ -32,6 +32,13 @@ await esbuild.build({
   // Production builds keep this false so controlled-brain paths are inactive.
   define: {
     __FLY_E2E__: JSON.stringify(isE2E),
+    __FLY_GLOBAL_LEARNING_ENABLED__: JSON.stringify(
+      process.env.FLY_GLOBAL_LEARNING_ENABLED === "1",
+    ),
+    __FLY_SUPABASE_URL__: JSON.stringify(process.env.FLY_SUPABASE_URL ?? ""),
+    __FLY_SUPABASE_PUBLISHABLE_KEY__: JSON.stringify(
+      process.env.FLY_SUPABASE_PUBLISHABLE_KEY ?? "",
+    ),
   },
 });
 

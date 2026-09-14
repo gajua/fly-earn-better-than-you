@@ -34,6 +34,18 @@ export const ko: MessageDictionary = {
   "popup.resetLearning": "학습 초기화",
   "popup.learningPrivacy":
     "학습은 이 기기에서만 실행됩니다. 거래 관찰 데이터는 외부로 전송되지 않습니다.",
+  "popup.globalLearning": "글로벌 학습",
+  "popup.contributeLearning": "익명 Paper 학습 데이터 제공",
+  "popup.contributePrivacy":
+    "제공된 데이터는 모든 사용자가 동일하게 사용하는 공통 calibration 개선에 활용됩니다. 계좌 인증정보나 로그인 정보는 전송되지 않습니다.",
+  "popup.presetVersion": "프리셋",
+  "popup.queuedObservations": "대기 중 관찰",
+  "popup.lastSync": "마지막 동기화",
+  "popup.clearQueue": "기여 큐 비우기",
+  "popup.syncLearning": "지금 동기화",
+  "popup.rollbackPreset": "번들 프리셋으로 롤백",
+  "popup.sameQuality":
+    "같은 Fly 버전과 Global Calibration 버전을 사용하는 사용자는 동일한 calibration 품질로 시작합니다.",
   "popup.performance": "초파리 성과",
   "popup.experimentalPerformance": "실험용 Paper 성과",
   "popup.rangeAll": "전체",

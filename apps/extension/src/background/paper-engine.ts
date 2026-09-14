@@ -1,15 +1,15 @@
 import {
   applyPaperFill,
   applySlippage,
-  applyCalibration,
+  brokerCategoryFromBrokerId,
   canAcceptProposal,
   computeFee,
   computeLongExposure,
   demoInstrumentId,
   emptyProposalGuardState,
   evaluateOrderRisk,
+  holdingDurationBucket,
   markProposalAccepted,
-  observationFromBrain,
   updatePositionMarketPrices,
   type OrderProposal,
   type PaperPosition,
@@ -17,8 +17,10 @@ import {
   type ProposalGuardState,
   type TradeRecord,
 } from "@fly/core";
+import { loadActiveGlobalPreset } from "../global-preset-runtime";
 import type { ExtensionPreferences } from "../storage/preferences";
 import { DAILY_EXPOSURE_KEY } from "../storage/preferences";
+import { enqueueContribution } from "../storage/contribution-queue";
 import {
   appendTrade,
   readPaperCycles,
@@ -26,9 +28,10 @@ import {
   writePaperCycles,
   writePaperPositions,
 } from "../storage/trade-ledger";
-import { appendLearningObservation } from "../storage/learning-store";
 
 const todayKey = () => new Date().toISOString().slice(0, 10);
+const DEFAULT_COOLDOWN_MS = 30_000;
+const INSTALL_ID_KEY = "fly-install-id";
 
 let proposalGuard: ProposalGuardState = emptyProposalGuardState();
 
@@ -51,6 +54,15 @@ export const addDailyNewExposure = async (amount: number): Promise<void> => {
   });
 };
 
+const readInstallId = async (): Promise<string> => {
+  const stored = await chrome.storage.local.get(INSTALL_ID_KEY);
+  const existing = stored[INSTALL_ID_KEY];
+  if (typeof existing === "string" && existing.length > 0) return existing;
+  const created = crypto.randomUUID();
+  await chrome.storage.local.set({ [INSTALL_ID_KEY]: created });
+  return created;
+};
+
 export const maybeExecutePaperTrade = async (
   preferences: ExtensionPreferences,
   proposal: OrderProposal,
@@ -61,13 +73,11 @@ export const maybeExecutePaperTrade = async (
     return { ok: false, reason: "live-assist-requires-confirmation" };
   }
 
-  const appliedCalibration = applyCalibration(preferences.calibrationProfile, {
-    enabled: preferences.learningEnabled,
-    minSamples: preferences.learningMinSamples,
-  });
+  const { gates, preset } = await loadActiveGlobalPreset();
   const cooldown =
-    (preferences.riskPolicy.proposalCooldownMs ?? DEFAULT_COOLDOWN_MS) *
-    appliedCalibration.cooldownMultiplier;
+    gates.proposalCooldownMs ||
+    preferences.riskPolicy.proposalCooldownMs ||
+    DEFAULT_COOLDOWN_MS;
   const guard = canAcceptProposal(
     proposal,
     proposalGuard,
@@ -137,30 +147,52 @@ export const maybeExecutePaperTrade = async (
   }
   proposalGuard = markProposalAccepted(proposalGuard, proposal, Date.now());
 
-  if (preferences.learningEnabled) {
+  // Shared global learning: Paper + real-connectome + opt-in only.
+  // Live Assist / real-money paths must never enqueue contributions.
+  if (
+    preferences.tradingMode === "paper" &&
+    preferences.contributeAnonymousLearning &&
+    proposal.brainMode === "real-connectome" &&
+    proposal.side === "sell"
+  ) {
     const closed = fill.cycles.find(
       (cycle) => cycle.id === fill.trade.cycleId && cycle.status === "closed",
     );
-    await appendLearningObservation(
-      observationFromBrain({
-        broker: proposal.broker,
-        symbol: proposal.symbol,
-        brainMode: proposal.brainMode,
-        brain: proposal.brainSnapshot,
-        action: proposal.side === "buy" ? "paper_buy" : "paper_sell",
-        entryPrice:
-          proposal.side === "buy" ? fillPrice : closed?.buyAveragePrice,
-        exitPrice: proposal.side === "sell" ? fillPrice : undefined,
-        pnl: closed?.realizedPnl,
-        returnPct: closed?.realizedReturnPercent,
-      }),
-    );
+    if (closed && typeof closed.realizedReturnPercent === "number") {
+      void enqueueContribution({
+        schemaVersion: 1,
+        brainMode: "real-connectome",
+        presetVersion: preset.presetVersion,
+        brokerCategory: brokerCategoryFromBrokerId(proposal.broker),
+        marketFeatures: {
+          momentum: 0,
+          volatility: 0,
+          volumeStrength: 0.5,
+          return: closed.realizedReturnPercent / 100,
+        },
+        brain: {
+          buyDrive: proposal.brainSnapshot.buyDrive,
+          sellDrive: proposal.brainSnapshot.sellDrive,
+          curiosity: proposal.brainSnapshot.curiosity,
+          danger: proposal.brainSnapshot.danger,
+          activity: proposal.brainSnapshot.activity,
+        },
+        action: "paper_sell",
+        outcome: {
+          returnPct: closed.realizedReturnPercent,
+          holdingDurationBucket: holdingDurationBucket(
+            closed.openedAt,
+            closed.closedAt ?? fill.trade.timestamp,
+          ),
+        },
+        createdAt: new Date().toISOString(),
+        installId: await readInstallId(),
+      });
+    }
   }
 
   return { ok: true, trade: fill.trade };
 };
-
-const DEFAULT_COOLDOWN_MS = 30_000;
 
 export const markToMarketPositions = async (
   quotes: ReadonlyMap<string, { price: number; observedAt: string }>,
@@ -174,18 +206,18 @@ export const markToMarketPositions = async (
 export const getExposureSummary = async (
   preferences: ExtensionPreferences,
 ): Promise<{
+  currentExposure: number;
   positions: PaperPosition[];
   cycles: PositionCycle[];
-  currentExposure: number;
   remainingCapacity: number;
 }> => {
   const positions = await readPaperPositions();
   const cycles = await readPaperCycles();
   const currentExposure = computeLongExposure(positions);
   return {
+    currentExposure,
     positions,
     cycles,
-    currentExposure,
     remainingCapacity: Math.max(
       0,
       preferences.riskPolicy.maxTradingCapital - currentExposure,
