@@ -1,6 +1,7 @@
 import {
   applyPaperFill,
   applySlippage,
+  applyCalibration,
   canAcceptProposal,
   computeFee,
   computeLongExposure,
@@ -8,6 +9,7 @@ import {
   emptyProposalGuardState,
   evaluateOrderRisk,
   markProposalAccepted,
+  observationFromBrain,
   updatePositionMarketPrices,
   type OrderProposal,
   type PaperPosition,
@@ -24,6 +26,7 @@ import {
   writePaperCycles,
   writePaperPositions,
 } from "../storage/trade-ledger";
+import { appendLearningObservation } from "../storage/learning-store";
 
 const todayKey = () => new Date().toISOString().slice(0, 10);
 
@@ -36,8 +39,7 @@ export const resetProposalGuardForTests = () => {
 export const readDailyNewExposure = async (): Promise<number> => {
   const stored = await chrome.storage.local.get(DAILY_EXPOSURE_KEY);
   const value = stored[DAILY_EXPOSURE_KEY] as
-    | { day: string; amount: number }
-    | undefined;
+    { day: string; amount: number } | undefined;
   if (!value || value.day !== todayKey()) return 0;
   return value.amount;
 };
@@ -52,14 +54,20 @@ export const addDailyNewExposure = async (amount: number): Promise<void> => {
 export const maybeExecutePaperTrade = async (
   preferences: ExtensionPreferences,
   proposal: OrderProposal,
-): Promise<{ ok: true; trade: TradeRecord } | { ok: false; reason: string }> => {
+): Promise<
+  { ok: true; trade: TradeRecord } | { ok: false; reason: string }
+> => {
   if (preferences.tradingMode !== "paper") {
     return { ok: false, reason: "live-assist-requires-confirmation" };
   }
 
+  const appliedCalibration = applyCalibration(preferences.calibrationProfile, {
+    enabled: preferences.learningEnabled,
+    minSamples: preferences.learningMinSamples,
+  });
   const cooldown =
-    preferences.riskPolicy.proposalCooldownMs ??
-    DEFAULT_COOLDOWN_MS;
+    (preferences.riskPolicy.proposalCooldownMs ?? DEFAULT_COOLDOWN_MS) *
+    appliedCalibration.cooldownMultiplier;
   const guard = canAcceptProposal(
     proposal,
     proposalGuard,
@@ -70,16 +78,33 @@ export const maybeExecutePaperTrade = async (
 
   const positions = await readPaperPositions();
   const cycles = await readPaperCycles();
-  const decision = evaluateOrderRisk(proposal, preferences.riskPolicy, {
-    currentExposure: computeLongExposure(positions),
-    dailyNewExposure: await readDailyNewExposure(),
-    positions,
-  });
+  let quantity = proposal.quantity ?? 1;
+  if (proposal.side === "sell") {
+    const owned =
+      positions.find(
+        (position) => position.instrumentId === proposal.instrumentId,
+      ) ?? positions.find((position) => position.symbol === proposal.symbol);
+    if (owned && owned.quantity > 0) {
+      quantity = Math.min(quantity, owned.quantity);
+    }
+  }
+  const decision = evaluateOrderRisk(
+    {
+      ...proposal,
+      quantity,
+      estimatedValue: proposal.estimatedPrice * quantity,
+    },
+    preferences.riskPolicy,
+    {
+      currentExposure: computeLongExposure(positions),
+      dailyNewExposure: await readDailyNewExposure(),
+      positions,
+    },
+  );
   if (!decision.ok) {
     return { ok: false, reason: decision.reason };
   }
 
-  const quantity = proposal.quantity ?? 1;
   const fillPrice = applySlippage(
     proposal.estimatedPrice,
     proposal.side,
@@ -111,6 +136,27 @@ export const maybeExecutePaperTrade = async (
     await addDailyNewExposure(value);
   }
   proposalGuard = markProposalAccepted(proposalGuard, proposal, Date.now());
+
+  if (preferences.learningEnabled) {
+    const closed = fill.cycles.find(
+      (cycle) => cycle.id === fill.trade.cycleId && cycle.status === "closed",
+    );
+    await appendLearningObservation(
+      observationFromBrain({
+        broker: proposal.broker,
+        symbol: proposal.symbol,
+        brainMode: proposal.brainMode,
+        brain: proposal.brainSnapshot,
+        action: proposal.side === "buy" ? "paper_buy" : "paper_sell",
+        entryPrice:
+          proposal.side === "buy" ? fillPrice : closed?.buyAveragePrice,
+        exitPrice: proposal.side === "sell" ? fillPrice : undefined,
+        pnl: closed?.realizedPnl,
+        returnPct: closed?.realizedReturnPercent,
+      }),
+    );
+  }
+
   return { ok: true, trade: fill.trade };
 };
 

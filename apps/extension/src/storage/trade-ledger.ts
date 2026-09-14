@@ -2,9 +2,11 @@ import type { PaperPosition, PositionCycle, TradeRecord } from "@fly/core";
 import type { TradeRepository } from "./repository";
 
 const DB_NAME = "fly-earn-better-than-you";
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 const TRADE_STORE = "trades";
 const CYCLE_STORE = "cycles";
+const LEARNING_STORE = "learning-observations";
+const FEEDBACK_STORE = "broker-detection-feedback";
 
 const openDb = (): Promise<IDBDatabase> =>
   new Promise((resolve, reject) => {
@@ -17,9 +19,16 @@ const openDb = (): Promise<IDBDatabase> =>
       if (!db.objectStoreNames.contains(CYCLE_STORE)) {
         db.createObjectStore(CYCLE_STORE, { keyPath: "id" });
       }
+      if (!db.objectStoreNames.contains(LEARNING_STORE)) {
+        db.createObjectStore(LEARNING_STORE, { keyPath: "id" });
+      }
+      if (!db.objectStoreNames.contains(FEEDBACK_STORE)) {
+        db.createObjectStore(FEEDBACK_STORE, { keyPath: "id" });
+      }
     };
     request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error ?? new Error("idb-open-failed"));
+    request.onerror = () =>
+      reject(request.error ?? new Error("idb-open-failed"));
   });
 
 export const appendTrade = async (trade: TradeRecord): Promise<void> => {
@@ -45,13 +54,13 @@ export const listTrades = async (
       resolve(
         mode
           ? rows.filter(
-              (row) =>
-                row.mode === mode && row.liveConfidence !== "UNVERIFIED",
+              (row) => row.mode === mode && row.liveConfidence !== "UNVERIFIED",
             )
           : rows.filter((row) => row.liveConfidence !== "UNVERIFIED"),
       );
     };
-    request.onerror = () => reject(request.error ?? new Error("idb-read-failed"));
+    request.onerror = () =>
+      reject(request.error ?? new Error("idb-read-failed"));
   });
   db.close();
   return trades.sort((a, b) => a.timestamp.localeCompare(b.timestamp));
@@ -62,8 +71,10 @@ export const readPaperCycles = async (): Promise<PositionCycle[]> => {
   const cycles = await new Promise<PositionCycle[]>((resolve, reject) => {
     const tx = db.transaction(CYCLE_STORE, "readonly");
     const request = tx.objectStore(CYCLE_STORE).getAll();
-    request.onsuccess = () => resolve((request.result as PositionCycle[]) ?? []);
-    request.onerror = () => reject(request.error ?? new Error("idb-cycle-read"));
+    request.onsuccess = () =>
+      resolve((request.result as PositionCycle[]) ?? []);
+    request.onerror = () =>
+      reject(request.error ?? new Error("idb-cycle-read"));
   });
   db.close();
   return cycles;

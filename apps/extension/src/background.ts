@@ -14,10 +14,31 @@ import {
   markToMarketPositions,
   maybeExecutePaperTrade,
 } from "./background/paper-engine";
-import { clearTrades, listTrades } from "./storage/trade-ledger";
-import { STATUS_KEY, type ExtensionPreferences } from "./storage/preferences";
-import { computePerformance, summarizeClosedCycles } from "@fly/core";
+import {
+  clearTrades,
+  listTrades,
+  writePaperPositions,
+} from "./storage/trade-ledger";
+import {
+  computeExtendedPerformance,
+  computePerformance,
+  computePerformanceByBrainMode,
+  computeCalibration,
+  applyCalibration,
+  resetCalibration,
+  summarizeClosedCycles,
+} from "@fly/core";
 import { BROKER_REGISTRY } from "@fly/broker-adapters";
+import {
+  clearDetectionFeedback,
+  clearLearningObservations,
+  listLearningObservations,
+} from "./storage/learning-store";
+import {
+  DEFAULT_PREFERENCES,
+  STATUS_KEY,
+  type ExtensionPreferences,
+} from "./storage/preferences";
 
 const CONFIG_KEY = "pairing";
 const DEMO_ORIGINS = new Set([
@@ -143,9 +164,70 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
 
     if (kind === "set-preferences") {
-      const preferences = (message as { preferences: ExtensionPreferences })
+      let preferences = (message as { preferences: ExtensionPreferences })
         .preferences;
+      if (preferences.learningEnabled) {
+        const observations = await listLearningObservations();
+        preferences = {
+          ...preferences,
+          calibrationProfile: computeCalibration(
+            observations,
+            {
+              enabled: true,
+              minSamples: preferences.learningMinSamples,
+            },
+            preferences.calibrationProfile,
+          ),
+        };
+      }
       await writePreferences(preferences);
+      sendResponse({ ok: true, preferences });
+      return;
+    }
+
+    if (kind === "get-learning") {
+      const preferences = await readPreferences();
+      const observations = await listLearningObservations();
+      const profile = computeCalibration(
+        observations,
+        {
+          enabled: preferences.learningEnabled,
+          minSamples: preferences.learningMinSamples,
+        },
+        preferences.calibrationProfile,
+      );
+      const applied = applyCalibration(profile, {
+        enabled: preferences.learningEnabled,
+        minSamples: preferences.learningMinSamples,
+      });
+      sendResponse({
+        ok: true,
+        sampleCount: observations.length,
+        buyThreshold: applied.buyThreshold,
+        sellThreshold: applied.sellThreshold,
+        profile,
+      });
+      return;
+    }
+
+    if (kind === "reset-learning") {
+      await clearLearningObservations();
+      const preferences = await readPreferences();
+      await writePreferences({
+        ...preferences,
+        calibrationProfile: resetCalibration(),
+      });
+      sendResponse({ ok: true });
+      return;
+    }
+
+    if (kind === "reset-all-local") {
+      await clearTrades();
+      await clearLearningObservations();
+      await clearDetectionFeedback();
+      await writePaperPositions([]);
+      await chrome.storage.local.remove(["fly-daily-exposure"]);
+      await writePreferences(DEFAULT_PREFERENCES);
       sendResponse({ ok: true });
       return;
     }
@@ -191,23 +273,28 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
     if (kind === "get-performance") {
       const preferences = await readPreferences();
+      const range =
+        (message as { range?: "all" | "7d" | "30d" }).range ?? "all";
       const paperTrades = await listTrades("paper");
       const liveTrades = await listTrades("live-confirmed");
       const exposure = await getExposureSummary(preferences);
+      const starting = preferences.startingPaperCapital;
       sendResponse({
         ok: true,
         paper: computePerformance(
           paperTrades,
           exposure.positions,
-          preferences.riskPolicy.maxTradingCapital,
+          starting,
           exposure.cycles,
         ),
-        live: computePerformance(
-          liveTrades,
-          [],
-          preferences.riskPolicy.maxTradingCapital,
-          [],
+        extended: computeExtendedPerformance(exposure.cycles, starting, range),
+        byBrainMode: computePerformanceByBrainMode(
+          exposure.cycles,
+          paperTrades,
+          starting,
+          range,
         ),
+        live: computePerformance(liveTrades, [], starting, []),
         closedCycles: summarizeClosedCycles(exposure.cycles),
         exposure,
       });

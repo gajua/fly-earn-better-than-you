@@ -80,3 +80,39 @@ pre {
   font-size: 10px;
   opacity: 0.75;
 }
+
+.hint {
+  margin: 0 0 8px;
+  font-size: 11px;
+  opacity: 0.8;
+}
+
+.row {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.row button {
+  width: auto;
+  flex: 1;
+  padding: 6px;
+  background: #334155;
+}
+
+.checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.checkbox input {
+  margin-top: 2px;
+}
+
+#reset-learning,
+#reset-all,
+#clear-history {
+  margin-top: 6px;
+  background: #475569;
+}

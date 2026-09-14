@@ -1,5 +1,7 @@
 # Fly Earn Better Than You
 
+**English** | [한국어](README.ko.md)
+
 > A fruit fly with a real connectome walks onto your trading page and starts
 > judging candles. You wanted alpha. You got entomology.
 
@@ -73,8 +75,47 @@ Not Stable. Login / portfolio remain **NOT VERIFIED**. Live order click/submit i
 ## How it works
 
 Broker observation → validated candles → MarketFeatureExtractor /
-TemporalAggregator → Mock or MaleCNS → BehaviorDecoder → Fly overlay →
-ProposalGuard / RiskEngine → Paper (default) or Live Assist.
+TemporalAggregator → Mock or MaleCNS → BehaviorDecoder →
+**PersonalCalibration** → Fly overlay → ProposalGuard / RiskEngine → Paper
+(default) or Live Assist.
+
+## Local learning
+
+Opt-in statistical PersonalCalibration from local Paper history (IndexedDB).
+
+- Default: **OFF**
+- Adjusts buy/sell thresholds and cooldown only
+- **Local learning does not modify the MaleCNS connectome**
+- No cloud training / telemetry / Supabase sync
+
+See [`docs/LOCAL_LEARNING.md`](docs/LOCAL_LEARNING.md).
+
+## Language
+
+Popup setting: Auto / 한국어 / English (`chrome.storage.local`).
+Fly bubbles and popup strings are localized. Business keys stay English.
+
+## Performance
+
+Experimental paper dashboard: return, PnL, win rate, profit factor, max
+drawdown, best/worst trade, and brain-mode grouping (MaleCNS / Mock / Shuffled).
+
+Historical paper results do not imply future performance.
+
+See [`docs/PERFORMANCE.md`](docs/PERFORMANCE.md).
+
+## Generic broker detection
+
+Foundation only: DOM semantic detector for unknown pages → **Paper-only** when
+confidence is high. Existing Binance / Upbit adapters remain.
+
+See [`docs/GENERIC_BROKER_DETECTOR.md`](docs/GENERIC_BROKER_DETECTOR.md).
+
+## Privacy
+
+- Learning and feedback stay on this device
+- No password / OTP / cookie / Authorization capture
+- Extension runtime does not call hosted LLMs
 
 ## No API keys / No runtime LLM cost
 

@@ -102,7 +102,9 @@ Packed extension Fly/UX/Paper + persistence: PASS.
 | rust/cargo                               | PASS when cargo present          |
 | GitHub Actions remote                    | workflow present; verify on push |
 
-## Risk (unit)
+## v1.1 notes
+
+Local learning (opt-in), ko/en i18n, Paper performance analytics, GenericBrokerDetector foundation landed on branch `feat/v1.1-local-learning-i18n-perf-detector`. Existing Binance/Upbit usable claims remain USABLE BETA.
 
 `packages/core/src/index.test.ts`: max capital / zero sell / oversell / cooldown PASS.  
 `packages/core/src/paper-controlled.test.ts`: 10@100 → 10@110 PASS.

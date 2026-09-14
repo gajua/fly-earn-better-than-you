@@ -18,11 +18,13 @@ Status reflects executable evidence, not intent.
 - Sanitized Binance/Upbit fixtures; Max Buy/Max Sell locators.
 - **Binance Spot packed-extension Paper path: USABLE BETA** (see REAL_BROWSER_QA).
 - **Upbit packed-extension Paper + UX path: USABLE BETA** (iframe chart, market list scan, Paper notional sizing).
+- **v1.1:** PersonalCalibration (opt-in), ko/en i18n, Paper performance analytics, GenericBrokerDetector foundation.
 
 ## PARTIAL
 
 - Live Assist: approach/proposal only.
 - Binance/Upbit login / portfolio: **NOT VERIFIED**.
+- Generic detector: foundation only (not production usable claim).
 
 ## NOT IMPLEMENTED
 

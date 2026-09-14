@@ -45,3 +45,22 @@ export {
 } from "./validate";
 export { deriveSessionState, sessionToFlyState } from "./session";
 export { clamp01, toDOMRectLike } from "./math";
+export {
+  DEFAULT_CALIBRATION_CONFIG,
+  DEFAULT_CALIBRATION_PROFILE,
+  applyCalibration,
+  computeCalibration,
+  observationFromBrain,
+  resetCalibration,
+  type CalibrationConfig,
+  type CalibrationProfile,
+  type LearningObservation,
+} from "./calibration";
+export {
+  computeExtendedPerformance,
+  computePerformanceByBrainMode,
+  filterClosedCycles,
+  type BrainModePerformance,
+  type ExtendedPerformance,
+  type PerformanceRange,
+} from "./performance-analytics";

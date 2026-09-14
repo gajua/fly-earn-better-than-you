@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -12,18 +12,31 @@
         <div class="emoji" id="fly-emoji">🪰</div>
         <h1 id="status-title">Fly</h1>
       </header>
-      <p id="status-message">상태 확인 중…</p>
+      <p id="status-message" data-i18n="status.loading">Checking status…</p>
+
       <section class="card">
-        <h2>Mode</h2>
+        <h2 data-i18n="popup.language">Language</h2>
         <label>
-          Trading
+          <span data-i18n="popup.language">Language</span>
+          <select id="locale">
+            <option value="auto" data-i18n="popup.languageAuto">Auto</option>
+            <option value="ko" data-i18n="popup.languageKo">한국어</option>
+            <option value="en" data-i18n="popup.languageEn">English</option>
+          </select>
+        </label>
+      </section>
+
+      <section class="card">
+        <h2 data-i18n="popup.mode">Mode</h2>
+        <label>
+          <span data-i18n="popup.trading">Trading</span>
           <select id="trading-mode">
             <option value="paper">Paper (default)</option>
             <option value="live-assist">Live-assist (confirm only)</option>
           </select>
         </label>
         <label>
-          Brain
+          <span data-i18n="popup.brain">Brain</span>
           <select id="brain-mode">
             <option value="mock">Mock</option>
             <option value="real-connectome">MaleCNS real-connectome</option>
@@ -31,27 +44,91 @@
           </select>
         </label>
         <label>
-          Max trading capital (KRW)
+          <span data-i18n="popup.maxCapital">Max trading capital</span>
           <input id="max-capital" type="number" min="1000" step="1000" />
         </label>
-        <button id="save-prefs" type="button">Save settings</button>
+        <label>
+          <span data-i18n="popup.startingCapital">Starting paper capital</span>
+          <input id="starting-capital" type="number" min="1000" step="1000" />
+        </label>
+        <button id="save-prefs" type="button" data-i18n="popup.save">
+          Save settings
+        </button>
       </section>
+
       <section class="card">
-        <h2>Paper performance</h2>
+        <h2 data-i18n="popup.learning">Learning</h2>
+        <label class="checkbox">
+          <input id="learning-enabled" type="checkbox" />
+          <span data-i18n="popup.learningEnable"
+            >Learn from my Paper trading history</span
+          >
+        </label>
+        <p class="hint" data-i18n="popup.learningPrivacy">
+          Learning runs locally on this device. Your trading observations are
+          not uploaded.
+        </p>
+        <p>
+          <span data-i18n="popup.learningSamples">Learning samples</span>:
+          <strong id="learning-samples">0</strong>
+        </p>
+        <p>
+          <span data-i18n="popup.buyThreshold">Buy threshold</span>:
+          <strong id="buy-threshold">0.82</strong>
+        </p>
+        <p>
+          <span data-i18n="popup.sellThreshold">Sell threshold</span>:
+          <strong id="sell-threshold">0.82</strong>
+        </p>
+        <button id="reset-learning" type="button" data-i18n="popup.resetLearning">
+          Reset learning
+        </button>
+      </section>
+
+      <section class="card">
+        <h2 data-i18n="popup.performance">Fly Performance</h2>
+        <p class="hint" data-i18n="popup.experimentalPerformance">
+          Experimental paper performance
+        </p>
+        <div class="row">
+          <button type="button" data-range="all" data-i18n="popup.rangeAll">
+            All
+          </button>
+          <button type="button" data-range="7d" data-i18n="popup.range7d">
+            7D
+          </button>
+          <button type="button" data-range="30d" data-i18n="popup.range30d">
+            30D
+          </button>
+        </div>
         <pre id="performance">—</pre>
+        <details>
+          <summary data-i18n="popup.byBrainMode">By brain mode</summary>
+          <pre id="brain-performance">—</pre>
+        </details>
       </section>
+
       <section class="card">
-        <h2>Selector / page diagnostics</h2>
+        <h2 data-i18n="popup.diagnostics">Selector / page diagnostics</h2>
         <pre id="diagnostics">—</pre>
       </section>
+
       <section class="card">
-        <h2>Privacy</h2>
-        <p>비밀번호·OTP·쿠키·세션 토큰은 읽거나 저장하지 않습니다.</p>
-        <button id="clear-history" type="button">Delete local Fly history</button>
+        <h2 data-i18n="popup.privacy">Privacy</h2>
+        <p data-i18n="popup.privacyBody">
+          Passwords, OTPs, cookies, and session tokens are never read or stored.
+        </p>
+        <button id="clear-history" type="button" data-i18n="popup.clearPaper">
+          Clear Paper history
+        </button>
+        <button id="reset-all" type="button" data-i18n="popup.resetAll">
+          Reset all local Fly data
+        </button>
       </section>
-      <p class="fineprint">
-        BUY 근처 이동 ≠ 수익 예측. Experimental MaleCNS-constrained neural
-        response only.
+
+      <p class="fineprint" data-i18n="popup.fineprint">
+        Approaching BUY ≠ predicting profit. Historical paper results do not
+        imply future performance.
       </p>
     </main>
     <script type="module" src="popup.js"></script>
