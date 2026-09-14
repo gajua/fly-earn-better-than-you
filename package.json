@@ -14,7 +14,8 @@
     "test:python": "services/brain/.venv/bin/python -m pytest -q services/brain/tests",
     "test:rust": "cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "package:extension": "node scripts/package-extension-release.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.35.0",

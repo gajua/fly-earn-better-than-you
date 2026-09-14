@@ -20,3 +20,6 @@ services/brain/data/cache/
 
 .tmp-tradecanvas-audit/
 .tmp-*/
+release/.staging/
+release/*.zip
+release/*.sha256.txt
