@@ -39,4 +39,15 @@ export default tseslint.config(
       sourceType: "module",
     },
   },
+  {
+    // Playwright page.evaluate / extension SW callbacks run in browser scope.
+    files: ["scripts/record-*.mjs"],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+        ...globals.browser,
+        chrome: "readonly",
+      },
+    },
+  },
 );

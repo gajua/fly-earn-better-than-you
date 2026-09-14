@@ -208,6 +208,21 @@ Not Stable. Login / portfolio remain **NOT VERIFIED**. Live order click/submit i
 
 ---
 
+## Autonomous exploration (Binance Spot)
+
+On Binance, Fly can walk the market instead of only hovering BUY/SELL:
+
+- scan a small USDT universe (BTC / ETH / SOL and a few liquid pairs)
+- look at 1d → 4h → 1h → 15m when something looks interesting
+- show a compact HUD (symbol, timeframe, curiosity, why it’s looking)
+- **not trading is normal** — Paper proposals wait until enough observation
+
+Screen control never clicks BUY/SELL or order submit. Pause from the HUD or popup.
+
+Details: [`docs/AUTONOMOUS_EXPLORATION.md`](docs/AUTONOMOUS_EXPLORATION.md).
+
+---
+
 ## Put a fly on your trading screen
 
 ```bash

@@ -46,6 +46,13 @@ export { createBinanceBrokerAdapter } from "./brokers/binance/ui-adapter";
 export { createUpbitBrokerAdapter } from "./brokers/upbit/ui-adapter";
 export { BROKER_HEALTH } from "./health";
 export { scanCandidates } from "./candidate-scanner";
+export { classifyClickCandidate, guardedClick } from "./explorer/click-guard";
+export { createBinanceUiExplorer } from "./explorer/binance";
+export { createBinanceUniverseProvider } from "./explorer/universe";
+export type {
+  BrokerUIExplorer,
+  SymbolUniverseProvider,
+} from "./explorer/types";
 export {
   GENERIC_DETECTOR_CONFIDENCE_THRESHOLD,
   detectGenericBrokerPage,

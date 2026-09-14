@@ -86,7 +86,16 @@ export type MessageKey =
   | "perf.worstTrade"
   | "confirm.resetLearning"
   | "confirm.clearPaper"
-  | "confirm.resetAll";
+  | "confirm.resetAll"
+  | "popup.exploration"
+  | "popup.explorationOn"
+  | "popup.explorationSpeed"
+  | "popup.speedSlow"
+  | "popup.speedNormal"
+  | "popup.speedFast"
+  | "popup.visibleControl"
+  | "popup.activityHud"
+  | "popup.pauseExploration";
 
 export type MessageDictionary = Record<MessageKey, string>;
 
@@ -190,4 +199,13 @@ export const en: MessageDictionary = {
   "confirm.clearPaper": "Clear Paper trades and cycles?",
   "confirm.resetAll":
     "Reset ALL local Fly data (learning, paper, preferences defaults)?",
+  "popup.exploration": "Autonomous exploration",
+  "popup.explorationOn": "Autonomous exploration",
+  "popup.explorationSpeed": "Exploration speed",
+  "popup.speedSlow": "Slow",
+  "popup.speedNormal": "Normal",
+  "popup.speedFast": "Fast",
+  "popup.visibleControl": "Visible browser control",
+  "popup.activityHud": "Fly activity HUD",
+  "popup.pauseExploration": "Pause exploration / stop controlling screen",
 };

@@ -100,4 +100,13 @@ export const ko: MessageDictionary = {
   "confirm.clearPaper": "Paper 거래와 사이클을 지울까요?",
   "confirm.resetAll":
     "로컬 Fly 데이터 전부(학습·Paper·설정 기본값)를 초기화할까요?",
+  "popup.exploration": "자율 탐색",
+  "popup.explorationOn": "자율 시장 탐색",
+  "popup.explorationSpeed": "탐색 속도",
+  "popup.speedSlow": "느리게",
+  "popup.speedNormal": "보통",
+  "popup.speedFast": "빠르게",
+  "popup.visibleControl": "화면 조작 보이기",
+  "popup.activityHud": "Fly 활동 HUD",
+  "popup.pauseExploration": "탐색 일시정지 / 화면 조종 중단",
 };

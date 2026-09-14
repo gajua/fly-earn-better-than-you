@@ -1,6 +1,7 @@
 import type {
   BrainMode,
   CalibrationProfile,
+  ExplorationSpeed,
   RiskPolicy,
   SessionLifecycleState,
   TradingMode,
@@ -35,6 +36,11 @@ export interface ExtensionPreferences {
   readonly startingPaperCapital: number;
   /** Retained for experimental personal path only — not product default. */
   readonly calibrationProfile: CalibrationProfile;
+  readonly autonomousExploration: boolean;
+  readonly explorationSpeed: ExplorationSpeed;
+  readonly visibleBrowserControl: boolean;
+  readonly flyActivityHud: boolean;
+  readonly explorationPaused: boolean;
   /** @deprecated use globalLearningConsent / contributeAnonymousLearning */
   readonly learningEnabled?: boolean;
 }
@@ -58,6 +64,11 @@ export const DEFAULT_PREFERENCES: ExtensionPreferences = {
   learningMinSamples: 30,
   startingPaperCapital: 1_000_000,
   calibrationProfile: DEFAULT_CALIBRATION_PROFILE,
+  autonomousExploration: true,
+  explorationSpeed: "normal",
+  visibleBrowserControl: true,
+  flyActivityHud: true,
+  explorationPaused: false,
 };
 
 export interface RuntimeStatus {
@@ -119,6 +130,11 @@ export const normalizePreferences = (
     },
     enabledBrokerIds:
       value?.enabledBrokerIds ?? DEFAULT_PREFERENCES.enabledBrokerIds,
+    autonomousExploration: value?.autonomousExploration ?? true,
+    explorationSpeed: value?.explorationSpeed ?? "normal",
+    visibleBrowserControl: value?.visibleBrowserControl ?? true,
+    flyActivityHud: value?.flyActivityHud ?? true,
+    explorationPaused: value?.explorationPaused ?? false,
   };
 };
 

@@ -29,6 +29,8 @@ class SensoryStimulus:
     motion_intensity: float
     volatility_stimulus: float
     reward_like_stimulus: float
+    novelty_stimulus: float
+    conflict_stimulus: float
 
 
 class SensoryEncoder:
@@ -40,12 +42,16 @@ class SensoryEncoder:
         "motion_intensity",
         "volatility_stimulus",
         "reward_like_stimulus",
+        "novelty_stimulus",
+        "conflict_stimulus",
     )
 
     def encode(self, environment: MarketEnvironmentModel) -> SensoryStimulus:
         momentum = environment.market.momentum
         change = environment.asset.changePercent if environment.asset else 0.0
         pnl = environment.position.pnlPercent if environment.position else 0.0
+        novelty = environment.market.novelty or 0.0
+        conflict = environment.market.trendConflict or 0.0
         return SensoryStimulus(
             visual_positive=clamp01(
                 max(0.0, momentum) * 0.7 + max(0.0, change) / 20 * 0.3
@@ -59,6 +65,9 @@ class SensoryEncoder:
             ),
             volatility_stimulus=clamp01(environment.market.volatility),
             reward_like_stimulus=clamp01((pnl + 20.0) / 40.0),
+            # MODELED mapping onto real sensory input neurons — not a biological claim.
+            novelty_stimulus=clamp01(novelty),
+            conflict_stimulus=clamp01(conflict),
         )
 
     def currents(

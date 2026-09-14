@@ -49,6 +49,16 @@ const onboardingLocal = document.getElementById(
 const onboardingContinue = document.getElementById(
   "onboarding-continue",
 ) as HTMLButtonElement;
+const explorationOn = document.getElementById(
+  "exploration-on",
+) as HTMLInputElement;
+const explorationSpeed = document.getElementById(
+  "exploration-speed",
+) as HTMLSelectElement;
+const visibleControl = document.getElementById(
+  "visible-control",
+) as HTMLInputElement;
+const activityHud = document.getElementById("activity-hud") as HTMLInputElement;
 const presetVersion = document.getElementById("preset-version")!;
 const presetSource = document.getElementById("preset-source")!;
 const communityObservations = document.getElementById(
@@ -234,6 +244,10 @@ const showMain = async (
   maxCapital.value = String(preferences.riskPolicy.maxTradingCapital);
   startingCapital.value = String(preferences.startingPaperCapital);
   localeSelect.value = preferences.locale;
+  explorationOn.checked = preferences.autonomousExploration;
+  explorationSpeed.value = preferences.explorationSpeed;
+  visibleControl.checked = preferences.visibleBrowserControl;
+  activityHud.checked = preferences.flyActivityHud;
 
   await loadGlobalLearning(preferences);
   await loadPerformance();
@@ -298,6 +312,11 @@ document.getElementById("save-prefs")!.addEventListener("click", () => {
       experimentalPersonalCalibration: false,
       startingPaperCapital:
         Number(startingCapital.value) || current.startingPaperCapital,
+      autonomousExploration: explorationOn.checked,
+      explorationSpeed:
+        explorationSpeed.value as ExtensionPreferences["explorationSpeed"],
+      visibleBrowserControl: visibleControl.checked,
+      flyActivityHud: activityHud.checked,
       riskPolicy: {
         ...current.riskPolicy,
         maxTradingCapital:
@@ -389,5 +408,16 @@ for (const button of Array.from(
     void loadPerformance();
   });
 }
+
+document.getElementById("pause-exploration")!.addEventListener("click", () => {
+  void (async () => {
+    const prefsResponse = (await chrome.runtime.sendMessage({
+      kind: "get-preferences",
+    })) as { preferences: ExtensionPreferences };
+    const paused = !prefsResponse.preferences.explorationPaused;
+    const next = await savePreferencesPatch({ explorationPaused: paused });
+    await showMain(next);
+  })();
+});
 
 void load();
