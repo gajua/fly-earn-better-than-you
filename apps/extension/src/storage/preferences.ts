@@ -5,10 +5,7 @@ import type {
   SessionLifecycleState,
   TradingMode,
 } from "@fly/core";
-import {
-  DEFAULT_CALIBRATION_CONFIG,
-  DEFAULT_CALIBRATION_PROFILE,
-} from "@fly/core";
+import { DEFAULT_CALIBRATION_PROFILE } from "@fly/core";
 import type { LocalePreference } from "../i18n";
 
 export interface ExtensionPreferences {
@@ -19,10 +16,19 @@ export interface ExtensionPreferences {
   readonly enabledBrokerIds: readonly string[];
   readonly maxHistoryDays: number;
   readonly locale: LocalePreference;
-  readonly learningEnabled: boolean;
+  /** Opt-in anonymous Paper contribution to shared global learning. Default OFF. */
+  readonly contributeAnonymousLearning: boolean;
+  /**
+   * Developer-only experimental personal calibration.
+   * Product default is GlobalCalibrationPreset (same for all users).
+   */
+  readonly experimentalPersonalCalibration: boolean;
   readonly learningMinSamples: number;
   readonly startingPaperCapital: number;
+  /** Retained for experimental personal path only — not product default. */
   readonly calibrationProfile: CalibrationProfile;
+  /** @deprecated use contributeAnonymousLearning */
+  readonly learningEnabled?: boolean;
 }
 
 export const DEFAULT_PREFERENCES: ExtensionPreferences = {
@@ -38,8 +44,9 @@ export const DEFAULT_PREFERENCES: ExtensionPreferences = {
   enabledBrokerIds: ["demo", "binance", "upbit"],
   maxHistoryDays: 90,
   locale: "auto",
-  learningEnabled: false,
-  learningMinSamples: DEFAULT_CALIBRATION_CONFIG.minSamples,
+  contributeAnonymousLearning: false,
+  experimentalPersonalCalibration: false,
+  learningMinSamples: 30,
   startingPaperCapital: 1_000_000,
   calibrationProfile: DEFAULT_CALIBRATION_PROFILE,
 };
@@ -74,17 +81,25 @@ export const DAILY_EXPOSURE_KEY = "fly-daily-exposure";
 
 export const normalizePreferences = (
   value: Partial<ExtensionPreferences> | null | undefined,
-): ExtensionPreferences => ({
-  ...DEFAULT_PREFERENCES,
-  ...value,
-  riskPolicy: {
-    ...DEFAULT_PREFERENCES.riskPolicy,
-    ...(value?.riskPolicy ?? {}),
-  },
-  calibrationProfile: {
-    ...DEFAULT_CALIBRATION_PROFILE,
-    ...(value?.calibrationProfile ?? {}),
-  },
-  enabledBrokerIds:
-    value?.enabledBrokerIds ?? DEFAULT_PREFERENCES.enabledBrokerIds,
-});
+): ExtensionPreferences => {
+  const contributeAnonymousLearning =
+    value?.contributeAnonymousLearning ??
+    value?.learningEnabled ??
+    DEFAULT_PREFERENCES.contributeAnonymousLearning;
+  return {
+    ...DEFAULT_PREFERENCES,
+    ...value,
+    contributeAnonymousLearning,
+    experimentalPersonalCalibration: false,
+    riskPolicy: {
+      ...DEFAULT_PREFERENCES.riskPolicy,
+      ...(value?.riskPolicy ?? {}),
+    },
+    calibrationProfile: {
+      ...DEFAULT_CALIBRATION_PROFILE,
+      ...(value?.calibrationProfile ?? {}),
+    },
+    enabledBrokerIds:
+      value?.enabledBrokerIds ?? DEFAULT_PREFERENCES.enabledBrokerIds,
+  };
+};

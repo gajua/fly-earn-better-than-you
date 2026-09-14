@@ -7,7 +7,6 @@ import {
 import { createMaleCNSBrain, createMockFlyBrain } from "@fly/brain-client";
 import {
   aggregateTimeframeObservations,
-  applyCalibration,
   demoInstrumentId,
   deriveSessionState,
   filterUsableTimeframeObservations,
@@ -15,6 +14,7 @@ import {
   type TimeframeObservation,
 } from "@fly/core";
 import { mountShadowFly } from "@fly/fly-ui/shadow-fly";
+import { loadActiveGlobalPreset } from "./global-preset-runtime";
 import { bubbleMessageKey, resolveLocale, t } from "./i18n";
 import { createOrderProposal, paperQuantityForPrice } from "./orders";
 import type { ExtensionPreferences } from "./storage/preferences";
@@ -149,21 +149,7 @@ const resolveBrain = async () => {
   const fetchImpl = createBrainFetch();
   const tradingMode = preferences?.tradingMode ?? "paper";
   const locale = resolveLocale(preferences?.locale ?? "auto");
-  const thresholds = applyCalibration(
-    preferences?.calibrationProfile ?? {
-      buyThreshold: 0.82,
-      sellThreshold: 0.82,
-      cooldownMultiplier: 1,
-      behaviorConfidence: 1,
-      sensoryScale: 1,
-      updatedAt: new Date(0).toISOString(),
-      sampleCount: 0,
-    },
-    {
-      enabled: preferences?.learningEnabled ?? false,
-      minSamples: preferences?.learningMinSamples ?? 30,
-    },
-  );
+  const { gates: thresholds } = await loadActiveGlobalPreset();
   if (mode === "real-connectome") {
     return {
       brain: createMaleCNSBrain({ mode: "malecns", baseUrl, fetchImpl }),
