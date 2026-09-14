@@ -1,46 +1,175 @@
-# Fly Earn Better Than You
+# 🪰 A fruit fly earns better than you.
+
+### Show it a chart.
+
+### While you're still thinking, the fly is already hovering between BUY and SELL.
 
 **English** | [한국어](README.ko.md)
 
+**Fly Earn Better Than You** is an open-source experiment that connects
+real market observations to a fruit-fly neural connectome (MaleCNS)
+and lets a tiny fly react directly on supported trading screens.
+
 ```text
-What happens if a fruit-fly connectome watches a trading screen?
+It watches the chart.
+Market movement becomes neural stimulus.
+The fly brain reacts.
+The fly moves.
 ```
 
-**Fly Earn Better Than You** maps market observations into a MaleCNS-based
-neural simulation and lets a tiny fly explore BUY/SELL interfaces.
+```text
+🧪 Paper-first
+🔑 No broker API keys required for supported public observation
+🧠 MaleCNS-based connectome simulation
+🌍 Community Global Calibration
+🇰🇷 한국어 / 🇺🇸 English
+```
 
-- No broker API keys required for supported public observation
-- No automatic live trading
-- Paper-first
-- Open source
+**Fly does not automatically submit real-money orders.**
 
-This is an **experimental / exploratory** project. MaleCNS connectome usage
-does **not** mean a fruit fly understands stocks. Paper performance ≠ future
-investment performance. Not financial advice.
+---
+
+## What does it actually do?
+
+Open Upbit or Binance.
+
+🪰 Fly wakes up.
+
+It can:
+
+- detect the current market
+- observe market data across available timeframes
+- explore charts and market lists
+- feed market observations into MaleCNS
+- hover around BUY when its behavior leans toward buying
+- hover around SELL when its behavior leans toward selling
+
+Nothing interesting?
+
+It flies somewhere else.
+
+```text
+Trading screen
+      ↓
+Market observations
+      ↓
+Sensory encoding
+      ↓
+🧠 MaleCNS
+      ↓
+Fly behavior
+      ↓
+🪰
+BUY ← → SELL
+```
+
+---
+
+## Why a fruit fly?
+
+Why not?
+
+Humans stare at indicators, news, and charts
+while trying to decide between BUY and SELL.
+
+This project asks a different question:
+
+> What happens if market observations are fed into
+> a real fruit-fly neural connectivity model?
+
+Then it turns the result into something visible:
+
+a tiny fly moving across your trading screen.
+
+### Scientific honesty
+
+MaleCNS does **NOT** understand stocks.
+
+Fly Earn Better Than You does **not** claim that a fruit fly can predict markets.
+
+Market features are encoded into stimuli, processed through the project's
+MaleCNS-based simulation pipeline, decoded into behavioral drives,
+and visualized through Fly.
+
+Prefer this phrase:
 
 > **Neural simulation constrained by real MaleCNS connectivity.**
 
+This is an **experimental / exploratory** Chrome Extension project.
+Paper performance ≠ future investment performance. Not financial advice.
+
+---
+
+## Is the fly actually better than you?
+
+That's the experiment.
+
+Track its Paper trades locally:
+
+- Return
+- Realized P&L
+- Win rate
+- Profit factor
+- Max drawdown
+- Best / worst trade
+
+See [`docs/PERFORMANCE.md`](docs/PERFORMANCE.md).
+
+---
+
+## 🪰 The fly does not learn alone
+
+Everyone uses the same published Global Calibration.
+
+If you want, you can share anonymous Paper results.
+
+The more people use Fly, and the more Paper results accumulate,
+the more evidence we have to evaluate the next shared calibration.
+
+When a candidate passes validation and manual review, a new Global Calibration
+is published — and every Fly uses the same improved preset.
+
 ```text
-Open a supported broker
-        ↓
-Fly wakes up (politely, with pointer-events: none)
-        ↓
-Real market observations (no fake candles)
-        ↓
-MaleCNS-constrained neural simulation
-        ↓
-Fly reacts near BUY / SELL
-        ↓
-Paper trade (default) or Live Assist
-        ↓
-Local performance history
+1 Fly
+   +
+100 Fly
+   +
+1,000 Fly
+      ↓
+Anonymous Paper observations
+      ↓
+Candidate calibration
+      ↓
+Validation
+      ↓
+New Global Calibration
+      ↓
+🪰🪰🪰 Everyone gets the same calibration
 ```
 
-Prefer this phrase for the brain:
+Important:
 
-> **Neural simulation constrained by real MaleCNS connectivity.**
+- MaleCNS itself is **not** retrained
+- This is **not** automatic “self-learning AI”
+- Better Paper numbers are **not** guaranteed
 
-## Currently usable / recognizable exchanges
+Versions are independent:
+
+```text
+Extension v1.1.0
+Global Calibration v1.0.0
+MaleCNS dataset v1.0
+```
+
+Privacy: no broker login credentials, account numbers, holdings/balances,
+real-money trades, cookies/tokens, raw symbols, or email/identity are uploaded.
+
+See [`docs/GLOBAL_LEARNING.md`](docs/GLOBAL_LEARNING.md) and
+`apps/extension/.env.example`.
+
+---
+
+## Where can the fly live?
 
 Honest split: **usable** means the extension detects the page, mounts Fly, reads
 real market data, and can Paper-trade. **Recognizable (data only)** means public
@@ -77,88 +206,9 @@ Not Stable. Login / portfolio remain **NOT VERIFIED**. Live order click/submit i
 [`docs/REAL_BROWSER_QA.md`](docs/REAL_BROWSER_QA.md),
 [`docs/IMPLEMENTATION_STATUS.md`](docs/IMPLEMENTATION_STATUS.md).
 
-## How it works
+---
 
-Broker observation → validated candles → MarketFeatureExtractor /
-TemporalAggregator → Mock or MaleCNS → BehaviorDecoder →
-**GlobalCalibrationPreset** → Fly overlay → ProposalGuard / RiskEngine → Paper
-(default) or Live Assist.
-
-## Community Global Learning
-
-Everyone uses the same published calibration preset.
-
-Users can optionally contribute anonymous Paper results after an explicit
-first-run choice (no preselected option; product quality is identical either
-way).
-
-More observations provide more evidence for evaluating future calibration
-versions.
-
-MaleCNS itself is not retrained.
-
-New presets are validated and manually published:
-
-```text
-Community Paper observations
-→ calibration dataset
-→ candidate calibration
-→ validation
-→ manual approval
-→ published GlobalCalibrationPreset
-```
-
-Privacy: no broker login credentials, account numbers, holdings/balances,
-real-money trades, cookies/tokens, raw symbols, or email/identity are uploaded.
-
-Versions are independent concepts:
-
-```text
-Extension v1.1.0
-Global Calibration v1.0.0
-MaleCNS dataset v1.0
-```
-
-See [`docs/GLOBAL_LEARNING.md`](docs/GLOBAL_LEARNING.md) and
-`apps/extension/.env.example`.
-
-## Language
-
-Popup setting: Auto / 한국어 / English (`chrome.storage.local`).
-Fly bubbles and popup strings are localized. Business keys stay English.
-
-## Performance
-
-Experimental paper dashboard: return, PnL, win rate, profit factor, max
-drawdown, best/worst trade, and brain-mode grouping (MaleCNS / Mock / Shuffled).
-
-Historical paper results do not imply future performance.
-
-See [`docs/PERFORMANCE.md`](docs/PERFORMANCE.md).
-
-## Generic broker detection
-
-Foundation only: DOM semantic detector for unknown pages → **Paper-only** when
-confidence is high. Existing Binance / Upbit adapters remain.
-
-See [`docs/GENERIC_BROKER_DETECTOR.md`](docs/GENERIC_BROKER_DETECTOR.md).
-
-## Privacy
-
-- Paper history and preferences stay local (IndexedDB)
-- Shared learning uploads only when the user opts in (anonymous Paper features)
-- No password / OTP / cookie / Authorization capture
-- Extension runtime does not call hosted LLMs
-
-## No API keys / No runtime LLM cost
-
-- No broker API keys, secrets, cookies, or OAuth trading tokens by default.
-- Market data priority: DOM → embedded public data → public no-auth endpoint →
-  `UNAVAILABLE`.
-- No synthetic candles / fake timeframes / silent TF fallback.
-- Extension runtime does **not** call hosted LLMs.
-
-## Install / Quick start
+## Put a fly on your trading screen
 
 ```bash
 git clone https://github.com/gajua/fly-earn-better-than-you.git
@@ -184,14 +234,14 @@ pnpm --filter @fly/extension build
 Default after consent: Paper trading + Mock brain. Same Fly quality whether or
 not you contribute anonymous Paper results.
 
-## Binance
+### Binance
 
 1. Load the unpacked extension.
 2. Open `https://www.binance.com/en/trade/BTC_USDT?type=spot` (logged out OK).
 3. Detect symbol, chart, Max Buy / Max Sell landmarks, public candles.
 4. Paper fills stay in IndexedDB. Live order submit is never automated.
 
-## Upbit
+### Upbit
 
 1. Load the unpacked extension (`apps/extension/dist`).
 2. Popup → Trading `Paper` → Brain `Mock` or `MaleCNS real-connectome` → Save.
@@ -202,7 +252,38 @@ not you contribute anonymous Paper results.
 MaleCNS: same local service as Binance (`http://127.0.0.1:8000`). After changing
 Brain mode, refresh the Upbit tab.
 
-## MaleCNS
+---
+
+## Technical details
+
+### How the pipeline works
+
+Broker observation → validated candles → MarketFeatureExtractor /
+TemporalAggregator → Mock or MaleCNS → BehaviorDecoder →
+**GlobalCalibrationPreset** → Fly overlay → ProposalGuard / RiskEngine → Paper
+(default) or Live Assist.
+
+### Language
+
+Popup setting: Auto / 한국어 / English (`chrome.storage.local`).
+Fly bubbles and popup strings are localized. Business keys stay English.
+
+### Privacy
+
+- Paper history and preferences stay local (IndexedDB)
+- Shared learning uploads only when the user opts in (anonymous Paper features)
+- No password / OTP / cookie / Authorization capture
+- Extension runtime does not call hosted LLMs
+
+### No API keys / No runtime LLM cost
+
+- No broker API keys, secrets, cookies, or OAuth trading tokens by default.
+- Market data priority: DOM → embedded public data → public no-auth endpoint →
+  `UNAVAILABLE`.
+- No synthetic candles / fake timeframes / silent TF fallback.
+- Extension runtime does **not** call hosted LLMs.
+
+### MaleCNS service
 
 ```bash
 cd services/brain
@@ -215,7 +296,7 @@ uvicorn app.main:app --host 127.0.0.1 --port 8000
 Popup → Brain → MaleCNS real-connectome. Missing service/artifact → hard fail
 (no Mock fallback).
 
-## Paper / Live Assist / Risk / History
+### Paper / Live Assist / Risk / History
 
 - Paper: virtual fills, PositionCycle, local performance.
 - Live Assist: approach + proposal only; user places the order.
@@ -223,12 +304,19 @@ Popup → Brain → MaleCNS real-connectome. Missing service/artifact → hard f
 - History: IndexedDB local-first. Optional Supabase is for shared learning
   aggregation / published presets only — never required for Fly/Paper.
 
-## Add a broker
+### Generic broker detection
+
+Foundation only: DOM semantic detector for unknown pages → **Paper-only** when
+confidence is high. Existing Binance / Upbit adapters remain.
+
+See [`docs/GENERIC_BROKER_DETECTOR.md`](docs/GENERIC_BROKER_DETECTOR.md).
+
+### Add a broker
 
 See [`docs/ADDING_BROKER.md`](docs/ADDING_BROKER.md) and
 `packages/broker-adapters/template/`.
 
-## Commands
+### Commands
 
 ```bash
 pnpm lint
@@ -240,7 +328,7 @@ pnpm test:python
 pnpm test:rust
 ```
 
-## Limitations
+### Limitations
 
 - No automatic live order automation.
 - No password / OTP / cookie / Authorization capture.
@@ -248,13 +336,13 @@ pnpm test:rust
 - Logged-in portfolio reconciliation often NOT VERIFIED.
 - Stock brokers not in v1.
 
-## License / attribution
+### License / attribution
 
 MIT project code — see `LICENSE`. Third-party notices:
 [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md),
 [`docs/THIRD_PARTY_ADAPTERS.md`](docs/THIRD_PARTY_ADAPTERS.md).
 
-## Architecture docs
+### Architecture docs
 
 - [`AGENTS.md`](AGENTS.md)
 - [`docs/GLOBAL_LEARNING.md`](docs/GLOBAL_LEARNING.md)
@@ -262,3 +350,5 @@ MIT project code — see `LICENSE`. Third-party notices:
 - [`docs/REAL_BROWSER_QA.md`](docs/REAL_BROWSER_QA.md)
 - [`docs/IMPLEMENTATION_STATUS.md`](docs/IMPLEMENTATION_STATUS.md)
 - [`docs/RELEASE_READINESS.md`](docs/RELEASE_READINESS.md)
+- [`docs/PERFORMANCE.md`](docs/PERFORMANCE.md)
+- [`docs/LOCAL_LEARNING.md`](docs/LOCAL_LEARNING.md)
