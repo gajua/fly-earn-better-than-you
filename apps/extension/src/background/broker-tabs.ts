@@ -1,6 +1,10 @@
 import { findBrokerByUrl, listSupportedBrokers } from "@fly/broker-adapters";
 import type { RuntimeStatus } from "../storage/preferences";
-import { PREFS_KEY, STATUS_KEY, DEFAULT_PREFERENCES } from "../storage/preferences";
+import {
+  PREFS_KEY,
+  STATUS_KEY,
+  normalizePreferences,
+} from "../storage/preferences";
 import type { ExtensionPreferences } from "../storage/preferences";
 
 const badgeFor = (
@@ -9,10 +13,12 @@ const badgeFor = (
   if (session === "NO_BROKER" || session === "MARKET_CLOSED") return "sleeping";
   if (session === "BROKER_LOGGED_OUT" || session === "BRAIN_UNAVAILABLE") {
     return "sleeping";
-  }  if (session === "USER_CONFIRM_REQUIRED" || session === "ORDER_PROPOSED") {
+  }
+  if (session === "USER_CONFIRM_REQUIRED" || session === "ORDER_PROPOSED") {
     return "confirm";
   }
-  if (session === "BUY_INTEREST" || session === "SELL_INTEREST") return "interest";
+  if (session === "BUY_INTEREST" || session === "SELL_INTEREST")
+    return "interest";
   if (session === "WATCHING" || session === "SCANNING") return "watching";
   return "ready";
 };
@@ -43,15 +49,19 @@ const messageFor = (session: RuntimeStatus["session"]): string => {
 export const readPreferences = async (): Promise<ExtensionPreferences> => {
   const stored = await chrome.storage.local.get(PREFS_KEY);
   const value = stored[PREFS_KEY];
-  return value && typeof value === "object"
-    ? { ...DEFAULT_PREFERENCES, ...(value as ExtensionPreferences) }
-    : DEFAULT_PREFERENCES;
+  return normalizePreferences(
+    value && typeof value === "object"
+      ? (value as Partial<ExtensionPreferences>)
+      : undefined,
+  );
 };
 
 export const writePreferences = async (
   preferences: ExtensionPreferences,
-): Promise<void> => {
-  await chrome.storage.local.set({ [PREFS_KEY]: preferences });
+): Promise<ExtensionPreferences> => {
+  const normalized = normalizePreferences(preferences);
+  await chrome.storage.local.set({ [PREFS_KEY]: normalized });
+  return normalized;
 };
 
 export const publishStatus = async (
@@ -107,4 +117,6 @@ export const scanBrokerTabs = async (): Promise<{
 };
 
 export const allOptionalHostPermissions = (): string[] =>
-  listSupportedBrokers().flatMap((broker) => [...broker.optionalHostPermissions]);
+  listSupportedBrokers().flatMap((broker) => [
+    ...broker.optionalHostPermissions,
+  ]);

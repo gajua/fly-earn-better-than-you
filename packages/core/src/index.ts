@@ -45,3 +45,42 @@ export {
 } from "./validate";
 export { deriveSessionState, sessionToFlyState } from "./session";
 export { clamp01, toDOMRectLike } from "./math";
+export {
+  DEFAULT_CALIBRATION_CONFIG,
+  DEFAULT_CALIBRATION_PROFILE,
+  BUNDLED_GLOBAL_PRESET,
+  BUNDLED_GLOBAL_PRESET_VERSION,
+  FORBIDDEN_CONTRIBUTION_KEYS,
+  GLOBAL_PRESET_SCHEMA_VERSION,
+  applyCalibration,
+  applyGlobalPreset,
+  assertAnonymousObservationSafe,
+  attachChecksum,
+  brokerCategoryFromBrokerId,
+  buildGlobalPresetCandidate,
+  comparePresetVersions,
+  computeCalibration,
+  holdingDurationBucket,
+  observationFromBrain,
+  observationToSample,
+  resetCalibration,
+  scoreCalibration,
+  sha256Hex,
+  validateGlobalPreset,
+  verifyPresetChecksum,
+  type AnonymousPaperObservation,
+  type CalibrationConfig,
+  type CalibrationProfile,
+  type CalibrationSample,
+  type GlobalCalibrationPreset,
+  type GlobalPresetGates,
+  type LearningObservation,
+} from "./calibration";
+export {
+  computeExtendedPerformance,
+  computePerformanceByBrainMode,
+  filterClosedCycles,
+  type BrainModePerformance,
+  type ExtendedPerformance,
+  type PerformanceRange,
+} from "./performance-analytics";

@@ -14,7 +14,14 @@ import {
   type TimeframeObservation,
 } from "@fly/core";
 import { mountShadowFly } from "@fly/fly-ui/shadow-fly";
-import { createOrderProposal, paperQuantityForPrice } from "./orders";
+import { loadActiveGlobalPreset } from "./global-preset-runtime";
+import { bubbleMessageKey, resolveLocale, t } from "./i18n";
+import {
+  createOrderProposal,
+  marketFeaturesFromEnvironment,
+  paperQuantityForPrice,
+} from "./orders";
+import type { ExtensionPreferences } from "./storage/preferences";
 
 declare const __FLY_E2E__: boolean;
 
@@ -138,21 +145,22 @@ const resolveBrain = async () => {
   const response = (await chrome.runtime.sendMessage({
     kind: "get-preferences",
   })) as {
-    preferences?: {
-      brainMode?: string;
-      brainBaseUrl?: string;
-      tradingMode?: string;
-    };
+    preferences?: ExtensionPreferences;
   };
   const preferences = response.preferences;
   const mode = preferences?.brainMode ?? "mock";
   const baseUrl = preferences?.brainBaseUrl ?? "http://127.0.0.1:8000";
   const fetchImpl = createBrainFetch();
+  const tradingMode = preferences?.tradingMode ?? "paper";
+  const locale = resolveLocale(preferences?.locale ?? "auto");
+  const { gates: thresholds } = await loadActiveGlobalPreset();
   if (mode === "real-connectome") {
     return {
       brain: createMaleCNSBrain({ mode: "malecns", baseUrl, fetchImpl }),
       mode: "real-connectome" as const,
-      tradingMode: preferences?.tradingMode ?? "paper",
+      tradingMode,
+      locale,
+      thresholds,
     };
   }
   if (mode === "shuffled-control") {
@@ -163,13 +171,17 @@ const resolveBrain = async () => {
         fetchImpl,
       }),
       mode: "shuffled-control" as const,
-      tradingMode: preferences?.tradingMode ?? "paper",
+      tradingMode,
+      locale,
+      thresholds,
     };
   }
   return {
     brain: createMockFlyBrain(),
     mode: "mock" as const,
-    tradingMode: preferences?.tradingMode ?? "paper",
+    tradingMode,
+    locale,
+    thresholds,
   };
 };
 
@@ -192,7 +204,7 @@ const patchHistory = (onNavigate: () => void) => {
 const start = async () => {
   if (!adapter.detect()) return;
 
-  const { brain, mode, tradingMode } = await resolveBrain();
+  const { brain, mode, tradingMode, locale, thresholds } = await resolveBrain();
   let latestOutput: BrainOutput | null = null;
   let sessionMessage = "";
   let brainUnavailable = false;
@@ -221,27 +233,12 @@ const start = async () => {
       pageKindUnknown: page.pageKind === "unknown" || page.confidence < 0.8,
       guestMarketOk: guestMarketOk(),
     });
-    sessionMessage =
-      session === "BROKER_LOGGED_OUT"
-        ? "로그인하면 포트폴리오도 볼 수 있어."
-        : session === "BRAIN_UNAVAILABLE"
-          ? dataProviderError
-            ? "시세 데이터를 못 받아서 쉬고 있어."
-            : "MaleCNS가 끊겨서 쉬고 있어."
-          : latestOutput?.state === "approach_buy"
-            ? "매수 버튼 쪽에 끌리고 있어."
-            : latestOutput?.state === "approach_sell"
-              ? "매도 버튼 쪽을 기웃거리는 중."
-              : latestOutput?.state === "scan_assets"
-                ? "오른쪽 종목 리스트를 훑어보는 중."
-                : latestOutput?.state === "observe_chart" ||
-                    latestOutput?.state === "interested"
-                  ? "차트를 가만히 살펴보는 중."
-                  : latestOutput?.state === "explore"
-                    ? "화면 여기저기를 돌아다니는 중."
-                    : latestOutput?.state === "panic"
-                      ? "변동이 커서 조금 도망가는 중."
-                      : "";
+    const bubbleKey = bubbleMessageKey(
+      session,
+      latestOutput?.state,
+      dataProviderError,
+    );
+    sessionMessage = bubbleKey ? t(bubbleKey, locale) : "";
     const resolved = adapter.resolveTargets();
     await chrome.runtime.sendMessage({
       kind: "runtime-status",
@@ -312,7 +309,10 @@ const start = async () => {
             environment.asset &&
             (output.state === "approach_buy" ||
               output.state === "approach_sell") &&
-            Math.max(output.buyDrive, output.sellDrive) > 0.82
+            ((output.state === "approach_buy" &&
+              output.buyDrive > thresholds.buyThreshold) ||
+              (output.state === "approach_sell" &&
+                output.sellDrive > thresholds.sellThreshold))
           ) {
             const side = output.state === "approach_buy" ? "buy" : "sell";
             const quantity = paperQuantityForPrice(environment.asset.price);
@@ -330,6 +330,7 @@ const start = async () => {
               quantity,
               brainOutput: output,
               brainMode: mode,
+              marketFeatures: marketFeaturesFromEnvironment(environment),
             });
             await chrome.runtime.sendMessage({
               kind: "paper-trade",
@@ -418,7 +419,10 @@ const start = async () => {
             environment.asset &&
             (output.state === "approach_buy" ||
               output.state === "approach_sell") &&
-            Math.max(output.buyDrive, output.sellDrive) > 0.82
+            ((output.state === "approach_buy" &&
+              output.buyDrive > thresholds.buyThreshold) ||
+              (output.state === "approach_sell" &&
+                output.sellDrive > thresholds.sellThreshold))
           ) {
             const side = output.state === "approach_buy" ? "buy" : "sell";
             const quantity = paperQuantityForPrice(environment.asset.price);
@@ -436,6 +440,7 @@ const start = async () => {
               quantity,
               brainOutput: output,
               brainMode: mode,
+              marketFeatures: marketFeaturesFromEnvironment(environment),
             });
             const paperResult = chrome.runtime.sendMessage({
               kind: "paper-trade",

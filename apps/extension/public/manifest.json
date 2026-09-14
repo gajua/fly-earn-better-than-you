@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Fly Earn Better Than You",
-  "version": "0.3.0",
+  "version": "1.1.0",
   "minimum_chrome_version": "116",
   "description": "Extension-first Fly observer for supported broker tabs. Observation and paper trading only; never auto-submits live orders.",
   "permissions": ["storage", "tabs"],

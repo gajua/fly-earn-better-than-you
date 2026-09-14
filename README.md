@@ -1,17 +1,24 @@
 # Fly Earn Better Than You
 
-> A fruit fly with a real connectome walks onto your trading page and starts
-> judging candles. You wanted alpha. You got entomology.
+**English** | [한국어](README.ko.md)
 
-**Fly Earn Better Than You** is an open-source Chrome experiment that watches
-supported trading pages, feeds **real** market observations into a neural
-simulation constrained by the real **MaleCNS v1.0** fruit-fly connectome, and
-draws a tiny fly that buzzes toward BUY / SELL like it has opinions (it does
-not; it has synapses and vibes).
+```text
+What happens if a fruit-fly connectome watches a trading screen?
+```
 
-This is **not** financial advice, not a proven trading strategy, and not a claim
-that fruit flies predict markets. If the fly looks confident, that is your
-problem, not its edge.
+**Fly Earn Better Than You** maps market observations into a MaleCNS-based
+neural simulation and lets a tiny fly explore BUY/SELL interfaces.
+
+- No broker API keys required for supported public observation
+- No automatic live trading
+- Paper-first
+- Open source
+
+This is an **experimental / exploratory** project. MaleCNS connectome usage
+does **not** mean a fruit fly understands stocks. Paper performance ≠ future
+investment performance. Not financial advice.
+
+> **Neural simulation constrained by real MaleCNS connectivity.**
 
 ```text
 Open a supported broker
@@ -73,8 +80,75 @@ Not Stable. Login / portfolio remain **NOT VERIFIED**. Live order click/submit i
 ## How it works
 
 Broker observation → validated candles → MarketFeatureExtractor /
-TemporalAggregator → Mock or MaleCNS → BehaviorDecoder → Fly overlay →
-ProposalGuard / RiskEngine → Paper (default) or Live Assist.
+TemporalAggregator → Mock or MaleCNS → BehaviorDecoder →
+**GlobalCalibrationPreset** → Fly overlay → ProposalGuard / RiskEngine → Paper
+(default) or Live Assist.
+
+## Community Global Learning
+
+Everyone uses the same published calibration preset.
+
+Users can optionally contribute anonymous Paper results after an explicit
+first-run choice (no preselected option; product quality is identical either
+way).
+
+More observations provide more evidence for evaluating future calibration
+versions.
+
+MaleCNS itself is not retrained.
+
+New presets are validated and manually published:
+
+```text
+Community Paper observations
+→ calibration dataset
+→ candidate calibration
+→ validation
+→ manual approval
+→ published GlobalCalibrationPreset
+```
+
+Privacy: no broker login credentials, account numbers, holdings/balances,
+real-money trades, cookies/tokens, raw symbols, or email/identity are uploaded.
+
+Versions are independent concepts:
+
+```text
+Extension v1.1.0
+Global Calibration v1.0.0
+MaleCNS dataset v1.0
+```
+
+See [`docs/GLOBAL_LEARNING.md`](docs/GLOBAL_LEARNING.md) and
+`apps/extension/.env.example`.
+
+## Language
+
+Popup setting: Auto / 한국어 / English (`chrome.storage.local`).
+Fly bubbles and popup strings are localized. Business keys stay English.
+
+## Performance
+
+Experimental paper dashboard: return, PnL, win rate, profit factor, max
+drawdown, best/worst trade, and brain-mode grouping (MaleCNS / Mock / Shuffled).
+
+Historical paper results do not imply future performance.
+
+See [`docs/PERFORMANCE.md`](docs/PERFORMANCE.md).
+
+## Generic broker detection
+
+Foundation only: DOM semantic detector for unknown pages → **Paper-only** when
+confidence is high. Existing Binance / Upbit adapters remain.
+
+See [`docs/GENERIC_BROKER_DETECTOR.md`](docs/GENERIC_BROKER_DETECTOR.md).
+
+## Privacy
+
+- Paper history and preferences stay local (IndexedDB)
+- Shared learning uploads only when the user opts in (anonymous Paper features)
+- No password / OTP / cookie / Authorization capture
+- Extension runtime does not call hosted LLMs
 
 ## No API keys / No runtime LLM cost
 
@@ -89,16 +163,26 @@ ProposalGuard / RiskEngine → Paper (default) or Live Assist.
 ```bash
 git clone https://github.com/gajua/fly-earn-better-than-you.git
 cd fly-earn-better-than-you
-git checkout main
 pnpm install
+
+# Optional MaleCNS local service (required only for real-connectome mode)
+cd services/brain
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+uvicorn app.main:app --host 127.0.0.1 --port 8000
+cd ../..
+
 pnpm --filter @fly/extension build
 ```
 
 1. Open `chrome://extensions`
 2. Enable Developer mode → Load unpacked → `apps/extension/dist`
-3. Open a **usable** trade page above, or `pnpm --filter @fly/demo dev`
+3. First popup open: choose language + Global Learning consent (required)
+4. Open a **usable** trade page above, or `pnpm --filter @fly/demo dev`
 
-Default: Paper trading + Mock brain.
+Default after consent: Paper trading + Mock brain. Same Fly quality whether or
+not you contribute anonymous Paper results.
 
 ## Binance
 
@@ -136,7 +220,8 @@ Popup → Brain → MaleCNS real-connectome. Missing service/artifact → hard f
 - Paper: virtual fills, PositionCycle, local performance.
 - Live Assist: approach + proposal only; user places the order.
 - Risk: ProposalGuard + RiskEngine.
-- History: IndexedDB local-first. Supabase is future optional sync only.
+- History: IndexedDB local-first. Optional Supabase is for shared learning
+  aggregation / published presets only — never required for Fly/Paper.
 
 ## Add a broker
 
@@ -172,6 +257,7 @@ MIT project code — see `LICENSE`. Third-party notices:
 ## Architecture docs
 
 - [`AGENTS.md`](AGENTS.md)
+- [`docs/GLOBAL_LEARNING.md`](docs/GLOBAL_LEARNING.md)
 - [`docs/EXTENSION_ARCHITECTURE.md`](docs/EXTENSION_ARCHITECTURE.md)
 - [`docs/REAL_BROWSER_QA.md`](docs/REAL_BROWSER_QA.md)
 - [`docs/IMPLEMENTATION_STATUS.md`](docs/IMPLEMENTATION_STATUS.md)

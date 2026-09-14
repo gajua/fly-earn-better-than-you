@@ -14,10 +14,54 @@ import {
   markToMarketPositions,
   maybeExecutePaperTrade,
 } from "./background/paper-engine";
-import { clearTrades, listTrades } from "./storage/trade-ledger";
-import { STATUS_KEY, type ExtensionPreferences } from "./storage/preferences";
-import { computePerformance, summarizeClosedCycles } from "@fly/core";
+import {
+  clearTrades,
+  listTrades,
+  writePaperPositions,
+} from "./storage/trade-ledger";
+import {
+  computeExtendedPerformance,
+  computePerformance,
+  computePerformanceByBrainMode,
+  summarizeClosedCycles,
+} from "@fly/core";
 import { BROKER_REGISTRY } from "@fly/broker-adapters";
+import {
+  clearDetectionFeedback,
+  clearLearningObservations,
+} from "./storage/learning-store";
+import {
+  clearContributionQueue,
+  flushContributionQueue,
+  listContributionQueue,
+  readContributionMeta,
+} from "./storage/contribution-queue";
+import {
+  loadActiveGlobalPreset,
+  maybeRefreshRemotePreset,
+  rollbackToBundledPreset,
+} from "./global-preset-runtime";
+import {
+  DEFAULT_PREFERENCES,
+  STATUS_KEY,
+  normalizePreferences,
+  type ExtensionPreferences,
+} from "./storage/preferences";
+
+const GLOBAL_LEARNING_ENABLED =
+  typeof __FLY_GLOBAL_LEARNING_ENABLED__ !== "undefined"
+    ? __FLY_GLOBAL_LEARNING_ENABLED__
+    : false;
+const SUPABASE_URL =
+  typeof __FLY_SUPABASE_URL__ !== "undefined" ? __FLY_SUPABASE_URL__ : "";
+const SUPABASE_PUBLISHABLE_KEY =
+  typeof __FLY_SUPABASE_PUBLISHABLE_KEY__ !== "undefined"
+    ? __FLY_SUPABASE_PUBLISHABLE_KEY__
+    : "";
+
+declare const __FLY_GLOBAL_LEARNING_ENABLED__: boolean;
+declare const __FLY_SUPABASE_URL__: string;
+declare const __FLY_SUPABASE_PUBLISHABLE_KEY__: string;
 
 const CONFIG_KEY = "pairing";
 const DEMO_ORIGINS = new Set([
@@ -25,6 +69,10 @@ const DEMO_ORIGINS = new Set([
   "http://127.0.0.1:5174",
 ]);
 const BRIDGE_PATH = "/v1/environment";
+
+const normalizeIncomingPreferences = (
+  preferences: ExtensionPreferences,
+): ExtensionPreferences => normalizePreferences(preferences);
 
 const restrictSessionStorage = (): Promise<void> =>
   chrome.storage.session.setAccessLevel({
@@ -143,9 +191,139 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
 
     if (kind === "set-preferences") {
-      const preferences = (message as { preferences: ExtensionPreferences })
-        .preferences;
-      await writePreferences(preferences);
+      const preferences = await writePreferences(
+        normalizeIncomingPreferences(
+          (message as { preferences: ExtensionPreferences }).preferences,
+        ),
+      );
+      if (preferences.contributeAnonymousLearning) {
+        void flushContributionQueue({
+          enabled: GLOBAL_LEARNING_ENABLED,
+          contributeOptIn: true,
+          supabaseUrl: SUPABASE_URL,
+          publishableKey: SUPABASE_PUBLISHABLE_KEY,
+        });
+      }
+      sendResponse({ ok: true, preferences });
+      return;
+    }
+
+    if (kind === "get-global-learning") {
+      const preferences = await readPreferences();
+      const active = await loadActiveGlobalPreset();
+      const queue = await listContributionQueue();
+      const meta = await readContributionMeta();
+      let communityObservationCount: number | null = null;
+      let lastCalibrationAt: string | null = active.preset.generatedAt ?? null;
+      if (GLOBAL_LEARNING_ENABLED && SUPABASE_URL && SUPABASE_PUBLISHABLE_KEY) {
+        try {
+          const response = await fetch(
+            `${SUPABASE_URL.replace(/\/$/, "")}/rest/v1/rpc/global_learning_public_stats`,
+            {
+              method: "POST",
+              headers: {
+                apikey: SUPABASE_PUBLISHABLE_KEY,
+                Authorization: `Bearer ${SUPABASE_PUBLISHABLE_KEY}`,
+                "Content-Type": "application/json",
+              },
+              body: "{}",
+              credentials: "omit",
+              cache: "no-store",
+              referrerPolicy: "no-referrer",
+            },
+          );
+          if (response.ok) {
+            const stats = (await response.json()) as {
+              observationCount?: number;
+              lastCalibrationAt?: string | null;
+            };
+            if (
+              typeof stats.observationCount === "number" &&
+              Number.isFinite(stats.observationCount)
+            ) {
+              communityObservationCount = stats.observationCount;
+            }
+            if (typeof stats.lastCalibrationAt === "string") {
+              lastCalibrationAt = stats.lastCalibrationAt;
+            }
+          }
+        } catch {
+          // Stats are optional — never block Fly / Paper.
+        }
+      }
+      sendResponse({
+        ok: true,
+        presetVersion: active.preset.presetVersion,
+        sampleCount: active.preset.sampleCount,
+        source: active.source,
+        generatedAt: active.preset.generatedAt,
+        dataset: active.preset.metadata.dataset,
+        buyThreshold: active.gates.buyThreshold,
+        sellThreshold: active.gates.sellThreshold,
+        contributeAnonymousLearning: preferences.contributeAnonymousLearning,
+        globalLearningConsent: preferences.globalLearningConsent,
+        queuedObservations: queue.length,
+        lastSyncAt: meta.lastSyncAt,
+        communityObservationCount,
+        lastCalibrationAt,
+        remoteConfigured: Boolean(
+          GLOBAL_LEARNING_ENABLED && SUPABASE_URL && SUPABASE_PUBLISHABLE_KEY,
+        ),
+      });
+      return;
+    }
+
+    if (kind === "sync-global-learning") {
+      const preferences = await readPreferences();
+      const refresh = await maybeRefreshRemotePreset({
+        enabled: GLOBAL_LEARNING_ENABLED,
+        supabaseUrl: SUPABASE_URL,
+        publishableKey: SUPABASE_PUBLISHABLE_KEY,
+      });
+      const upload = preferences.contributeAnonymousLearning
+        ? await flushContributionQueue({
+            enabled: GLOBAL_LEARNING_ENABLED,
+            contributeOptIn: true,
+            supabaseUrl: SUPABASE_URL,
+            publishableKey: SUPABASE_PUBLISHABLE_KEY,
+          })
+        : { uploaded: 0, reason: "opted-out" };
+      sendResponse({ ok: true, refresh, upload });
+      return;
+    }
+
+    if (kind === "clear-contribution-queue") {
+      await clearContributionQueue();
+      sendResponse({ ok: true });
+      return;
+    }
+
+    if (kind === "rollback-global-preset") {
+      await rollbackToBundledPreset();
+      sendResponse({ ok: true });
+      return;
+    }
+
+    if (kind === "reset-learning") {
+      await clearLearningObservations();
+      await clearContributionQueue();
+      sendResponse({ ok: true });
+      return;
+    }
+
+    if (kind === "reset-all-local") {
+      await clearTrades();
+      await clearLearningObservations();
+      await clearDetectionFeedback();
+      await clearContributionQueue();
+      await writePaperPositions([]);
+      await chrome.storage.local.remove([
+        "fly-daily-exposure",
+        "fly-active-global-preset",
+        "fly-global-preset-meta",
+        "fly-contribution-meta",
+      ]);
+      await writePreferences(DEFAULT_PREFERENCES);
       sendResponse({ ok: true });
       return;
     }
@@ -191,23 +369,28 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
     if (kind === "get-performance") {
       const preferences = await readPreferences();
+      const range =
+        (message as { range?: "all" | "7d" | "30d" }).range ?? "all";
       const paperTrades = await listTrades("paper");
       const liveTrades = await listTrades("live-confirmed");
       const exposure = await getExposureSummary(preferences);
+      const starting = preferences.startingPaperCapital;
       sendResponse({
         ok: true,
         paper: computePerformance(
           paperTrades,
           exposure.positions,
-          preferences.riskPolicy.maxTradingCapital,
+          starting,
           exposure.cycles,
         ),
-        live: computePerformance(
-          liveTrades,
-          [],
-          preferences.riskPolicy.maxTradingCapital,
-          [],
+        extended: computeExtendedPerformance(exposure.cycles, starting, range),
+        byBrainMode: computePerformanceByBrainMode(
+          exposure.cycles,
+          paperTrades,
+          starting,
+          range,
         ),
+        live: computePerformance(liveTrades, [], starting, []),
         closedCycles: summarizeClosedCycles(exposure.cycles),
         exposure,
       });

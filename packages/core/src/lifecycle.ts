@@ -110,6 +110,8 @@ export const summarizeClosedCycles = (
   buyAveragePrice: number;
   sellAveragePrice: number;
   realizedReturnPercent: number;
+  realizedPnl?: number;
+  closedAt?: string;
 }[] =>
   cycles
     .filter(
@@ -123,4 +125,6 @@ export const summarizeClosedCycles = (
       buyAveragePrice: cycle.buyAveragePrice,
       sellAveragePrice: cycle.sellAveragePrice!,
       realizedReturnPercent: cycle.realizedReturnPercent!,
+      realizedPnl: cycle.realizedPnl,
+      closedAt: cycle.closedAt,
     }));

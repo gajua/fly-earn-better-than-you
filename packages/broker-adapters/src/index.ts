@@ -34,7 +34,10 @@ export {
   coinbaseInstrument,
   krakenInstrument,
 } from "./market-data/tradecanvas/adapter";
-export { createUpbitOfficialPublicProvider, upbitInstrument } from "./market-data/upbit/official-public";
+export {
+  createUpbitOfficialPublicProvider,
+  upbitInstrument,
+} from "./market-data/upbit/official-public";
 export { validateCandleSeries } from "./market-data/candle-validator";
 export { extractMarketFeatures } from "./market-data/features";
 export { createProviderChain } from "./market-data/provider-chain";
@@ -43,3 +46,10 @@ export { createBinanceBrokerAdapter } from "./brokers/binance/ui-adapter";
 export { createUpbitBrokerAdapter } from "./brokers/upbit/ui-adapter";
 export { BROKER_HEALTH } from "./health";
 export { scanCandidates } from "./candidate-scanner";
+export {
+  GENERIC_DETECTOR_CONFIDENCE_THRESHOLD,
+  detectGenericBrokerPage,
+  isGenericPaperEligible,
+  type BrokerDetectionFeedback,
+  type GenericBrokerDetection,
+} from "./generic-detector";

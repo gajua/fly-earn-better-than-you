@@ -1,21 +1,32 @@
-# Release readiness (open-source usable v1)
+# Release readiness (v1.1.0 public)
 
 Checklist — mark only after actual runs:
 
-- [x] Extension builds (`E2E_TEST_MODE=0` production bundle without `__flyE2EForce`)
+- [x] Extension builds (production bundle)
 - [x] MaleCNS install instructions in README
-- [ ] Binance usable paper path end-to-end with packed extension on live page
-- [x] Upbit status honest (PARTIAL)
-- [x] No secrets / service_role in extension
+- [x] Binance Spot USABLE BETA (packed-extension Paper path; see REAL_BROWSER_QA)
+- [x] Upbit USABLE BETA (packed-extension Paper + UX; see REAL_BROWSER_QA)
+- [x] No secrets / service_role in extension bundle
 - [x] No fake/synthetic market data path
 - [x] No live-order automation (static guard + policy)
-- [x] License + third-party attribution
-- [x] README polished
+- [x] License (MIT) + third-party attribution
+- [x] README / README.ko polished
 - [x] CI workflow present
 - [x] Unit tests passing locally
-- [x] Playwright demo + Upbit public PASS; Binance public flaky/headless TBD
+- [x] Global Learning: shared preset + first-run consent + Edge ingest
+- [x] Local-only consent ⇒ no contribution upload
+- [x] Community stats via privacy-safe aggregate RPC (no fingerprinting)
+- [x] 90-day retention helper SQL (`purge_learning_observations_older_than_90_days`)
+- [ ] Playwright extension E2E with `RUN_EXTENSION_E2E=1` on this machine
 - [ ] `pnpm test:rust` (run when cargo available)
-- [x] Contributor broker template + ADDING_BROKER.md
-- [x] Cursor rules/hooks
 
-Supabase: not a v1 product dependency (IndexedDB local-first).
+## Version map
+
+```text
+Extension release: v1.1.0
+GlobalCalibrationPreset: v1.0.0 (bundled + published baseline)
+MaleCNS dataset: v1.0
+```
+
+Supabase is optional for forks: shared-learning contribution only.
+IndexedDB remains Paper/history source of truth.

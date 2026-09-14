@@ -1,0 +1,68 @@
+[
+  {
+    "schemaVersion": 1,
+    "brainMode": "real-connectome",
+    "presetVersion": "1.0.0",
+    "brokerCategory": "crypto",
+    "marketFeatures": {
+      "momentum": 0.1,
+      "volatility": 0.2,
+      "volumeStrength": 0.5,
+      "return": 0.01
+    },
+    "brain": {
+      "buyDrive": 0.86,
+      "sellDrive": 0.31,
+      "curiosity": 0.4,
+      "danger": 0.2,
+      "activity": 0.55
+    },
+    "action": "paper_sell",
+    "outcome": { "returnPct": 1.4, "holdingDurationBucket": "5m_1h" },
+    "createdAt": "2026-01-02T00:00:00.000Z"
+  },
+  {
+    "schemaVersion": 1,
+    "brainMode": "real-connectome",
+    "presetVersion": "1.0.0",
+    "brokerCategory": "crypto",
+    "marketFeatures": {
+      "momentum": -0.05,
+      "volatility": 0.3,
+      "volumeStrength": 0.4,
+      "return": -0.02
+    },
+    "brain": {
+      "buyDrive": 0.79,
+      "sellDrive": 0.42,
+      "curiosity": 0.35,
+      "danger": 0.25,
+      "activity": 0.5
+    },
+    "action": "paper_sell",
+    "outcome": { "returnPct": -0.8, "holdingDurationBucket": "1h_1d" },
+    "createdAt": "2026-01-03T00:00:00.000Z"
+  },
+  {
+    "schemaVersion": 1,
+    "brainMode": "mock",
+    "presetVersion": "1.0.0",
+    "brokerCategory": "crypto",
+    "marketFeatures": {
+      "momentum": 0.2,
+      "volatility": 0.1,
+      "volumeStrength": 0.6,
+      "return": 0.03
+    },
+    "brain": {
+      "buyDrive": 0.95,
+      "sellDrive": 0.1,
+      "curiosity": 0.5,
+      "danger": 0.1,
+      "activity": 0.7
+    },
+    "action": "paper_sell",
+    "outcome": { "returnPct": 3.0, "holdingDurationBucket": "lt_5m" },
+    "createdAt": "2026-01-04T00:00:00.000Z"
+  }
+]

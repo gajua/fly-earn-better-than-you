@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -7,23 +7,36 @@
     <link rel="stylesheet" href="popup.css" />
   </head>
   <body>
-    <main class="popup">
+    <main class="popup" id="main-app" hidden>
       <header>
         <div class="emoji" id="fly-emoji">🪰</div>
         <h1 id="status-title">Fly</h1>
       </header>
-      <p id="status-message">상태 확인 중…</p>
+      <p id="status-message" data-i18n="status.loading">Checking status…</p>
+
       <section class="card">
-        <h2>Mode</h2>
+        <h2 data-i18n="popup.language">Language</h2>
         <label>
-          Trading
+          <span data-i18n="popup.language">Language</span>
+          <select id="locale">
+            <option value="auto" data-i18n="popup.languageAuto">Auto</option>
+            <option value="ko" data-i18n="popup.languageKo">한국어</option>
+            <option value="en" data-i18n="popup.languageEn">English</option>
+          </select>
+        </label>
+      </section>
+
+      <section class="card">
+        <h2 data-i18n="popup.mode">Mode</h2>
+        <label>
+          <span data-i18n="popup.trading">Trading</span>
           <select id="trading-mode">
             <option value="paper">Paper (default)</option>
             <option value="live-assist">Live-assist (confirm only)</option>
           </select>
         </label>
         <label>
-          Brain
+          <span data-i18n="popup.brain">Brain</span>
           <select id="brain-mode">
             <option value="mock">Mock</option>
             <option value="real-connectome">MaleCNS real-connectome</option>
@@ -31,29 +44,220 @@
           </select>
         </label>
         <label>
-          Max trading capital (KRW)
+          <span data-i18n="popup.maxCapital">Max trading capital</span>
           <input id="max-capital" type="number" min="1000" step="1000" />
         </label>
-        <button id="save-prefs" type="button">Save settings</button>
+        <label>
+          <span data-i18n="popup.startingCapital">Starting paper capital</span>
+          <input id="starting-capital" type="number" min="1000" step="1000" />
+        </label>
+        <button id="save-prefs" type="button" data-i18n="popup.save">
+          Save settings
+        </button>
       </section>
+
       <section class="card">
-        <h2>Paper performance</h2>
+        <h2 data-i18n="popup.globalLearning">Global Learning</h2>
+        <p class="headline" data-i18n="popup.oneFlyShared">
+          One Fly. Shared learning.
+        </p>
+        <p class="hint" data-i18n="popup.oneFlySharedBody">
+          Everyone uses the same published Global Calibration. Community Paper
+          results help us evaluate the next calibration version.
+        </p>
+        <p class="hint" data-i18n="popup.sameQuality">
+          All users on the same Fly version and GlobalCalibrationPreset start
+          with the same calibration behavior.
+        </p>
+        <p>
+          <span data-i18n="popup.presetVersion">Current shared calibration</span>:
+          <strong id="preset-version">v1.0.0</strong>
+          (<span id="preset-source">bundled</span>)
+        </p>
+        <p>
+          <span data-i18n="popup.paperObservations">Paper observations</span>:
+          <strong id="community-observations">—</strong>
+        </p>
+        <p>
+          <span data-i18n="popup.lastCalibration">Last calibration</span>:
+          <strong id="last-calibration">—</strong>
+        </p>
+        <p>
+          <span data-i18n="popup.buyThreshold">Buy threshold</span>:
+          <strong id="buy-threshold">0.82</strong>
+        </p>
+        <p>
+          <span data-i18n="popup.sellThreshold">Sell threshold</span>:
+          <strong id="sell-threshold">0.82</strong>
+        </p>
+
+        <fieldset class="consent-fieldset">
+          <legend data-i18n="onboarding.choose">
+            Choose how you want to use Fly:
+          </legend>
+          <label class="radio">
+            <input
+              type="radio"
+              name="global-learning-consent"
+              value="contribute"
+              id="consent-contribute"
+            />
+            <span data-i18n="popup.consentContribute"
+              >Share anonymous Paper results</span
+            >
+          </label>
+          <label class="radio">
+            <input
+              type="radio"
+              name="global-learning-consent"
+              value="local_only"
+              id="consent-local"
+            />
+            <span data-i18n="popup.consentLocalOnly"
+              >Keep my Paper learning data on this device</span
+            >
+          </label>
+        </fieldset>
+        <p class="hint" data-i18n="popup.contributePrivacy">
+          Your data helps improve the same global calibration used by all Fly
+          users. No broker credentials or account information are uploaded.
+        </p>
+        <p>
+          <span data-i18n="popup.queuedObservations">Queued observations</span>:
+          <strong id="queued-observations">0</strong>
+        </p>
+        <p>
+          <span data-i18n="popup.lastSync">Last sync</span>:
+          <strong id="last-sync">—</strong>
+        </p>
+        <button id="sync-learning" type="button" data-i18n="popup.syncLearning">
+          Sync now
+        </button>
+        <button id="clear-queue" type="button" data-i18n="popup.clearQueue">
+          Clear contribution queue
+        </button>
+        <button
+          id="rollback-preset"
+          type="button"
+          data-i18n="popup.rollbackPreset"
+        >
+          Rollback to bundled preset
+        </button>
+      </section>
+
+      <section class="card">
+        <h2 data-i18n="popup.performance">Fly Performance</h2>
+        <p class="hint" data-i18n="popup.experimentalPerformance">
+          Experimental paper performance
+        </p>
+        <div class="row">
+          <button type="button" data-range="all" data-i18n="popup.rangeAll">
+            All
+          </button>
+          <button type="button" data-range="7d" data-i18n="popup.range7d">
+            7D
+          </button>
+          <button type="button" data-range="30d" data-i18n="popup.range30d">
+            30D
+          </button>
+        </div>
         <pre id="performance">—</pre>
+        <details>
+          <summary data-i18n="popup.byBrainMode">By brain mode</summary>
+          <pre id="brain-performance">—</pre>
+        </details>
       </section>
+
       <section class="card">
-        <h2>Selector / page diagnostics</h2>
+        <h2 data-i18n="popup.diagnostics">Selector / page diagnostics</h2>
         <pre id="diagnostics">—</pre>
       </section>
+
       <section class="card">
-        <h2>Privacy</h2>
-        <p>비밀번호·OTP·쿠키·세션 토큰은 읽거나 저장하지 않습니다.</p>
-        <button id="clear-history" type="button">Delete local Fly history</button>
+        <h2 data-i18n="popup.privacy">Privacy</h2>
+        <p data-i18n="popup.privacyBody">
+          Passwords, OTPs, cookies, and session tokens are never read or stored.
+        </p>
+        <button id="clear-history" type="button" data-i18n="popup.clearPaper">
+          Clear Paper history
+        </button>
+        <button id="reset-all" type="button" data-i18n="popup.resetAll">
+          Reset all local Fly data
+        </button>
       </section>
-      <p class="fineprint">
-        BUY 근처 이동 ≠ 수익 예측. Experimental MaleCNS-constrained neural
-        response only.
+
+      <p class="fineprint" data-i18n="popup.fineprint">
+        Approaching BUY ≠ predicting profit. Historical paper results do not
+        imply future performance.
       </p>
     </main>
+
+    <section class="onboarding" id="onboarding" hidden>
+      <div class="emoji">🪰</div>
+      <h1 data-i18n="onboarding.title">Help Fly learn together</h1>
+      <p data-i18n="onboarding.body">
+        Fly can use anonymous Paper-trading results to improve the shared
+        calibration used by everyone.
+      </p>
+      <p data-i18n="onboarding.moreEvidence">
+        The more people use Fly and contribute Paper results, the more evidence
+        we can use to evaluate and improve the next shared calibration.
+      </p>
+      <p data-i18n="onboarding.notRetrain">
+        MaleCNS itself is not retrained or modified.
+      </p>
+      <p data-i18n="onboarding.neverCollect">We never intentionally collect:</p>
+      <ul class="never-list">
+        <li data-i18n="onboarding.neverCredentials">Broker login credentials</li>
+        <li data-i18n="onboarding.neverAccount">Account numbers</li>
+        <li data-i18n="onboarding.neverHoldings">
+          Portfolio holdings or balances
+        </li>
+        <li data-i18n="onboarding.neverLive">Real-money trades</li>
+        <li data-i18n="onboarding.neverCookies">
+          Cookies or authentication tokens
+        </li>
+        <li data-i18n="onboarding.neverSymbols">Raw stock/crypto symbols</li>
+        <li data-i18n="onboarding.neverEmail">Email or personal identity</li>
+      </ul>
+      <label class="onboarding-lang">
+        <span data-i18n="popup.language">Language</span>
+        <select id="onboarding-locale">
+          <option value="auto" data-i18n="popup.languageAuto">Auto</option>
+          <option value="ko" data-i18n="popup.languageKo">한국어</option>
+          <option value="en" data-i18n="popup.languageEn">English</option>
+        </select>
+      </label>
+      <p data-i18n="onboarding.choose">Choose how you want to use Fly:</p>
+      <fieldset class="consent-fieldset">
+        <label class="radio">
+          <input
+            type="radio"
+            name="onboarding-consent"
+            value="contribute"
+            id="onboarding-contribute"
+          />
+          <span data-i18n="popup.consentContribute"
+            >Share anonymous Paper results</span
+          >
+        </label>
+        <label class="radio">
+          <input
+            type="radio"
+            name="onboarding-consent"
+            value="local_only"
+            id="onboarding-local"
+          />
+          <span data-i18n="popup.consentLocalOnly"
+            >Keep my Paper learning data on this device</span
+          >
+        </label>
+      </fieldset>
+      <button id="onboarding-continue" type="button" disabled data-i18n="onboarding.continue">
+        Continue
+      </button>
+    </section>
+
     <script type="module" src="popup.js"></script>
   </body>
 </html>
