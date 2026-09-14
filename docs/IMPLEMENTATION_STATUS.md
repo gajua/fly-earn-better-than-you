@@ -18,18 +18,21 @@ Status reflects executable evidence, not intent.
 - Sanitized Binance/Upbit fixtures; Max Buy/Max Sell locators.
 - **Binance Spot packed-extension Paper path: USABLE BETA** (see REAL_BROWSER_QA).
 - **Upbit packed-extension Paper + UX path: USABLE BETA** (iframe chart, market list scan, Paper notional sizing).
-- **v1.1:** PersonalCalibration (opt-in), ko/en i18n, Paper performance analytics, GenericBrokerDetector foundation.
+- **v1.1:** ko/en i18n, Paper performance analytics, GenericBrokerDetector foundation.
+- **Global Learning:** GlobalCalibrationPreset (bundled + optional remote), opt-in anonymous Paper contribution queue, offline calibration builder, optional Supabase migrations (no service_role in extension).
 
 ## PARTIAL
 
 - Live Assist: approach/proposal only.
 - Binance/Upbit login / portfolio: **NOT VERIFIED**.
 - Generic detector: foundation only (not production usable claim).
+- Shared learning aggregation / published preset pipeline (migrations + tools; production publish is manual).
 
 ## NOT IMPLEMENTED
 
 - Automatic live order submit.
-- Supabase product dependency.
+- Mandatory Supabase runtime dependency (optional only).
+- Per-user default PersonalCalibration (demoted / experimental).
 - Bybit/Kraken/Coinbase UI adapters (Market Data Only).
 - Stock broker adapters (Planned).
 

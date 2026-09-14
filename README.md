@@ -76,19 +76,23 @@ Not Stable. Login / portfolio remain **NOT VERIFIED**. Live order click/submit i
 
 Broker observation → validated candles → MarketFeatureExtractor /
 TemporalAggregator → Mock or MaleCNS → BehaviorDecoder →
-**PersonalCalibration** → Fly overlay → ProposalGuard / RiskEngine → Paper
+**GlobalCalibrationPreset** → Fly overlay → ProposalGuard / RiskEngine → Paper
 (default) or Live Assist.
 
-## Local learning
+## Global Learning
 
-Opt-in statistical PersonalCalibration from local Paper history (IndexedDB).
+All users on the same Fly version and GlobalCalibrationPreset start with the
+same calibration behavior. MaleCNS connectivity is **not** retrained.
 
-- Default: **OFF**
-- Adjusts buy/sell thresholds and cooldown only
-- **Local learning does not modify the MaleCNS connectome**
-- No cloud training / telemetry / Supabase sync
+- Bundled verified preset ships with the extension (works offline)
+- Optional remote published preset (schema + SHA-256 checked)
+- Opt-in anonymous **Paper-only** contribution (default **OFF**)
+- No broker credentials, symbols, or live-account data uploaded
+- Forks work without Supabase (bundled preset only)
 
-See [`docs/LOCAL_LEARNING.md`](docs/LOCAL_LEARNING.md).
+See [`docs/GLOBAL_LEARNING.md`](docs/GLOBAL_LEARNING.md).
+Experimental PersonalCalibration is demoted — see
+[`docs/LOCAL_LEARNING.md`](docs/LOCAL_LEARNING.md).
 
 ## Language
 
@@ -113,7 +117,8 @@ See [`docs/GENERIC_BROKER_DETECTOR.md`](docs/GENERIC_BROKER_DETECTOR.md).
 
 ## Privacy
 
-- Learning and feedback stay on this device
+- Paper history and preferences stay local (IndexedDB)
+- Shared learning uploads only when the user opts in (anonymous Paper features)
 - No password / OTP / cookie / Authorization capture
 - Extension runtime does not call hosted LLMs
 
@@ -177,7 +182,8 @@ Popup → Brain → MaleCNS real-connectome. Missing service/artifact → hard f
 - Paper: virtual fills, PositionCycle, local performance.
 - Live Assist: approach + proposal only; user places the order.
 - Risk: ProposalGuard + RiskEngine.
-- History: IndexedDB local-first. Supabase is future optional sync only.
+- History: IndexedDB local-first. Optional Supabase is for shared learning
+  aggregation / published presets only — never required for Fly/Paper.
 
 ## Add a broker
 
@@ -213,6 +219,7 @@ MIT project code — see `LICENSE`. Third-party notices:
 ## Architecture docs
 
 - [`AGENTS.md`](AGENTS.md)
+- [`docs/GLOBAL_LEARNING.md`](docs/GLOBAL_LEARNING.md)
 - [`docs/EXTENSION_ARCHITECTURE.md`](docs/EXTENSION_ARCHITECTURE.md)
 - [`docs/REAL_BROWSER_QA.md`](docs/REAL_BROWSER_QA.md)
 - [`docs/IMPLEMENTATION_STATUS.md`](docs/IMPLEMENTATION_STATUS.md)

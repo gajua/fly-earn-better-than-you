@@ -8,7 +8,7 @@ Broker tab
   -> multi-timeframe observations
   -> TemporalAggregator -> MarketEnvironment
   -> FlyBrain (Mock | real-connectome | shuffled-control)
-  -> PersonalCalibration (local thresholds only)
+  -> GlobalCalibrationPreset (same for all users)
   -> Shadow DOM Fly overlay (pointer-events: none)
   -> optional Paper Trading / RiskEngine / Trade Ledger
   -> popup status / settings / performance / learning / language

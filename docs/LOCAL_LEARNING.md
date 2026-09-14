@@ -1,15 +1,14 @@
-# Local Learning (PersonalCalibration)
+# Local / experimental PersonalCalibration
 
-Paper observations stay on-device in IndexedDB. PersonalCalibration adjusts
-behavior thresholds only:
+Product default is **GlobalCalibrationPreset** (same for all users). See
+[`GLOBAL_LEARNING.md`](GLOBAL_LEARNING.md).
 
-- buyDrive / sellDrive thresholds
-- proposal cooldown multiplier
-- behavior confidence / sensory scale placeholders
+PersonalCalibration remains in code as a **developer / experimental** path only.
+It is **not** enabled in the product UI by default and must not create
+user-quality divergence for normal users.
 
-**Local learning does not modify the MaleCNS connectome** (body IDs, topology,
-or raw weights).
+If enabled experimentally:
 
-Default: learning **OFF**. Users opt in from the extension popup.
-
-No cloud training, telemetry, or Supabase sync is enabled.
+- Paper observations stay on-device in IndexedDB
+- Adjusts thresholds / cooldown only
+- **Does not modify the MaleCNS connectome**

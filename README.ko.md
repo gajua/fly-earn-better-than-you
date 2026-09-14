@@ -29,14 +29,18 @@ Bybit / Kraken / Coinbase — public candle provider only.
 
 주식 브로커, 자동 실주문 제출.
 
-## 로컬 학습
+## Global Learning
 
-Paper 기록으로 기기 안에서만 statistical PersonalCalibration.
+같은 Fly 버전과 Global Calibration 버전을 사용하는 사용자는 동일한
+calibration 품질로 시작합니다. MaleCNS connectome 자체는 재학습하지 않습니다.
 
-- 기본값: **OFF** (사용자가 직접 켠다)
-- buy/sell threshold, cooldown만 조정
-- **MaleCNS connectome 자체는 사용자 데이터로 바꾸지 않는다**
-- cloud training / telemetry / Supabase sync 없음
+- 번들 verified preset으로 오프라인에서도 동작
+- 원격 published preset은 optional (스키마 + SHA-256 검증)
+- 익명 Paper 학습 기여는 **opt-in** (기본 OFF)
+- 계좌 인증정보 / 심볼 / 실거래 데이터 업로드 없음
+- Supabase 없는 fork도 기본 기능 정상
+
+자세한 내용: [`docs/GLOBAL_LEARNING.md`](docs/GLOBAL_LEARNING.md)
 
 ## 언어
 
@@ -73,10 +77,11 @@ pnpm --filter @fly/extension build
 - 자동 live order submit 없음
 - API 키 / 쿠키 / Authorization 수집 없음
 - runtime hosted LLM 없음
-- 학습 데이터 외부 전송 없음
+- 공유 학습은 사용자가 켠 경우에만 익명 Paper 관찰 전송
 
 ## 문서
 
+- [`docs/GLOBAL_LEARNING.md`](docs/GLOBAL_LEARNING.md)
 - [`docs/LOCAL_LEARNING.md`](docs/LOCAL_LEARNING.md)
 - [`docs/PERFORMANCE.md`](docs/PERFORMANCE.md)
 - [`docs/GENERIC_BROKER_DETECTOR.md`](docs/GENERIC_BROKER_DETECTOR.md)
