@@ -4,14 +4,23 @@ import {
   observationFromCandles,
   type BrokerAdapter,
 } from "@fly/broker-adapters";
-import { createMaleCNSBrain, createMockFlyBrain } from "@fly/brain-client";
+import {
+  createMaleCNSBrain,
+  createMockFlyBrain,
+  evaluateModularMaleCNS,
+} from "@fly/brain-client";
 import {
   aggregateTimeframeObservations,
+  brainOutputFromModular,
   demoInstrumentId,
   deriveSessionState,
+  evaluateModularMock,
   featuresToMarketSlice,
   filterUsableTimeframeObservations,
+  shouldEvaluateBrain,
+  type BrainGatingState,
   type BrainOutput,
+  type ModularEvaluateResult,
   type TimeframeObservation,
 } from "@fly/core";
 import { mountShadowFly } from "@fly/fly-ui/shadow-fly";
@@ -164,6 +173,7 @@ const resolveBrain = async () => {
       tradingMode,
       locale,
       thresholds,
+      brainBaseUrl: baseUrl,
     };
   }
   if (mode === "shuffled-control") {
@@ -177,6 +187,7 @@ const resolveBrain = async () => {
       tradingMode,
       locale,
       thresholds,
+      brainBaseUrl: baseUrl,
     };
   }
   return {
@@ -185,6 +196,7 @@ const resolveBrain = async () => {
     tradingMode,
     locale,
     thresholds,
+    brainBaseUrl: baseUrl,
   };
 };
 
@@ -207,7 +219,10 @@ const patchHistory = (onNavigate: () => void) => {
 const start = async () => {
   if (!adapter.detect()) return;
 
-  const { brain, mode, tradingMode, locale, thresholds } = await resolveBrain();
+  const { brain, mode, tradingMode, locale, thresholds, brainBaseUrl } =
+    await resolveBrain();
+  const { preset } = await loadActiveGlobalPreset();
+  const presetVersion = preset.presetVersion;
   const prefsResponse = (await chrome.runtime.sendMessage({
     kind: "get-preferences",
   })) as { preferences?: ExtensionPreferences };
@@ -219,6 +234,40 @@ const start = async () => {
   let latestObservations: TimeframeObservation[] = [];
   let explorationHint: ExplorationHint | null = null;
   let exploration = null as ReturnType<typeof startExplorationRuntime> | null;
+  let brainGating: BrainGatingState = {
+    lastEvalAt: 0,
+    lastPrice: null,
+    lastSymbol: null,
+    lastTimeframe: null,
+  };
+
+  const recordLocalModular = (
+    environment: NonNullable<
+      ReturnType<BrokerAdapter["readMarketEnvironment"]>
+    >,
+    modular: ModularEvaluateResult,
+    timeframe: string,
+  ): void => {
+    if (livePreferences?.localDataCollection === false) return;
+    void chrome.runtime
+      .sendMessage({
+        kind: "record-modular-observation",
+        payload: {
+          broker: adapter.id,
+          symbol: environment.asset?.symbol ?? "UNKNOWN",
+          timeframe,
+          price: environment.asset?.price ?? 0,
+          momentum: environment.market.momentum,
+          volatility: environment.market.volatility,
+          relativeVolume: environment.market.volumeStrength,
+          trendConflict: environment.market.trendConflict ?? 0,
+          novelty: environment.market.novelty ?? 0,
+          presetVersion,
+          modular,
+        },
+      })
+      .catch(() => undefined);
+  };
 
   const guestMarketOk = (): boolean => {
     const page = adapter.detectPageContext();
@@ -424,11 +473,55 @@ const start = async () => {
             }
           : aggregated;
 
+        const gating = shouldEvaluateBrain(brainGating, {
+          now: Date.now(),
+          symbol: environment.asset?.symbol ?? null,
+          timeframe: slice?.timeframe ?? null,
+          price: environment.asset?.price ?? null,
+          novelty: marketExtras?.novelty ?? 0,
+          trendConflict: marketExtras?.trendConflict ?? 0,
+          relativeVolume: environmentForBrain.market.volumeStrength,
+          symbolChanged:
+            brainGating.lastSymbol !== (environment.asset?.symbol ?? null),
+          timeframeChanged:
+            brainGating.lastTimeframe !== (slice?.timeframe ?? null),
+          revisit: slice?.intent === "REVISIT",
+        });
+        brainGating = gating.next;
+        if (
+          !gating.evaluate &&
+          latestOutput &&
+          !(__FLY_E2E__ && e2eForcedOutput)
+        ) {
+          return latestOutput;
+        }
+
         try {
-          const output =
-            __FLY_E2E__ && e2eForcedOutput
-              ? e2eForcedOutput
-              : await brain.evaluate(environmentForBrain);
+          let output: BrainOutput;
+          const collectLocal = livePreferences?.localDataCollection !== false;
+          const timeframe = slice?.timeframe ?? "1h";
+          if (__FLY_E2E__ && e2eForcedOutput) {
+            output = e2eForcedOutput;
+          } else if (
+            collectLocal &&
+            (mode === "real-connectome" || mode === "shuffled-control")
+          ) {
+            const modularResponse = await evaluateModularMaleCNS({
+              environment: environmentForBrain,
+              baseUrl: brainBaseUrl,
+              mode:
+                mode === "shuffled-control" ? "shuffled-control" : "malecns",
+              fetchImpl: createBrainFetch(),
+            });
+            output = modularResponse.brainOutput;
+            recordLocalModular(environmentForBrain, modularResponse, timeframe);
+          } else if (collectLocal && mode === "mock") {
+            const modular = evaluateModularMock(environmentForBrain);
+            output = brainOutputFromModular(modular);
+            recordLocalModular(environmentForBrain, modular, timeframe);
+          } else {
+            output = await brain.evaluate(environmentForBrain);
+          }
           brainUnavailable = false;
           latestOutput = output;
           await publish();

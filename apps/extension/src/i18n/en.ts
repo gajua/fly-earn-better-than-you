@@ -36,6 +36,10 @@ export type MessageKey =
   | "popup.contributePrivacy"
   | "popup.presetVersion"
   | "popup.queuedObservations"
+  | "popup.localLearning"
+  | "popup.localObservations"
+  | "popup.localOutcomes"
+  | "popup.closedTrades"
   | "popup.lastSync"
   | "popup.clearQueue"
   | "popup.syncLearning"
@@ -140,6 +144,10 @@ export const en: MessageDictionary = {
     "Your data helps improve the same global calibration used by all Fly users. No broker credentials or account information are uploaded.",
   "popup.presetVersion": "Current shared calibration",
   "popup.queuedObservations": "Queued observations",
+  "popup.localLearning": "Local Learning",
+  "popup.localObservations": "Observations",
+  "popup.localOutcomes": "Resolved outcomes",
+  "popup.closedTrades": "Closed trades",
   "popup.lastSync": "Last sync",
   "popup.clearQueue": "Clear contribution queue",
   "popup.syncLearning": "Sync now",

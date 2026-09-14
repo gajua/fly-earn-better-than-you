@@ -27,6 +27,11 @@ BUY / SELL 행동을 표현하도록 만든 오픈소스 실험 프로젝트입�
 
 **Fly는 실제 돈 주문을 자동으로 제출하지 않습니다.**
 
+실험적 모듈형 신경 구조·로컬 관측 학습·오프라인 calibration은
+[docs/MODULAR_NEURAL_ARCHITECTURE.md](docs/MODULAR_NEURAL_ARCHITECTURE.md),
+[docs/LEARNING_PIPELINE.md](docs/LEARNING_PIPELINE.md),
+[docs/LOCAL_CALIBRATION.md](docs/LOCAL_CALIBRATION.md)를 참고하세요.
+
 ---
 
 ## 그래서 뭘 하는데?

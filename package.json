@@ -11,6 +11,8 @@
     "typecheck": "node scripts/typecheck.mjs",
     "test": "vitest run packages apps/desktop/src apps/extension/src --exclude '**/template/**'",
     "test:e2e": "playwright test",
+    "calibration:replay": "node tools/calibration/replay/run-replay.mjs",
+    "calibration:module-report": "node tools/calibration/module-report.mjs",
     "test:python": "services/brain/.venv/bin/python -m pytest -q services/brain/tests",
     "test:rust": "cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml",
     "format": "prettier --write .",

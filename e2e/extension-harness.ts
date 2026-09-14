@@ -98,6 +98,7 @@ export const setExtensionPreferences = async (
       visibleBrowserControl: false,
       flyActivityHud: false,
       explorationPaused: false,
+      localDataCollection: false,
     };
     await chrome.storage.local.set({
       "fly-preferences": { ...defaults, ...prefs },

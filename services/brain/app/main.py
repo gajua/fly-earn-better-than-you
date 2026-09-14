@@ -9,8 +9,9 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from .connectome import DATASET, ConnectomeArtifactError, MaleCNSGraph
+from .modules import ModularMaleCNSBrain, definitions_payload
 from .neural import MaleCNSBrain
-from .schemas import EvaluateRequest, EvaluateResponse
+from .schemas import EvaluateModularResponse, EvaluateRequest, EvaluateResponse
 
 DEFAULT_DATA_DIR = Path(__file__).parents[1] / "data" / "generated"
 
@@ -22,10 +23,12 @@ async def lifespan(app: FastAPI):
         graph = MaleCNSGraph.load(data_dir)
         app.state.graph = graph
         app.state.brain = MaleCNSBrain(graph)
+        app.state.modular_brain = ModularMaleCNSBrain(graph)
         app.state.load_error = None
     except (ConnectomeArtifactError, OSError, ValueError) as error:
         app.state.graph = None
         app.state.brain = None
+        app.state.modular_brain = None
         app.state.load_error = str(error)
     yield
 
@@ -98,3 +101,31 @@ def evaluate(payload: EvaluateRequest, request: Request) -> EvaluateResponse:
             detail=f"MaleCNS unavailable: {request.app.state.load_error}",
         )
     return brain.evaluate(payload.environment, payload.mode)
+
+
+@app.get("/modules/definitions")
+def module_definitions(request: Request) -> dict[str, object]:
+    graph: MaleCNSGraph | None = request.app.state.graph
+    if graph is None:
+        raise HTTPException(
+            status_code=503,
+            detail=f"MaleCNS unavailable: {request.app.state.load_error}",
+        )
+    return {
+        "dataset": DATASET,
+        "assignment": "experimental",
+        "modules": definitions_payload(graph),
+    }
+
+
+@app.post("/evaluate/modular", response_model=EvaluateModularResponse)
+def evaluate_modular(
+    payload: EvaluateRequest, request: Request
+) -> EvaluateModularResponse:
+    modular: ModularMaleCNSBrain | None = request.app.state.modular_brain
+    if modular is None:
+        raise HTTPException(
+            status_code=503,
+            detail=f"MaleCNS unavailable: {request.app.state.load_error}",
+        )
+    return modular.evaluate(payload.environment, payload.mode)

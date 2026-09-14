@@ -5,7 +5,7 @@ import {
 } from "@fly/core";
 
 const DB_NAME = "fly-earn-better-than-you";
-const DB_VERSION = 4;
+const DB_VERSION = 5;
 const QUEUE_STORE = "contribution-queue";
 const META_KEY = "fly-contribution-meta";
 
@@ -22,6 +22,11 @@ const openDb = (): Promise<IDBDatabase> =>
         "learning-observations",
         "broker-detection-feedback",
         QUEUE_STORE,
+        "market-observations",
+        "module-outputs",
+        "future-outcomes",
+        "pending-outcomes",
+        "learning-upload-summaries",
       ]) {
         if (!db.objectStoreNames.contains(name)) {
           db.createObjectStore(name, { keyPath: "id" });

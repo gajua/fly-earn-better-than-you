@@ -105,6 +105,43 @@ const neuronActivitySchema = z.object({
   bodyId: z.number().int().positive(),
   activity: z.number().nonnegative(),
 });
+const chartModuleSchema = z.object({
+  bullish: driveSchema,
+  bearish: driveSchema,
+  neutral: driveSchema,
+  confidence: driveSchema,
+});
+const volumeModuleSchema = z.object({
+  activity: driveSchema,
+  spike: driveSchema,
+  confidence: driveSchema,
+});
+const riskModuleSchema = z.object({
+  risk: driveSchema,
+  instability: driveSchema,
+  confidence: driveSchema,
+});
+const scannerModuleSchema = z.object({
+  interest: driveSchema,
+  novelty: driveSchema,
+  revisitScore: driveSchema,
+});
+const decisionModuleSchema = z.object({
+  intent: z.enum(["IGNORE", "WATCH", "APPROACH_BUY", "APPROACH_SELL"]),
+  buyDrive: driveSchema,
+  sellDrive: driveSchema,
+  confidence: driveSchema,
+});
+const evaluateModularResponseSchema = z.object({
+  brainOutput: brainOutputSchema,
+  chart: chartModuleSchema,
+  volume: volumeModuleSchema,
+  risk: riskModuleSchema,
+  scanner: scannerModuleSchema,
+  decision: decisionModuleSchema,
+  modelVersion: z.string(),
+});
+
 const evaluateResponseSchema = z.object({
   brainOutput: brainOutputSchema,
   connectome: z.object({
@@ -124,6 +161,47 @@ const evaluateResponseSchema = z.object({
  * It never falls back to MockFlyBrain. A missing service, invalid artifact, or
  * malformed response is surfaced to the caller and diagnostics subscribers.
  */
+export type ModularEvaluateResponse = z.infer<
+  typeof evaluateModularResponseSchema
+>;
+
+export const evaluateModularMaleCNS = async (input: {
+  readonly environment: MarketEnvironment;
+  readonly baseUrl?: string;
+  readonly mode?: "malecns" | "shuffled-control";
+  readonly timeoutMs?: number;
+  readonly fetchImpl?: typeof fetch;
+}): Promise<ModularEvaluateResponse> => {
+  const baseUrl = input.baseUrl ?? "http://127.0.0.1:8000";
+  const canonicalMode =
+    (input.mode ?? "malecns") === "malecns"
+      ? "real-connectome"
+      : "shuffled-control";
+  const fetchImpl = input.fetchImpl ?? fetch;
+  const controller = new AbortController();
+  const timeout = setTimeout(
+    () => controller.abort(),
+    input.timeoutMs ?? 8_000,
+  );
+  try {
+    const response = await fetchImpl(`${baseUrl}/evaluate/modular`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        environment: input.environment,
+        mode: canonicalMode,
+      }),
+      signal: controller.signal,
+    });
+    if (!response.ok) {
+      throw new Error(`MaleCNS modular returned HTTP ${response.status}`);
+    }
+    return evaluateModularResponseSchema.parse(await response.json());
+  } finally {
+    clearTimeout(timeout);
+  }
+};
+
 export const createMaleCNSBrain = ({
   baseUrl = "http://127.0.0.1:8000",
   mode = "malecns",

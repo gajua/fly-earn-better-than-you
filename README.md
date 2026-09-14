@@ -27,6 +27,12 @@ The fly moves.
 
 **Fly does not automatically submit real-money orders.**
 
+Modular neural modules (experimental functional assignments), local observation
+learning, and offline calibration are documented in
+[docs/MODULAR_NEURAL_ARCHITECTURE.md](docs/MODULAR_NEURAL_ARCHITECTURE.md),
+[docs/LEARNING_PIPELINE.md](docs/LEARNING_PIPELINE.md), and
+[docs/LOCAL_CALIBRATION.md](docs/LOCAL_CALIBRATION.md).
+
 ---
 
 ## What does it actually do?

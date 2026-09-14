@@ -47,6 +47,11 @@ import {
   normalizePreferences,
   type ExtensionPreferences,
 } from "./storage/preferences";
+import {
+  readLocalLearningStats,
+  recordModularObservation,
+  resolveDueOutcomes,
+} from "./background/local-learning";
 
 const GLOBAL_LEARNING_ENABLED =
   typeof __FLY_GLOBAL_LEARNING_ENABLED__ !== "undefined"
@@ -142,12 +147,20 @@ const refreshBrokerPresence = async () => {
 
 void restrictSessionStorage();
 chrome.runtime.onInstalled.addListener(() => {
+  void chrome.alarms.create("resolve-learning-outcomes", {
+    periodInMinutes: 5,
+  });
   void restrictSessionStorage();
   void refreshBrokerPresence();
 });
 chrome.runtime.onStartup.addListener(() => {
   void restrictSessionStorage();
   void refreshBrokerPresence();
+});
+
+chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name !== "resolve-learning-outcomes") return;
+  void resolveDueOutcomes({ fetchPrice: async () => null });
 });
 
 chrome.tabs.onUpdated.addListener(() => void refreshBrokerPresence());
@@ -339,6 +352,36 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         origins: [...broker.optionalHostPermissions],
       });
       sendResponse({ ok: granted });
+      return;
+    }
+
+    if (kind === "get-local-learning-stats") {
+      sendResponse({ ok: true, stats: await readLocalLearningStats() });
+      return;
+    }
+
+    if (kind === "record-modular-observation") {
+      const preferences = await readPreferences();
+      const payload = (
+        message as {
+          payload: Parameters<typeof recordModularObservation>[0];
+        }
+      ).payload;
+      sendResponse({
+        ok: true,
+        result: await recordModularObservation({
+          ...payload,
+          preferences,
+        }),
+      });
+      return;
+    }
+
+    if (kind === "resolve-learning-outcomes") {
+      const resolved = await resolveDueOutcomes({
+        fetchPrice: async () => null,
+      });
+      sendResponse({ ok: true, resolved });
       return;
     }
 

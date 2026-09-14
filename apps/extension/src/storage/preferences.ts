@@ -41,6 +41,8 @@ export interface ExtensionPreferences {
   readonly visibleBrowserControl: boolean;
   readonly flyActivityHud: boolean;
   readonly explorationPaused: boolean;
+  /** Local observation/module/outcome dataset (works without Supabase). */
+  readonly localDataCollection: boolean;
   /** @deprecated use globalLearningConsent / contributeAnonymousLearning */
   readonly learningEnabled?: boolean;
 }
@@ -69,6 +71,7 @@ export const DEFAULT_PREFERENCES: ExtensionPreferences = {
   visibleBrowserControl: true,
   flyActivityHud: true,
   explorationPaused: false,
+  localDataCollection: true,
 };
 
 export interface RuntimeStatus {
@@ -135,6 +138,7 @@ export const normalizePreferences = (
     visibleBrowserControl: value?.visibleBrowserControl ?? true,
     flyActivityHud: value?.flyActivityHud ?? true,
     explorationPaused: value?.explorationPaused ?? false,
+    localDataCollection: value?.localDataCollection ?? true,
   };
 };
 
