@@ -4,8 +4,11 @@ import {
   FORBIDDEN_CONTRIBUTION_KEYS,
 } from "@fly/core";
 
-const DB_NAME = "fly-earn-better-than-you";
-const DB_VERSION = 4;
+import {
+  ensureFlyIdbStores,
+  FLY_IDB_NAME,
+  FLY_IDB_VERSION,
+} from "./idb-schema";
 const QUEUE_STORE = "contribution-queue";
 const META_KEY = "fly-contribution-meta";
 
@@ -13,21 +16,8 @@ type QueueRow = AnonymousPaperObservation & { readonly id: string };
 
 const openDb = (): Promise<IDBDatabase> =>
   new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
-    request.onupgradeneeded = () => {
-      const db = request.result;
-      for (const name of [
-        "trades",
-        "cycles",
-        "learning-observations",
-        "broker-detection-feedback",
-        QUEUE_STORE,
-      ]) {
-        if (!db.objectStoreNames.contains(name)) {
-          db.createObjectStore(name, { keyPath: "id" });
-        }
-      }
-    };
+    const request = indexedDB.open(FLY_IDB_NAME, FLY_IDB_VERSION);
+    request.onupgradeneeded = () => ensureFlyIdbStores(request.result);
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error ?? new Error("idb-open"));
   });

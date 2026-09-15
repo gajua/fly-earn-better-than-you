@@ -1,31 +1,17 @@
 import type { PaperPosition, PositionCycle, TradeRecord } from "@fly/core";
 import type { TradeRepository } from "./repository";
 
-const DB_NAME = "fly-earn-better-than-you";
-const DB_VERSION = 3;
+import {
+  ensureFlyIdbStores,
+  FLY_IDB_NAME,
+  FLY_IDB_VERSION,
+} from "./idb-schema";
 const TRADE_STORE = "trades";
 const CYCLE_STORE = "cycles";
-const LEARNING_STORE = "learning-observations";
-const FEEDBACK_STORE = "broker-detection-feedback";
-
 const openDb = (): Promise<IDBDatabase> =>
   new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
-    request.onupgradeneeded = () => {
-      const db = request.result;
-      if (!db.objectStoreNames.contains(TRADE_STORE)) {
-        db.createObjectStore(TRADE_STORE, { keyPath: "id" });
-      }
-      if (!db.objectStoreNames.contains(CYCLE_STORE)) {
-        db.createObjectStore(CYCLE_STORE, { keyPath: "id" });
-      }
-      if (!db.objectStoreNames.contains(LEARNING_STORE)) {
-        db.createObjectStore(LEARNING_STORE, { keyPath: "id" });
-      }
-      if (!db.objectStoreNames.contains(FEEDBACK_STORE)) {
-        db.createObjectStore(FEEDBACK_STORE, { keyPath: "id" });
-      }
-    };
+    const request = indexedDB.open(FLY_IDB_NAME, FLY_IDB_VERSION);
+    request.onupgradeneeded = () => ensureFlyIdbStores(request.result);
     request.onsuccess = () => resolve(request.result);
     request.onerror = () =>
       reject(request.error ?? new Error("idb-open-failed"));

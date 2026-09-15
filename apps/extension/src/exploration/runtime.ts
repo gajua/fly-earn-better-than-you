@@ -22,7 +22,12 @@ import {
 } from "@fly/core";
 import type { ResolvedLocale } from "../i18n";
 import type { ExtensionPreferences } from "../storage/preferences";
-import { readExplorationMemory, writeExplorationMemory } from "./memory-store";
+import {
+  readExplorationCursor,
+  readExplorationMemory,
+  writeExplorationCursor,
+  writeExplorationMemory,
+} from "./memory-store";
 
 export interface ExplorationHint {
   readonly motion: ExplorationMotion;
@@ -62,6 +67,7 @@ const watchingReasons = (reasons: readonly string[]): string[] => {
   return unique.map((reason) => labels[reason] ?? reason).slice(0, 4);
 };
 
+/** @deprecated Production UX uses current-symbol Paper Fly only. Enable via `autonomousExploration: true`. */
 export const startExplorationRuntime = (input: {
   readonly adapter: BrokerAdapter;
   readonly getNeural: () => BrainOutput | null;
@@ -79,13 +85,7 @@ export const startExplorationRuntime = (input: {
   const explorer: BrokerUIExplorer | null =
     input.adapter.id === "binance" ? createBinanceUiExplorer(document) : null;
   const universe = createBinanceUniverseProvider({
-    visibleSymbols: () => {
-      const labels = Array.from(document.querySelectorAll("a, div, span"))
-        .map((node) => node.textContent?.trim() ?? "")
-        .filter((text) => /^[A-Z0-9]{2,10}\/[A-Z]{3,5}$/.test(text))
-        .map((text) => text.replace("/", ""));
-      return labels.slice(0, 8);
-    },
+    visibleSymbols: () => [],
   });
 
   const buildHud = (
@@ -157,14 +157,19 @@ export const startExplorationRuntime = (input: {
 
   const loop = async () => {
     let memory: FlyMemory = await readExplorationMemory();
-    let state: ExplorationState = "SLEEP";
-    let symbol =
+    const cursor = await readExplorationCursor();
+    const pageSymbol =
       (await explorer?.getCurrentSymbol()) ??
       input.adapter.readCurrentAsset()?.symbol ??
       "BTCUSDT";
-    let timeframe: Timeframe = "1d";
+    let state: ExplorationState = cursor?.state ?? "SLEEP";
+    let symbol = pageSymbol;
+    let timeframe: Timeframe = cursor?.timeframe ?? "1d";
+    if (cursor && cursor.symbol !== pageSymbol) {
+      state = "INSPECT_SYMBOL";
+    }
     const prefs0 = input.getPreferences();
-    if (prefs0.autonomousExploration) {
+    if (prefs0.autonomousExploration && !cursor) {
       input.onWakeNotice(
         input.locale === "ko"
           ? "🪰 Fly가 깨어났어. 시장을 둘러보기 위해 화면을 잠깐 조종할게."
@@ -177,6 +182,12 @@ export const startExplorationRuntime = (input: {
       const speed: ExplorationSpeed = prefs.explorationSpeed;
       const paused =
         pausedLocal || prefs.explorationPaused || !prefs.autonomousExploration;
+      if (!paused && explorer) {
+        const domSymbol = await explorer.getCurrentSymbol();
+        if (domSymbol) symbol = domSymbol;
+        const domTimeframe = await explorer.getCurrentTimeframe();
+        if (domTimeframe) timeframe = domTimeframe;
+      }
       if (!prefs.flyActivityHud) {
         hint = null;
         input.onHint(null);
@@ -214,6 +225,7 @@ export const startExplorationRuntime = (input: {
       symbol = result.symbol;
       timeframe = result.timeframe;
       await writeExplorationMemory(memory);
+      await writeExplorationCursor({ state, symbol, timeframe });
 
       let uiNote: string | undefined;
       if (
@@ -228,6 +240,14 @@ export const startExplorationRuntime = (input: {
             input.locale === "ko"
               ? "차트 UI를 조작하지 못했어 — 시세는 직접 관찰 중."
               : "Could not control chart UI — observing market data directly";
+        } else if (nav.reason === "url-assign") {
+          const hud = prefs.flyActivityHud
+            ? buildHud(result, prefs, uiNote)
+            : null;
+          hint = { motion: result.motion, thought: result.thought, hud };
+          input.onHint(hint);
+          await sleep(Math.max(400, result.dwellMs), controller.signal);
+          continue;
         } else {
           await explorer.focusChart();
         }

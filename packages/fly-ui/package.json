@@ -5,7 +5,8 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./shadow-fly": "./src/shadow-fly.ts"
+    "./shadow-fly": "./src/shadow-fly.ts",
+    "./paper-overlay-types": "./src/paper-overlay-types.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"

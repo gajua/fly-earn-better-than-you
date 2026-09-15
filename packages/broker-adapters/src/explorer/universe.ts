@@ -22,6 +22,12 @@ export const createBinanceUniverseProvider = (options?: {
     ) => {
       const normalized = toUsdt(symbol);
       if (!normalized.endsWith("USDT") || seen.has(normalized)) return;
+      if (
+        source === "public-liquidity" &&
+        !(DEFAULT_SYMBOL_SEEDS as readonly string[]).includes(normalized)
+      ) {
+        return;
+      }
       seen.add(normalized);
       out.push({ symbol: normalized, source, quoteVolume });
     };

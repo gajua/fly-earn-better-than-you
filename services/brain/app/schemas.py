@@ -116,3 +116,48 @@ class ConnectomeDebugModel(ApiModel):
 class EvaluateResponse(ApiModel):
     brainOutput: BrainOutputModel
     connectome: ConnectomeDebugModel
+
+
+class ChartModuleOutputModel(ApiModel):
+    bullish: float = Field(ge=0, le=1)
+    bearish: float = Field(ge=0, le=1)
+    neutral: float = Field(ge=0, le=1)
+    confidence: float = Field(ge=0, le=1)
+
+
+class VolumeModuleOutputModel(ApiModel):
+    activity: float = Field(ge=0, le=1)
+    spike: float = Field(ge=0, le=1)
+    confidence: float = Field(ge=0, le=1)
+
+
+class RiskModuleOutputModel(ApiModel):
+    risk: float = Field(ge=0, le=1)
+    instability: float = Field(ge=0, le=1)
+    confidence: float = Field(ge=0, le=1)
+
+
+class ScannerModuleOutputModel(ApiModel):
+    interest: float = Field(ge=0, le=1)
+    novelty: float = Field(ge=0, le=1)
+    revisitScore: float = Field(ge=0, le=1)
+
+
+DecisionIntent = Literal["IGNORE", "WATCH", "APPROACH_BUY", "APPROACH_SELL"]
+
+
+class DecisionModuleOutputModel(ApiModel):
+    intent: DecisionIntent
+    buyDrive: float = Field(ge=0, le=1)
+    sellDrive: float = Field(ge=0, le=1)
+    confidence: float = Field(ge=0, le=1)
+
+
+class EvaluateModularResponse(ApiModel):
+    brainOutput: BrainOutputModel
+    chart: ChartModuleOutputModel
+    volume: VolumeModuleOutputModel
+    risk: RiskModuleOutputModel
+    scanner: ScannerModuleOutputModel
+    decision: DecisionModuleOutputModel
+    modelVersion: str = Field(min_length=1)

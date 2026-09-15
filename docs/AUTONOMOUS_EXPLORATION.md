@@ -1,5 +1,9 @@
 # Autonomous Exploration v1
 
+> **Historical / dev-only.** Production UX is
+> [Current-symbol Paper Fly](./CURRENT_SYMBOL_PAPER_FLY.md). Enable this path
+> only with `autonomousExploration: true` in extension preferences.
+
 Fly can roam a supported trading screen, inspect several symbols and
 timeframes, and only rarely approach Paper BUY/SELL.
 

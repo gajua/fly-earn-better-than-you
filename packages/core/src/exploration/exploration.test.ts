@@ -162,6 +162,21 @@ describe("symbol / timeframe selection and intents", () => {
     });
     expect(nextTimeframe(after1d, "BTCUSDT", "1d", 0.8)).toBe("4h");
     expect(nextTimeframe(after1d, "BTCUSDT", "1d", 0.1)).toBe("4h");
+    const after4h = recordObservation(after1d, {
+      symbol: "BTCUSDT",
+      timeframe: "4h",
+      now: 2,
+      features: quietFeatures(),
+    });
+    expect(nextTimeframe(after4h, "BTCUSDT", "4h", 0.1)).toBe("1h");
+    expect(nextTimeframe(after4h, "BTCUSDT", "4h", 0.8)).toBe("1h");
+    const after1h = recordObservation(after4h, {
+      symbol: "BTCUSDT",
+      timeframe: "1h",
+      now: 3,
+      features: quietFeatures(),
+    });
+    expect(nextTimeframe(after1h, "BTCUSDT", "1h", 0.1)).toBe(null);
   });
 
   it("defaults to IGNORE/WATCH instead of BUY/SELL", () => {

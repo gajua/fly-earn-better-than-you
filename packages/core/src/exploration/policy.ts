@@ -1,5 +1,6 @@
 import type { BrainOutput, Timeframe } from "../types";
 import {
+  DEFAULT_SYMBOL_SEEDS,
   EXPLORATION_EPSILON,
   EXPLORATION_TIMEFRAMES,
   HIGH_INTEREST_THRESHOLD,
@@ -98,21 +99,19 @@ export const selectSymbol = (
   random: () => number,
 ): RankedCandidate | null => {
   if (ranked.length === 0) return null;
-  const sorted = [...ranked].sort((a, b) => b.score - a.score);
+  const seedRank = (symbol: string): number => {
+    const index = (DEFAULT_SYMBOL_SEEDS as readonly string[]).indexOf(symbol);
+    return index < 0 ? 99 : index;
+  };
+  const sorted = [...ranked].sort(
+    (a, b) => b.score - a.score || seedRank(a.symbol) - seedRank(b.symbol),
+  );
   if (random() < EXPLORATION_EPSILON) {
     const explorePool = sorted.filter((item) => item.symbol !== current);
     const pool = explorePool.length > 0 ? explorePool : sorted;
     return pool[Math.floor(random() * pool.length)] ?? sorted[0]!;
   }
-  const top = sorted.slice(0, Math.min(3, sorted.length));
-  const weights = top.map((item) => Math.max(0.05, item.score));
-  const total = weights.reduce((sum, value) => sum + value, 0);
-  let pick = random() * total;
-  for (let index = 0; index < top.length; index += 1) {
-    pick -= weights[index]!;
-    if (pick <= 0) return top[index]!;
-  }
-  return top[0]!;
+  return sorted[0]!;
 };
 
 export const nextTimeframe = (
@@ -127,7 +126,9 @@ export const nextTimeframe = (
   );
   if (remaining.length === 0) return null;
   if (interest < INTEREST_THRESHOLD) {
-    return remaining[0] === "1d" || remaining[0] === "4h"
+    return remaining[0] === "1d" ||
+      remaining[0] === "4h" ||
+      remaining[0] === "1h"
       ? remaining[0]!
       : null;
   }

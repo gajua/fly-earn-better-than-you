@@ -47,6 +47,11 @@ import {
   normalizePreferences,
   type ExtensionPreferences,
 } from "./storage/preferences";
+import {
+  readLocalLearningStats,
+  recordModularObservation,
+  resolveDueOutcomes,
+} from "./background/local-learning";
 
 const GLOBAL_LEARNING_ENABLED =
   typeof __FLY_GLOBAL_LEARNING_ENABLED__ !== "undefined"
@@ -142,12 +147,20 @@ const refreshBrokerPresence = async () => {
 
 void restrictSessionStorage();
 chrome.runtime.onInstalled.addListener(() => {
+  void chrome.alarms.create("resolve-learning-outcomes", {
+    periodInMinutes: 5,
+  });
   void restrictSessionStorage();
   void refreshBrokerPresence();
 });
 chrome.runtime.onStartup.addListener(() => {
   void restrictSessionStorage();
   void refreshBrokerPresence();
+});
+
+chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name !== "resolve-learning-outcomes") return;
+  void resolveDueOutcomes();
 });
 
 chrome.tabs.onUpdated.addListener(() => void refreshBrokerPresence());
@@ -339,6 +352,76 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         origins: [...broker.optionalHostPermissions],
       });
       sendResponse({ ok: granted });
+      return;
+    }
+
+    if (kind === "get-local-learning-stats") {
+      try {
+        sendResponse({ ok: true, stats: await readLocalLearningStats() });
+      } catch (error) {
+        sendResponse({
+          ok: false,
+          reason: error instanceof Error ? error.message : "stats-failed",
+        });
+      }
+      return;
+    }
+
+    if (kind === "record-modular-observation") {
+      try {
+        const preferences = await readPreferences();
+        const payload = (
+          message as {
+            payload: Omit<
+              Parameters<typeof recordModularObservation>[0],
+              "preferences"
+            >;
+          }
+        ).payload;
+        sendResponse({
+          ok: true,
+          result: await recordModularObservation({
+            ...payload,
+            preferences,
+          }),
+        });
+      } catch (error) {
+        sendResponse({
+          ok: false,
+          reason: error instanceof Error ? error.message : "record-failed",
+        });
+      }
+      return;
+    }
+
+    if (kind === "resolve-learning-outcomes") {
+      const resolved = await resolveDueOutcomes();
+      sendResponse({ ok: true, resolved });
+      return;
+    }
+
+    if (kind === "paper-trade-notify") {
+      const preferences = await readPreferences();
+      if (!preferences.tradeNotifications) {
+        sendResponse({ ok: false, reason: "disabled" });
+        return;
+      }
+      const title = (message as { title?: string }).title ?? "Fly";
+      const body = (message as { message?: string }).message ?? "";
+      try {
+        if (chrome.notifications) {
+          await chrome.notifications.create(`fly-paper-${Date.now()}`, {
+            type: "basic",
+            iconUrl: chrome.runtime.getURL("icons/icon128.png"),
+            title,
+            message: body,
+            silent: true,
+          });
+        }
+        sendResponse({ ok: true });
+      } catch {
+        sendResponse({ ok: false, reason: "notification-failed" });
+      }
       return;
     }
 

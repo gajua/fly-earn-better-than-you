@@ -59,6 +59,13 @@ const visibleControl = document.getElementById(
   "visible-control",
 ) as HTMLInputElement;
 const activityHud = document.getElementById("activity-hud") as HTMLInputElement;
+const paperAutoTrade = document.getElementById(
+  "paper-auto-trade",
+) as HTMLInputElement;
+const tradeNotifications = document.getElementById(
+  "trade-notifications",
+) as HTMLInputElement;
+const flyOverlay = document.getElementById("fly-overlay") as HTMLInputElement;
 const presetVersion = document.getElementById("preset-version")!;
 const presetSource = document.getElementById("preset-source")!;
 const communityObservations = document.getElementById(
@@ -69,6 +76,10 @@ const buyThreshold = document.getElementById("buy-threshold")!;
 const sellThreshold = document.getElementById("sell-threshold")!;
 const queuedObservations = document.getElementById("queued-observations")!;
 const lastSync = document.getElementById("last-sync")!;
+const localObservations = document.getElementById("local-observations")!;
+const localOutcomes = document.getElementById("local-outcomes")!;
+const localModuleSamples = document.getElementById("local-module-samples")!;
+const localClosedTrades = document.getElementById("local-closed-trades")!;
 const performance = document.getElementById("performance")!;
 const brainPerformance = document.getElementById("brain-performance")!;
 
@@ -248,8 +259,31 @@ const showMain = async (
   explorationSpeed.value = preferences.explorationSpeed;
   visibleControl.checked = preferences.visibleBrowserControl;
   activityHud.checked = preferences.flyActivityHud;
+  paperAutoTrade.checked = preferences.paperAutoTrade;
+  tradeNotifications.checked = preferences.tradeNotifications;
+  flyOverlay.checked = preferences.flyOverlayEnabled;
 
   await loadGlobalLearning(preferences);
+  const localStats = (await chrome.runtime.sendMessage({
+    kind: "get-local-learning-stats",
+  })) as {
+    ok?: boolean;
+    stats?: {
+      observations: number;
+      resolvedOutcomes: number;
+      chartSamples: number;
+      volumeSamples: number;
+      riskSamples: number;
+      scannerSamples: number;
+      closedTrades: number;
+    };
+  };
+  if (localStats.stats) {
+    localObservations.textContent = String(localStats.stats.observations);
+    localOutcomes.textContent = String(localStats.stats.resolvedOutcomes);
+    localModuleSamples.textContent = `${localStats.stats.chartSamples} / ${localStats.stats.volumeSamples} / ${localStats.stats.riskSamples} / ${localStats.stats.scannerSamples}`;
+    localClosedTrades.textContent = String(localStats.stats.closedTrades);
+  }
   await loadPerformance();
 
   // Keep explicit save/reset flashes visible after async refresh.
@@ -317,6 +351,9 @@ document.getElementById("save-prefs")!.addEventListener("click", () => {
         explorationSpeed.value as ExtensionPreferences["explorationSpeed"],
       visibleBrowserControl: visibleControl.checked,
       flyActivityHud: activityHud.checked,
+      paperAutoTrade: paperAutoTrade.checked,
+      tradeNotifications: tradeNotifications.checked,
+      flyOverlayEnabled: flyOverlay.checked,
       riskPolicy: {
         ...current.riskPolicy,
         maxTradingCapital:

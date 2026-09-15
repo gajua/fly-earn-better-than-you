@@ -98,6 +98,7 @@ export const setExtensionPreferences = async (
       visibleBrowserControl: false,
       flyActivityHud: false,
       explorationPaused: false,
+      localDataCollection: false,
     };
     await chrome.storage.local.set({
       "fly-preferences": { ...defaults, ...prefs },
@@ -144,6 +145,7 @@ export type E2EDiagnostics = {
   }>;
   output?: { state?: string } | null;
   brokerClickCount?: number;
+  localModularRecordCount?: number;
   fly?: {
     root?: boolean;
     shadow?: boolean;
