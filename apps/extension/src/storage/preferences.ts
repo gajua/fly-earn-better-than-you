@@ -41,6 +41,12 @@ export interface ExtensionPreferences {
   readonly visibleBrowserControl: boolean;
   readonly flyActivityHud: boolean;
   readonly explorationPaused: boolean;
+  /** Auto Paper BUY/SELL on current symbol (no confirmation). */
+  readonly paperAutoTrade: boolean;
+  /** In-page toasts + optional Chrome notifications on Paper fills. */
+  readonly tradeNotifications: boolean;
+  /** Show corner Fly + compact Paper card on broker pages. */
+  readonly flyOverlayEnabled: boolean;
   /** Local observation/module/outcome dataset (works without Supabase). */
   readonly localDataCollection: boolean;
   /** @deprecated use globalLearningConsent / contributeAnonymousLearning */
@@ -66,11 +72,14 @@ export const DEFAULT_PREFERENCES: ExtensionPreferences = {
   learningMinSamples: 30,
   startingPaperCapital: 1_000_000,
   calibrationProfile: DEFAULT_CALIBRATION_PROFILE,
-  autonomousExploration: true,
+  autonomousExploration: false,
   explorationSpeed: "normal",
-  visibleBrowserControl: true,
-  flyActivityHud: true,
+  visibleBrowserControl: false,
+  flyActivityHud: false,
   explorationPaused: false,
+  paperAutoTrade: true,
+  tradeNotifications: true,
+  flyOverlayEnabled: true,
   localDataCollection: true,
 };
 
@@ -133,11 +142,14 @@ export const normalizePreferences = (
     },
     enabledBrokerIds:
       value?.enabledBrokerIds ?? DEFAULT_PREFERENCES.enabledBrokerIds,
-    autonomousExploration: value?.autonomousExploration ?? true,
+    autonomousExploration: value?.autonomousExploration ?? false,
     explorationSpeed: value?.explorationSpeed ?? "normal",
-    visibleBrowserControl: value?.visibleBrowserControl ?? true,
-    flyActivityHud: value?.flyActivityHud ?? true,
+    visibleBrowserControl: value?.visibleBrowserControl ?? false,
+    flyActivityHud: value?.flyActivityHud ?? false,
     explorationPaused: value?.explorationPaused ?? false,
+    paperAutoTrade: value?.paperAutoTrade ?? true,
+    tradeNotifications: value?.tradeNotifications ?? true,
+    flyOverlayEnabled: value?.flyOverlayEnabled ?? true,
     localDataCollection: value?.localDataCollection ?? true,
   };
 };

@@ -77,6 +77,19 @@ declare namespace chrome {
     }): Promise<boolean>;
   }
 
+  namespace notifications {
+    function create(
+      id: string,
+      options: {
+        type: "basic";
+        iconUrl?: string;
+        title: string;
+        message: string;
+        silent?: boolean;
+      },
+    ): Promise<string>;
+  }
+
   namespace alarms {
     interface Alarm {
       name: string;

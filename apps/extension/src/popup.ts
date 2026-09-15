@@ -59,6 +59,13 @@ const visibleControl = document.getElementById(
   "visible-control",
 ) as HTMLInputElement;
 const activityHud = document.getElementById("activity-hud") as HTMLInputElement;
+const paperAutoTrade = document.getElementById(
+  "paper-auto-trade",
+) as HTMLInputElement;
+const tradeNotifications = document.getElementById(
+  "trade-notifications",
+) as HTMLInputElement;
+const flyOverlay = document.getElementById("fly-overlay") as HTMLInputElement;
 const presetVersion = document.getElementById("preset-version")!;
 const presetSource = document.getElementById("preset-source")!;
 const communityObservations = document.getElementById(
@@ -252,6 +259,9 @@ const showMain = async (
   explorationSpeed.value = preferences.explorationSpeed;
   visibleControl.checked = preferences.visibleBrowserControl;
   activityHud.checked = preferences.flyActivityHud;
+  paperAutoTrade.checked = preferences.paperAutoTrade;
+  tradeNotifications.checked = preferences.tradeNotifications;
+  flyOverlay.checked = preferences.flyOverlayEnabled;
 
   await loadGlobalLearning(preferences);
   const localStats = (await chrome.runtime.sendMessage({
@@ -341,6 +351,9 @@ document.getElementById("save-prefs")!.addEventListener("click", () => {
         explorationSpeed.value as ExtensionPreferences["explorationSpeed"],
       visibleBrowserControl: visibleControl.checked,
       flyActivityHud: activityHud.checked,
+      paperAutoTrade: paperAutoTrade.checked,
+      tradeNotifications: tradeNotifications.checked,
+      flyOverlayEnabled: flyOverlay.checked,
       riskPolicy: {
         ...current.riskPolicy,
         maxTradingCapital:

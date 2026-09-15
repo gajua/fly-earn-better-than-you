@@ -214,18 +214,18 @@ Not Stable. Login / portfolio remain **NOT VERIFIED**. Live order click/submit i
 
 ---
 
-## Autonomous exploration (Binance Spot)
+## Current-symbol Paper Fly (default UX)
 
-On Binance, Fly can walk the market instead of only hovering BUY/SELL:
+Fly watches **the symbol on the page you opened** — no automatic navigation to
+other markets. Multi-timeframe analysis runs in the background; the broker UI
+timeframe is not clicked.
 
-- scan a small USDT universe (BTC / ETH / SOL and a few liquid pairs)
-- look at 1d → 4h → 1h → 15m when something looks interesting
-- show a compact HUD (symbol, timeframe, curiosity, why it’s looking)
-- **not trading is normal** — Paper proposals wait until enough observation
+Paper mode can auto BUY/SELL on that symbol using your virtual starting capital.
+Live-assist never auto-clicks real order buttons.
 
-Screen control never clicks BUY/SELL or order submit. Pause from the HUD or popup.
-
-Details: [`docs/AUTONOMOUS_EXPLORATION.md`](docs/AUTONOMOUS_EXPLORATION.md).
+Details: [`docs/CURRENT_SYMBOL_PAPER_FLY.md`](docs/CURRENT_SYMBOL_PAPER_FLY.md).
+Legacy autonomous exploration:
+[`docs/AUTONOMOUS_EXPLORATION.md`](docs/AUTONOMOUS_EXPLORATION.md) (dev-only).
 
 ---
 

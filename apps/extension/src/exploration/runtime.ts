@@ -67,6 +67,7 @@ const watchingReasons = (reasons: readonly string[]): string[] => {
   return unique.map((reason) => labels[reason] ?? reason).slice(0, 4);
 };
 
+/** @deprecated Production UX uses current-symbol Paper Fly only. Enable via `autonomousExploration: true`. */
 export const startExplorationRuntime = (input: {
   readonly adapter: BrokerAdapter;
   readonly getNeural: () => BrainOutput | null;

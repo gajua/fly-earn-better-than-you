@@ -88,6 +88,16 @@ export const maybeExecutePaperTrade = async (
 
   const positions = await readPaperPositions();
   const cycles = await readPaperCycles();
+  if (proposal.side === "buy") {
+    const existingLong = positions.find(
+      (position) =>
+        position.instrumentId === proposal.instrumentId &&
+        position.quantity > 0,
+    );
+    if (existingLong) {
+      return { ok: false, reason: "already-long" };
+    }
+  }
   let quantity = proposal.quantity ?? 1;
   if (proposal.side === "sell") {
     const owned =

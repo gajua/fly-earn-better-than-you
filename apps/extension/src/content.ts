@@ -34,6 +34,9 @@ import {
   paperQuantityForPrice,
 } from "./orders";
 import type { ExtensionPreferences } from "./storage/preferences";
+import { buildPaperCardSnapshot } from "./content/paper-snapshot";
+import { notifyPaperFill } from "./content/paper-trade-notify";
+import type { PaperFlyUxState } from "@fly/fly-ui/paper-overlay-types";
 
 declare const __FLY_E2E__: boolean;
 
@@ -241,6 +244,74 @@ const start = async () => {
     lastTimeframe: null,
   };
   let localModularRecordCount = 0;
+  const paperOverlay = {
+    starting: livePreferences?.startingPaperCapital ?? 1_000_000,
+    equity: livePreferences?.startingPaperCapital ?? 1_000_000,
+    returnPct: 0,
+    hasPosition: false,
+    unrealizedPct: null as number | null,
+    avgEntry: null as number | null,
+  };
+
+  const uxStateLabel = (state: PaperFlyUxState): string =>
+    t(`fly.ux.${state}` as "fly.ux.OBSERVING", locale);
+
+  const refreshPaperOverlay = async (
+    instrumentId?: string,
+    markPrice?: number,
+  ): Promise<void> => {
+    const res = (await chrome.runtime.sendMessage({
+      kind: "get-performance",
+      range: "all",
+    })) as {
+      ok?: boolean;
+      paper?: {
+        totalReturnPercent?: number;
+        unrealizedPnl?: number;
+        netRealizedPnl?: number;
+      };
+      extended?: { startingPaperCapital?: number; totalReturnPercent?: number };
+      exposure?: {
+        positions?: {
+          instrumentId: string;
+          quantity: number;
+          averagePrice: number;
+          marketPrice: number;
+        }[];
+      };
+    };
+    if (!res?.ok) return;
+    const starting =
+      res.extended?.startingPaperCapital ??
+      livePreferences?.startingPaperCapital ??
+      paperOverlay.starting;
+    paperOverlay.starting = starting;
+    const ret =
+      res.paper?.totalReturnPercent ?? res.extended?.totalReturnPercent ?? 0;
+    paperOverlay.returnPct = ret;
+    paperOverlay.equity = starting * (1 + ret / 100);
+    const pos = res.exposure?.positions?.find(
+      (row) =>
+        instrumentId && row.instrumentId === instrumentId && row.quantity > 0,
+    );
+    paperOverlay.hasPosition = Boolean(pos);
+    paperOverlay.avgEntry = pos?.averagePrice ?? null;
+    if (pos && markPrice && pos.averagePrice > 0) {
+      paperOverlay.unrealizedPct =
+        ((markPrice - pos.averagePrice) / pos.averagePrice) * 100;
+    } else if (pos && pos.marketPrice > 0 && pos.averagePrice > 0) {
+      paperOverlay.unrealizedPct =
+        ((pos.marketPrice - pos.averagePrice) / pos.averagePrice) * 100;
+    } else {
+      paperOverlay.unrealizedPct = null;
+    }
+  };
+
+  void refreshPaperOverlay();
+  const paperOverlayTimer = window.setInterval(
+    () => void refreshPaperOverlay(),
+    4_000,
+  );
 
   const recordLocalModular = (
     environment: NonNullable<
@@ -302,7 +373,11 @@ const start = async () => {
       dataProviderError,
     );
     sessionMessage =
-      explorationHint?.thought || (bubbleKey ? t(bubbleKey, locale) : "");
+      livePreferences?.autonomousExploration === true
+        ? explorationHint?.thought || (bubbleKey ? t(bubbleKey, locale) : "")
+        : bubbleKey
+          ? t(bubbleKey, locale)
+          : "";
     const resolved = adapter.resolveTargets();
     await chrome.runtime.sendMessage({
       kind: "runtime-status",
@@ -351,289 +426,402 @@ const start = async () => {
     return session;
   };
 
-  const handle = mountShadowFly(document, {
-    adapter,
-    brain: {
-      async evaluate(environment) {
-        const loginState = adapter.detectLoginState();
-        const page = adapter.detectPageContext();
-        const guestOk = guestMarketOk();
-
-        if (__FLY_E2E__ && e2eForcedOutput) {
-          brainUnavailable = false;
-          const output = e2eForcedOutput;
-          latestOutput = output;
-          await publish();
-
-          const canTradePage =
-            page.pageKind === "trade" || page.pageKind === "asset-detail";
-          if (
-            tradingMode === "paper" &&
-            canTradePage &&
-            environment.asset &&
-            (output.state === "approach_buy" ||
-              output.state === "approach_sell") &&
-            ((output.state === "approach_buy" &&
-              output.buyDrive > thresholds.buyThreshold) ||
-              (output.state === "approach_sell" &&
-                output.sellDrive > thresholds.sellThreshold))
-          ) {
-            const side = output.state === "approach_buy" ? "buy" : "sell";
-            const quantity = paperQuantityForPrice(environment.asset.price);
-            if (quantity <= 0) {
-              return output;
-            }
-            const proposal = createOrderProposal({
-              broker: adapter.id,
-              symbol: environment.asset.symbol,
-              instrumentId:
-                environment.asset.instrumentId ??
-                demoInstrumentId(environment.asset.symbol),
-              side,
-              price: environment.asset.price,
-              quantity,
-              brainOutput: output,
-              brainMode: mode,
-              marketFeatures: marketFeaturesFromEnvironment(environment),
-            });
-            await chrome.runtime.sendMessage({
-              kind: "paper-trade",
-              proposal,
-            });
-          }
-
-          if (environment.asset?.instrumentId) {
-            void chrome.runtime.sendMessage({
-              kind: "mark-to-market",
-              quotes: [
-                {
-                  instrumentId: environment.asset.instrumentId,
-                  price: environment.asset.price,
-                  observedAt: new Date().toISOString(),
-                },
-              ],
-            });
-          }
-
-          return output;
-        }
-
-        if (loginState === "LOGGED_OUT" && !guestOk) {
-          brainUnavailable = false;
-          dataProviderError = false;
-          latestOutput = {
-            state: "login_hint",
-            buyDrive: 0,
-            sellDrive: 0,
-            curiosity: 0.2,
-            danger: 0,
-            activity: 0.1,
-          };
-          await publish();
-          return latestOutput;
-        }
-
-        if (page.pageKind === "unknown" || page.confidence < 0.8) {
-          latestOutput = {
-            state: "explore",
-            buyDrive: 0,
-            sellDrive: 0,
-            curiosity: 0.3,
-            danger: 0,
-            activity: 0.2,
-          };
-          await publish();
-          return latestOutput;
-        }
-
-        latestObservations = await buildTimeframeObservations();
-        const usable = filterUsableTimeframeObservations(latestObservations);
-        dataProviderError = usable.length === 0;
-        if (dataProviderError && !(__FLY_E2E__ && e2eForcedOutput)) {
-          if (
-            __FLY_E2E__ &&
-            livePreferences?.localDataCollection !== false &&
-            mode === "mock" &&
-            environment.asset &&
-            environment.asset.price > 0
-          ) {
-            const modular = evaluateModularMock(environment);
-            recordLocalModular(environment, modular, "1h");
-          }
-          latestOutput = {
-            state: "sleep",
-            buyDrive: 0,
-            sellDrive: 0,
-            curiosity: 0,
-            danger: 0,
-            activity: 0,
-          };
-          await publish();
-          return latestOutput;
-        }
-
-        const aggregated = aggregateTimeframeObservations(usable, environment);
-        const slice = exploration?.latest();
-        const observed =
-          slice?.memory.observations[slice.symbol]?.[slice.timeframe]?.features;
-        const marketExtras = observed ? featuresToMarketSlice(observed) : null;
-        const environmentForBrain = marketExtras
-          ? {
-              ...aggregated,
-              market: {
-                ...aggregated.market,
-                novelty: marketExtras.novelty,
-                trendConflict: marketExtras.trendConflict,
+  const handle =
+    livePreferences?.flyOverlayEnabled === false
+      ? { destroy() {} }
+      : mountShadowFly(document, {
+          adapter,
+          simplePaperMode: livePreferences?.autonomousExploration !== true,
+          paperCardLabels: {
+            flyTitle: "Fly",
+            virtualCapital: t("overlay.virtualCapital", locale),
+            cumulative: t("overlay.cumulative", locale),
+            start: t("overlay.start", locale),
+            current: t("overlay.current", locale),
+            position: t("overlay.position", locale),
+            unrealized: t("overlay.unrealized", locale),
+          },
+          paperCard: () => {
+            const asset = adapter.readCurrentAsset();
+            if (!asset?.symbol) return null;
+            const sleeping =
+              brainUnavailable || (dataProviderError && !e2eForcedOutput);
+            return buildPaperCardSnapshot({
+              symbol: asset.symbol,
+              output: latestOutput,
+              startingCapital: paperOverlay.starting,
+              currentEquity: paperOverlay.equity,
+              cumulativeReturnPct: paperOverlay.returnPct,
+              hasPosition: paperOverlay.hasPosition,
+              unrealizedPct: paperOverlay.unrealizedPct,
+              avgEntry: paperOverlay.avgEntry,
+              sleeping,
+              uxStateLabels: {
+                OBSERVING: uxStateLabel("OBSERVING"),
+                WATCHING: uxStateLabel("WATCHING"),
+                BUYING: uxStateLabel("BUYING"),
+                HOLDING: uxStateLabel("HOLDING"),
+                SELLING: uxStateLabel("SELLING"),
+                RESTING: uxStateLabel("RESTING"),
               },
-            }
-          : aggregated;
+              positionNoneLabel: t("overlay.positionNone", locale),
+              positionHoldingLabel: t("overlay.positionHolding", locale),
+            });
+          },
+          explorationHint: () =>
+            livePreferences?.autonomousExploration === true
+              ? explorationHint
+              : null,
+          brain: {
+            async evaluate(environment) {
+              const loginState = adapter.detectLoginState();
+              const page = adapter.detectPageContext();
+              const guestOk = guestMarketOk();
 
-        const gating = shouldEvaluateBrain(brainGating, {
-          now: Date.now(),
-          symbol: environment.asset?.symbol ?? null,
-          timeframe: slice?.timeframe ?? null,
-          price: environment.asset?.price ?? null,
-          novelty: marketExtras?.novelty ?? 0,
-          trendConflict: marketExtras?.trendConflict ?? 0,
-          relativeVolume: environmentForBrain.market.volumeStrength,
-          symbolChanged:
-            brainGating.lastSymbol !== (environment.asset?.symbol ?? null),
-          timeframeChanged:
-            brainGating.lastTimeframe !== (slice?.timeframe ?? null),
-          revisit: slice?.intent === "REVISIT",
+              if (__FLY_E2E__ && e2eForcedOutput) {
+                brainUnavailable = false;
+                const output = e2eForcedOutput;
+                latestOutput = output;
+                await publish();
+
+                const canTradePage =
+                  page.pageKind === "trade" || page.pageKind === "asset-detail";
+                if (
+                  tradingMode === "paper" &&
+                  canTradePage &&
+                  environment.asset &&
+                  (output.state === "approach_buy" ||
+                    output.state === "approach_sell") &&
+                  ((output.state === "approach_buy" &&
+                    output.buyDrive > thresholds.buyThreshold) ||
+                    (output.state === "approach_sell" &&
+                      output.sellDrive > thresholds.sellThreshold))
+                ) {
+                  const side = output.state === "approach_buy" ? "buy" : "sell";
+                  const quantity = paperQuantityForPrice(
+                    environment.asset.price,
+                  );
+                  if (quantity <= 0) {
+                    return output;
+                  }
+                  const proposal = createOrderProposal({
+                    broker: adapter.id,
+                    symbol: environment.asset.symbol,
+                    instrumentId:
+                      environment.asset.instrumentId ??
+                      demoInstrumentId(environment.asset.symbol),
+                    side,
+                    price: environment.asset.price,
+                    quantity,
+                    brainOutput: output,
+                    brainMode: mode,
+                    marketFeatures: marketFeaturesFromEnvironment(environment),
+                  });
+                  await chrome.runtime.sendMessage({
+                    kind: "paper-trade",
+                    proposal,
+                  });
+                }
+
+                if (environment.asset?.instrumentId) {
+                  void chrome.runtime.sendMessage({
+                    kind: "mark-to-market",
+                    quotes: [
+                      {
+                        instrumentId: environment.asset.instrumentId,
+                        price: environment.asset.price,
+                        observedAt: new Date().toISOString(),
+                      },
+                    ],
+                  });
+                }
+
+                return output;
+              }
+
+              if (loginState === "LOGGED_OUT" && !guestOk) {
+                brainUnavailable = false;
+                dataProviderError = false;
+                latestOutput = {
+                  state: "login_hint",
+                  buyDrive: 0,
+                  sellDrive: 0,
+                  curiosity: 0.2,
+                  danger: 0,
+                  activity: 0.1,
+                };
+                await publish();
+                return latestOutput;
+              }
+
+              if (page.pageKind === "unknown" || page.confidence < 0.8) {
+                latestOutput = {
+                  state: "explore",
+                  buyDrive: 0,
+                  sellDrive: 0,
+                  curiosity: 0.3,
+                  danger: 0,
+                  activity: 0.2,
+                };
+                await publish();
+                return latestOutput;
+              }
+
+              latestObservations = await buildTimeframeObservations();
+              const usable =
+                filterUsableTimeframeObservations(latestObservations);
+              dataProviderError = usable.length === 0;
+              if (dataProviderError && !(__FLY_E2E__ && e2eForcedOutput)) {
+                if (
+                  __FLY_E2E__ &&
+                  livePreferences?.localDataCollection !== false &&
+                  mode === "mock" &&
+                  environment.asset &&
+                  environment.asset.price > 0
+                ) {
+                  const modular = evaluateModularMock(environment);
+                  recordLocalModular(environment, modular, "1h");
+                }
+                latestOutput = {
+                  state: "sleep",
+                  buyDrive: 0,
+                  sellDrive: 0,
+                  curiosity: 0,
+                  danger: 0,
+                  activity: 0,
+                };
+                await publish();
+                return latestOutput;
+              }
+
+              const aggregated = aggregateTimeframeObservations(
+                usable,
+                environment,
+              );
+              const slice = exploration?.latest();
+              const primaryTimeframe =
+                usable.find((row) => row.available)?.timeframe ?? "1h";
+              const observed =
+                slice?.memory.observations[slice.symbol]?.[slice.timeframe]
+                  ?.features;
+              const marketExtras = observed
+                ? featuresToMarketSlice(observed)
+                : null;
+              const environmentForBrain =
+                livePreferences?.autonomousExploration === true && marketExtras
+                  ? {
+                      ...aggregated,
+                      market: {
+                        ...aggregated.market,
+                        novelty: marketExtras.novelty,
+                        trendConflict: marketExtras.trendConflict,
+                      },
+                    }
+                  : aggregated;
+
+              const gating = shouldEvaluateBrain(brainGating, {
+                now: Date.now(),
+                symbol: environment.asset?.symbol ?? null,
+                timeframe:
+                  livePreferences?.autonomousExploration === true
+                    ? (slice?.timeframe ?? null)
+                    : primaryTimeframe,
+                price: environment.asset?.price ?? null,
+                novelty:
+                  marketExtras?.novelty ?? aggregated.market.novelty ?? 0,
+                trendConflict:
+                  marketExtras?.trendConflict ??
+                  aggregated.market.trendConflict ??
+                  0,
+                relativeVolume: environmentForBrain.market.volumeStrength,
+                symbolChanged:
+                  brainGating.lastSymbol !==
+                  (environment.asset?.symbol ?? null),
+                timeframeChanged:
+                  livePreferences?.autonomousExploration === true &&
+                  brainGating.lastTimeframe !== (slice?.timeframe ?? null),
+                revisit:
+                  livePreferences?.autonomousExploration === true &&
+                  slice?.intent === "REVISIT",
+              });
+              brainGating = gating.next;
+              if (
+                !gating.evaluate &&
+                latestOutput &&
+                !(__FLY_E2E__ && e2eForcedOutput)
+              ) {
+                return latestOutput;
+              }
+
+              try {
+                let output: BrainOutput;
+                const collectLocal =
+                  livePreferences?.localDataCollection !== false;
+                const timeframe =
+                  livePreferences?.autonomousExploration === true
+                    ? (slice?.timeframe ?? "1h")
+                    : primaryTimeframe;
+                if (__FLY_E2E__ && e2eForcedOutput) {
+                  output = e2eForcedOutput;
+                } else if (
+                  collectLocal &&
+                  (mode === "real-connectome" || mode === "shuffled-control")
+                ) {
+                  const modularResponse = await evaluateModularMaleCNS({
+                    environment: environmentForBrain,
+                    baseUrl: brainBaseUrl,
+                    mode:
+                      mode === "shuffled-control"
+                        ? "shuffled-control"
+                        : "malecns",
+                    fetchImpl: createBrainFetch(),
+                  });
+                  output = modularResponse.brainOutput;
+                  recordLocalModular(
+                    environmentForBrain,
+                    modularResponse,
+                    timeframe,
+                  );
+                } else if (collectLocal && mode === "mock") {
+                  const modular = evaluateModularMock(environmentForBrain);
+                  output = brainOutputFromModular(modular);
+                  recordLocalModular(environmentForBrain, modular, timeframe);
+                } else {
+                  output = await brain.evaluate(environmentForBrain);
+                }
+                brainUnavailable = false;
+                latestOutput = output;
+                await publish();
+
+                const explorationAllowsPaper =
+                  livePreferences?.autonomousExploration === true
+                    ? Boolean(exploration?.latest()?.allowPaperProposal) ||
+                      Boolean(__FLY_E2E__ && e2eForcedOutput)
+                    : livePreferences?.paperAutoTrade !== false;
+                const canTradePage =
+                  page.pageKind === "trade" || page.pageKind === "asset-detail";
+                if (
+                  tradingMode === "paper" &&
+                  canTradePage &&
+                  explorationAllowsPaper &&
+                  !brainUnavailable &&
+                  (!dataProviderError || (__FLY_E2E__ && e2eForcedOutput)) &&
+                  environment.asset &&
+                  (output.state === "approach_buy" ||
+                    output.state === "approach_sell") &&
+                  ((output.state === "approach_buy" &&
+                    output.buyDrive > thresholds.buyThreshold) ||
+                    (output.state === "approach_sell" &&
+                      output.sellDrive > thresholds.sellThreshold))
+                ) {
+                  const side = output.state === "approach_buy" ? "buy" : "sell";
+                  if (side === "sell" && !paperOverlay.hasPosition) {
+                    return output;
+                  }
+                  if (side === "buy" && paperOverlay.hasPosition) {
+                    return output;
+                  }
+                  const quantity = paperQuantityForPrice(
+                    environment.asset.price,
+                  );
+                  if (quantity <= 0) {
+                    return output;
+                  }
+                  const proposal = createOrderProposal({
+                    broker: adapter.id,
+                    symbol: environment.asset.symbol,
+                    instrumentId:
+                      environment.asset.instrumentId ??
+                      demoInstrumentId(environment.asset.symbol),
+                    side,
+                    price: environment.asset.price,
+                    quantity,
+                    brainOutput: output,
+                    brainMode: mode,
+                    marketFeatures: marketFeaturesFromEnvironment(environment),
+                  });
+                  const paperResult = (await chrome.runtime.sendMessage({
+                    kind: "paper-trade",
+                    proposal,
+                  })) as
+                    | { ok: true; trade?: { side: string; value?: number } }
+                    | { ok: false; reason?: string };
+                  if (
+                    paperResult.ok &&
+                    livePreferences?.tradeNotifications !== false
+                  ) {
+                    await refreshPaperOverlay(
+                      proposal.instrumentId,
+                      environment.asset.price,
+                    );
+                    notifyPaperFill({
+                      side,
+                      symbol: environment.asset.symbol,
+                      value: proposal.estimatedPrice * quantity,
+                      price: environment.asset.price,
+                      tradeReturnPct:
+                        side === "sell" ? paperOverlay.returnPct : undefined,
+                      pnl:
+                        side === "sell" && paperResult.trade
+                          ? undefined
+                          : undefined,
+                      cumulativeReturnPct: paperOverlay.returnPct,
+                      locale,
+                      useToast: true,
+                      useChromeNotification: true,
+                    });
+                  }
+                }
+
+                if (environment.asset?.instrumentId) {
+                  void chrome.runtime.sendMessage({
+                    kind: "mark-to-market",
+                    quotes: [
+                      {
+                        instrumentId: environment.asset.instrumentId,
+                        price: environment.asset.price,
+                        observedAt: new Date().toISOString(),
+                      },
+                    ],
+                  });
+                }
+
+                return output;
+              } catch {
+                brainUnavailable = mode !== "mock";
+                latestOutput = {
+                  state: "sleep",
+                  buyDrive: 0,
+                  sellDrive: 0,
+                  curiosity: 0,
+                  danger: 0,
+                  activity: 0,
+                };
+                await publish();
+                if (brainUnavailable) {
+                  return latestOutput;
+                }
+                throw new Error("brain-unavailable");
+              }
+            },
+          },
+          bubbleText: () =>
+            livePreferences?.autonomousExploration === true
+              ? sessionMessage || null
+              : null,
+          onPauseExploration: () => exploration?.pause(),
+          forceState: () => {
+            const loginState = adapter.detectLoginState();
+            // Only hard overrides. Let MaleCNS/Mock brain drive explore/chart/buy/sell.
+            if (loginState === "LOGGED_OUT" && !guestMarketOk())
+              return "login_hint";
+            if (!adapter.isMarketOpen()) return "sleep";
+            if (brainUnavailable || (dataProviderError && !e2eForcedOutput)) {
+              return "sleep";
+            }
+            return null;
+          },
         });
-        brainGating = gating.next;
-        if (
-          !gating.evaluate &&
-          latestOutput &&
-          !(__FLY_E2E__ && e2eForcedOutput)
-        ) {
-          return latestOutput;
-        }
-
-        try {
-          let output: BrainOutput;
-          const collectLocal = livePreferences?.localDataCollection !== false;
-          const timeframe = slice?.timeframe ?? "1h";
-          if (__FLY_E2E__ && e2eForcedOutput) {
-            output = e2eForcedOutput;
-          } else if (
-            collectLocal &&
-            (mode === "real-connectome" || mode === "shuffled-control")
-          ) {
-            const modularResponse = await evaluateModularMaleCNS({
-              environment: environmentForBrain,
-              baseUrl: brainBaseUrl,
-              mode:
-                mode === "shuffled-control" ? "shuffled-control" : "malecns",
-              fetchImpl: createBrainFetch(),
-            });
-            output = modularResponse.brainOutput;
-            recordLocalModular(environmentForBrain, modularResponse, timeframe);
-          } else if (collectLocal && mode === "mock") {
-            const modular = evaluateModularMock(environmentForBrain);
-            output = brainOutputFromModular(modular);
-            recordLocalModular(environmentForBrain, modular, timeframe);
-          } else {
-            output = await brain.evaluate(environmentForBrain);
-          }
-          brainUnavailable = false;
-          latestOutput = output;
-          await publish();
-
-          const explorationAllowsPaper =
-            !livePreferences?.autonomousExploration ||
-            Boolean(exploration?.latest()?.allowPaperProposal) ||
-            Boolean(__FLY_E2E__ && e2eForcedOutput);
-          const canTradePage =
-            page.pageKind === "trade" || page.pageKind === "asset-detail";
-          if (
-            tradingMode === "paper" &&
-            canTradePage &&
-            explorationAllowsPaper &&
-            !brainUnavailable &&
-            (!dataProviderError || (__FLY_E2E__ && e2eForcedOutput)) &&
-            environment.asset &&
-            (output.state === "approach_buy" ||
-              output.state === "approach_sell") &&
-            ((output.state === "approach_buy" &&
-              output.buyDrive > thresholds.buyThreshold) ||
-              (output.state === "approach_sell" &&
-                output.sellDrive > thresholds.sellThreshold))
-          ) {
-            const side = output.state === "approach_buy" ? "buy" : "sell";
-            const quantity = paperQuantityForPrice(environment.asset.price);
-            if (quantity <= 0) {
-              return output;
-            }
-            const proposal = createOrderProposal({
-              broker: adapter.id,
-              symbol: environment.asset.symbol,
-              instrumentId:
-                environment.asset.instrumentId ??
-                demoInstrumentId(environment.asset.symbol),
-              side,
-              price: environment.asset.price,
-              quantity,
-              brainOutput: output,
-              brainMode: mode,
-              marketFeatures: marketFeaturesFromEnvironment(environment),
-            });
-            const paperResult = chrome.runtime.sendMessage({
-              kind: "paper-trade",
-              proposal,
-            });
-            if (__FLY_E2E__) {
-              await paperResult;
-            }
-          }
-
-          if (environment.asset?.instrumentId) {
-            void chrome.runtime.sendMessage({
-              kind: "mark-to-market",
-              quotes: [
-                {
-                  instrumentId: environment.asset.instrumentId,
-                  price: environment.asset.price,
-                  observedAt: new Date().toISOString(),
-                },
-              ],
-            });
-          }
-
-          return output;
-        } catch {
-          brainUnavailable = mode !== "mock";
-          latestOutput = {
-            state: "sleep",
-            buyDrive: 0,
-            sellDrive: 0,
-            curiosity: 0,
-            danger: 0,
-            activity: 0,
-          };
-          await publish();
-          if (brainUnavailable) {
-            return latestOutput;
-          }
-          throw new Error("brain-unavailable");
-        }
-      },
-    },
-    bubbleText: () => sessionMessage || null,
-    explorationHint: () => explorationHint,
-    onPauseExploration: () => exploration?.pause(),
-    forceState: () => {
-      const loginState = adapter.detectLoginState();
-      // Only hard overrides. Let MaleCNS/Mock brain drive explore/chart/buy/sell.
-      if (loginState === "LOGGED_OUT" && !guestMarketOk()) return "login_hint";
-      if (!adapter.isMarketOpen()) return "sleep";
-      if (brainUnavailable || (dataProviderError && !e2eForcedOutput)) {
-        return "sleep";
-      }
-      return null;
-    },
-  });
 
   const captureForBridge = () => {
     const environment = adapter.readMarketEnvironment();
@@ -670,6 +858,7 @@ const start = async () => {
     "pagehide",
     () => {
       window.clearInterval(intervalId);
+      window.clearInterval(paperOverlayTimer);
       window.clearTimeout(mutationTimer);
       observer.disconnect();
       exploration?.stop();
@@ -680,7 +869,7 @@ const start = async () => {
 
   await publish();
 
-  if (livePreferences?.autonomousExploration !== false) {
+  if (livePreferences?.autonomousExploration === true) {
     exploration = startExplorationRuntime({
       adapter,
       getNeural: () => latestOutput,

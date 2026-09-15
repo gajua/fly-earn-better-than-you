@@ -9,6 +9,7 @@ import type {
   MarketEnvironment,
 } from "@fly/core";
 import { canTransition, MINIMUM_STATE_DURATION_MS } from "./state-machine";
+import type { PaperFlyCardSnapshot } from "./paper-overlay-types";
 
 export interface ShadowFlyOptions {
   readonly adapter: BrokerAdapter;
@@ -24,6 +25,18 @@ export interface ShadowFlyOptions {
     readonly hud?: HudSnapshot | null;
   } | null;
   readonly onPauseExploration?: () => void;
+  /** Current-symbol Paper UX: corner fly + compact card (no exploration HUD). */
+  readonly simplePaperMode?: boolean;
+  readonly paperCard?: () => PaperFlyCardSnapshot | null;
+  readonly paperCardLabels?: {
+    readonly flyTitle: string;
+    readonly virtualCapital: string;
+    readonly cumulative: string;
+    readonly start: string;
+    readonly current: string;
+    readonly position: string;
+    readonly unrealized: string;
+  };
 }
 
 export interface ShadowFlyHandle {
@@ -134,6 +147,33 @@ const STYLES = `
   cursor: pointer;
 }
 .hud-note { margin: 6px 0 0; opacity: 0.75; font-size: 11px; }
+.paper-card {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  width: min(240px, 88vw);
+  pointer-events: none;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(10, 14, 22, 0.92);
+  color: #e8eefc;
+  font: 12px/1.45 ui-sans-serif, system-ui, sans-serif;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.32);
+  z-index: 4;
+}
+.paper-card[hidden] { display: none; }
+.paper-card-title { font-weight: 650; margin: 0 0 2px; font-size: 13px; }
+.paper-card-symbol { margin: 0 0 6px; opacity: 0.92; }
+.paper-card-state { margin: 0 0 8px; color: #a8c4ff; font-size: 11px; }
+.paper-card-row { display: flex; justify-content: space-between; gap: 8px; margin: 2px 0; }
+.paper-card-emphasis {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255,255,255,0.12);
+  font-weight: 650;
+  font-size: 13px;
+}
+.glasses { stroke: #7eb8ff; stroke-width: 1.2; fill: none; }
 @keyframes flap {
   from { transform: scaleY(0.7) rotate(-8deg); }
   to { transform: scaleY(1.05) rotate(8deg); }
@@ -196,9 +236,19 @@ export const mountShadowFly = (
         <circle class="head" cx="17" cy="9" r="4"></circle>
         <circle class="eye" cx="15.5" cy="8.5" r="1"></circle>
         <circle class="eye" cx="18.5" cy="8.5" r="1"></circle>
+        <rect class="glasses" x="12.5" y="7" width="5" height="3.2" rx="1"></rect>
+        <rect class="glasses" x="16.5" y="7" width="5" height="3.2" rx="1"></rect>
+        <line class="glasses" x1="17.5" y1="8.6" x2="16.5" y2="8.6"></line>
       </svg>
     </div>
     <div class="bubble" hidden data-testid="fly-bubble"></div>
+    <aside class="paper-card" hidden data-testid="fly-paper-card">
+      <p class="paper-card-title" data-paper-title></p>
+      <p class="paper-card-symbol" data-paper-symbol></p>
+      <p class="paper-card-state" data-paper-state></p>
+      <div data-paper-body></div>
+      <div class="paper-card-emphasis" data-paper-emphasis></div>
+    </aside>
     <aside class="hud" hidden data-testid="fly-hud">
       <p class="hud-title" data-testid="fly-hud-title"></p>
       <p class="hud-meta" data-testid="fly-hud-meta"></p>
@@ -236,6 +286,20 @@ export const mountShadowFly = (
     "[data-testid='fly-hud-pause']",
   )!;
   hudPause.addEventListener("click", () => options.onPauseExploration?.());
+  const paperCard = overlay.querySelector<HTMLElement>(
+    "[data-testid='fly-paper-card']",
+  )!;
+  const paperTitle =
+    paperCard.querySelector<HTMLElement>("[data-paper-title]")!;
+  const paperSymbol = paperCard.querySelector<HTMLElement>(
+    "[data-paper-symbol]",
+  )!;
+  const paperState =
+    paperCard.querySelector<HTMLElement>("[data-paper-state]")!;
+  const paperBody = paperCard.querySelector<HTMLElement>("[data-paper-body]")!;
+  const paperEmphasis = paperCard.querySelector<HTMLElement>(
+    "[data-paper-emphasis]",
+  )!;
 
   let frameId = 0;
   let evaluationTimer = 0;
@@ -252,7 +316,11 @@ export const mountShadowFly = (
     danger: 0,
     activity: 0.3,
   };
-  let position = { x: -30, y: hostDocument.defaultView!.innerHeight * 0.34 };
+  const cornerAnchor = () => ({
+    x: Math.max(12, view().innerWidth - 280),
+    y: Math.max(12, view().innerHeight - 120),
+  });
+  let position = cornerAnchor();
   const velocity = { x: 0, y: 0 };
   let bubblePosition = {
     x: Math.min(hostDocument.defaultView!.innerWidth * 0.3, 320),
@@ -347,7 +415,48 @@ export const mountShadowFly = (
     }
   };
 
+  const renderPaperCard = (
+    snapshot: PaperFlyCardSnapshot | null | undefined,
+  ) => {
+    if (!options.simplePaperMode || !snapshot) {
+      paperCard.hidden = true;
+      return;
+    }
+    paperCard.hidden = false;
+    const labels = options.paperCardLabels ?? {
+      flyTitle: "Fly",
+      virtualCapital: "Virtual capital",
+      cumulative: "Cumulative",
+      start: "Start",
+      current: "Current",
+      position: "Position",
+      unrealized: "Unrealized",
+    };
+    paperTitle.textContent = `🪰 ${labels.flyTitle}`;
+    paperSymbol.textContent = snapshot.symbol;
+    paperState.textContent = snapshot.uxState;
+    const unreal =
+      snapshot.unrealizedPct != null
+        ? `<div class="paper-card-row"><span>${labels.unrealized}</span><span>${snapshot.unrealizedPct >= 0 ? "+" : ""}${snapshot.unrealizedPct.toFixed(2)}%</span></div>`
+        : "";
+    paperBody.innerHTML = [
+      `<div class="paper-card-row"><span>${labels.virtualCapital}</span><span>${snapshot.startingCapital.toLocaleString()} ${snapshot.currencyLabel}</span></div>`,
+      `<div class="paper-card-row"><span>${labels.position}</span><span>${snapshot.positionLine}</span></div>`,
+      unreal,
+    ].join("");
+    const cum = snapshot.cumulativeReturnPct;
+    paperEmphasis.innerHTML = [
+      `<div class="paper-card-row"><span>${labels.start}</span><span>${snapshot.startingCapital.toLocaleString()} ${snapshot.currencyLabel}</span></div>`,
+      `<div class="paper-card-row"><span>${labels.current}</span><span>${snapshot.currentEquity.toLocaleString()} ${snapshot.currencyLabel}</span></div>`,
+      `<div class="paper-card-row"><span>${labels.cumulative}</span><span>${cum >= 0 ? "+" : ""}${cum.toFixed(2)}%</span></div>`,
+    ].join("");
+  };
+
   const renderHud = (snapshot: HudSnapshot | null | undefined) => {
+    if (options.simplePaperMode) {
+      hud.hidden = true;
+      return;
+    }
     if (!snapshot) {
       hud.hidden = true;
       return;
@@ -399,6 +508,14 @@ export const mountShadowFly = (
   };
 
   const updateTarget = (now: number) => {
+    if (options.simplePaperMode) {
+      const base = cornerAnchor();
+      target = {
+        x: base.x + Math.cos(now * 0.0018) * 8,
+        y: base.y + Math.sin(now * 0.0022) * 6,
+      };
+      return;
+    }
     const hint = options.explorationHint?.() ?? null;
     if (hint?.motion === "rest" || state === "sleep") {
       target = { x: view().innerWidth - 56, y: view().innerHeight - 56 };
@@ -474,10 +591,13 @@ export const mountShadowFly = (
     const dy = target.y - position.y;
     const distance = Math.max(1, Math.hypot(dx, dy));
     const hint = options.explorationHint?.() ?? null;
+    renderPaperCard(options.paperCard?.() ?? null);
     renderHud(hint?.hud ?? null);
-    const speed = hint
-      ? SPEED_BY_MOTION[hint.motion] * (0.9 + Math.random() * 0.2)
-      : SPEED_BY_STATE[state] * (0.9 + Math.random() * 0.2);
+    const speed = options.simplePaperMode
+      ? 22
+      : hint
+        ? SPEED_BY_MOTION[hint.motion] * (0.9 + Math.random() * 0.2)
+        : SPEED_BY_STATE[state] * (0.9 + Math.random() * 0.2);
     if (speed > 0) {
       const desiredX = (dx / distance) * speed;
       const desiredY = (dy / distance) * speed;
@@ -490,7 +610,9 @@ export const mountShadowFly = (
     const direction = velocity.x < 0 ? -1 : 1;
     fly.style.transform = `translate3d(${position.x}px, ${position.y}px, 0) rotate(${rotation}deg) scaleX(${direction})`;
 
-    const text = options.bubbleText?.() ?? null;
+    const text = options.simplePaperMode
+      ? null
+      : (options.bubbleText?.() ?? null);
     if (text) {
       bubble.hidden = false;
       if (text !== lastBubbleText) {

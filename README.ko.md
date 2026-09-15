@@ -212,18 +212,19 @@ Binance Spot + Upbit는 **USABLE BETA**. Stable 아님. 로그인/포트폴리�
 
 ---
 
-## 자율 탐색 (Binance Spot)
+## 현재 종목 Paper Fly (기본 UX)
 
-Binance에서 Fly는 BUY/SELL 버튼만 맴돌지 않고 시장을 둘러볼 수 있습니다.
+Fly는 **지금 연 거래 페이지의 종목만** 관찰합니다. 다른 종목으로 자동
+이동하지 않습니다. 여러 시간봉 분석은 백그라운드에서 하며, 거래소 시간봉
+버튼은 클릭하지 않습니다.
 
-- BTC / ETH / SOL 등 작은 USDT 후보군
-- 관심 있으면 1d → 4h → 1h → 15m
-- HUD에서 종목 / 시간봉 / curiosity / 관찰 이유
-- **거래하지 않는 것이 정상** — 충분히 본 뒤에만 Paper proposal
+Paper 모드에서는 설정한 가상 시작 자본으로 해당 종목에 자동 가상
+매수/매도할 수 있습니다. Live-assist는 실제 주문 버튼을 자동 클릭하지
+않습니다.
 
-화면 조종은 BUY/SELL·주문 제출을 클릭하지 않습니다. HUD/팝업에서 즉시 멈출 수 있습니다.
-
-설명: [`docs/AUTONOMOUS_EXPLORATION.md`](docs/AUTONOMOUS_EXPLORATION.md).
+설명: [`docs/CURRENT_SYMBOL_PAPER_FLY.md`](docs/CURRENT_SYMBOL_PAPER_FLY.md).
+레거시 자율 탐색:
+[`docs/AUTONOMOUS_EXPLORATION.md`](docs/AUTONOMOUS_EXPLORATION.md) (dev-only).
 
 ---
 

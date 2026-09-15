@@ -99,7 +99,29 @@ export type MessageKey =
   | "popup.speedFast"
   | "popup.visibleControl"
   | "popup.activityHud"
-  | "popup.pauseExploration";
+  | "popup.pauseExploration"
+  | "popup.paperAutoTrade"
+  | "popup.tradeNotifications"
+  | "popup.flyOverlay"
+  | "popup.advancedExploration"
+  | "fly.ux.OBSERVING"
+  | "fly.ux.WATCHING"
+  | "fly.ux.BUYING"
+  | "fly.ux.HOLDING"
+  | "fly.ux.SELLING"
+  | "fly.ux.RESTING"
+  | "overlay.virtualCapital"
+  | "overlay.cumulative"
+  | "overlay.start"
+  | "overlay.current"
+  | "overlay.position"
+  | "overlay.unrealized"
+  | "overlay.positionNone"
+  | "overlay.positionHolding"
+  | "toast.paperBuyTitle"
+  | "toast.paperBuyBody"
+  | "toast.paperSellTitle"
+  | "toast.paperSellBody";
 
 export type MessageDictionary = Record<MessageKey, string>;
 
@@ -216,4 +238,27 @@ export const en: MessageDictionary = {
   "popup.visibleControl": "Visible browser control",
   "popup.activityHud": "Fly activity HUD",
   "popup.pauseExploration": "Pause exploration / stop controlling screen",
+  "popup.paperAutoTrade": "Paper auto-trading",
+  "popup.tradeNotifications": "Trade notifications",
+  "popup.flyOverlay": "Fly overlay on broker pages",
+  "popup.advancedExploration": "Advanced (deprecated autonomous exploration)",
+  "fly.ux.OBSERVING": "Observing",
+  "fly.ux.WATCHING": "Watching",
+  "fly.ux.BUYING": "Buying",
+  "fly.ux.HOLDING": "Holding",
+  "fly.ux.SELLING": "Selling",
+  "fly.ux.RESTING": "Resting",
+  "overlay.virtualCapital": "Virtual capital",
+  "overlay.cumulative": "Cumulative",
+  "overlay.start": "Start",
+  "overlay.current": "Current",
+  "overlay.position": "Position",
+  "overlay.unrealized": "Unrealized",
+  "overlay.positionNone": "None",
+  "overlay.positionHolding": "Long",
+  "toast.paperBuyTitle": "Fly bought {symbol}",
+  "toast.paperBuyBody": "Paper size: {value} · Price: {price}",
+  "toast.paperSellTitle": "Fly sold {symbol}",
+  "toast.paperSellBody":
+    "This trade: {return} · PnL: {pnl} · Cumulative: {cumulative}",
 };

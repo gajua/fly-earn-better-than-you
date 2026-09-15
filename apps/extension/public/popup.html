@@ -51,12 +51,26 @@
           <span data-i18n="popup.startingCapital">Starting paper capital</span>
           <input id="starting-capital" type="number" min="1000" step="1000" />
         </label>
+        <p class="hint">Paper uses USDT for sizing (no fake FX).</p>
+        <label class="check">
+          <input id="paper-auto-trade" type="checkbox" checked />
+          <span data-i18n="popup.paperAutoTrade">Paper auto-trading</span>
+        </label>
+        <label class="check">
+          <input id="trade-notifications" type="checkbox" checked />
+          <span data-i18n="popup.tradeNotifications">Trade notifications</span>
+        </label>
+        <label class="check">
+          <input id="fly-overlay" type="checkbox" checked />
+          <span data-i18n="popup.flyOverlay">Fly overlay on broker pages</span>
+        </label>
         <button id="save-prefs" type="button" data-i18n="popup.save">
           Save settings
         </button>
       </section>
 
-      <section class="card">
+      <section class="card" id="exploration-advanced" hidden>
+        <h2 data-i18n="popup.advancedExploration">Advanced (deprecated autonomous exploration)</h2>
         <h2 data-i18n="popup.exploration">Autonomous exploration</h2>
         <label class="check">
           <input id="exploration-on" type="checkbox" checked />

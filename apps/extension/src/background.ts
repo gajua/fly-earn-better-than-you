@@ -400,6 +400,31 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return;
     }
 
+    if (kind === "paper-trade-notify") {
+      const preferences = await readPreferences();
+      if (!preferences.tradeNotifications) {
+        sendResponse({ ok: false, reason: "disabled" });
+        return;
+      }
+      const title = (message as { title?: string }).title ?? "Fly";
+      const body = (message as { message?: string }).message ?? "";
+      try {
+        if (chrome.notifications) {
+          await chrome.notifications.create(`fly-paper-${Date.now()}`, {
+            type: "basic",
+            iconUrl: chrome.runtime.getURL("icons/icon128.png"),
+            title,
+            message: body,
+            silent: true,
+          });
+        }
+        sendResponse({ ok: true });
+      } catch {
+        sendResponse({ ok: false, reason: "notification-failed" });
+      }
+      return;
+    }
+
     if (kind === "paper-trade") {
       const preferences = await readPreferences();
       const proposal = (
